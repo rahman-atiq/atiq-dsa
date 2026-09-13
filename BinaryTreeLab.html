@@ -1,4 +1,15 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Binary Tree Lab</title>
+<!DOCTYPE html><html lang="en"><head>
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="theme-color" content="#05070d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DSA Deck">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Binary Tree Lab</title>
 <script>
 /* applied before first paint so a dark-theme reload never flashes white */
 try{ const t = localStorage.getItem('treelab.theme');
@@ -4577,5 +4588,10 @@ function boot(){
   setMode('basics');
 }
 boot();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
 </script>
 </body></html>

@@ -1,0 +1,647 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Memory Lab</title>
+<script>
+/* applied before first paint so a dark-theme reload never flashes white */
+try{ const t = localStorage.getItem('memorylab.theme');
+     if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; }catch(e){}
+</script>
+</head><body>
+<style>
+:root{
+  color-scheme:light;
+  --paper:#F4F6F7; --panel:#FFFFFF; --ink:#222B31; --mut:#5C6B75; --line:#D9E1E5;
+  --accent:#D96F24; --accent-soft:rgba(217,111,36,.14);
+  --link:#3E7BC4; --ok:#2E9E5B; --bad:#CE4A43; --pivot:#7E5BB5;
+  --pill:#33424E; --pill-ink:#F2F6F8;
+  --bar:#8FA5B3; --bar-edge:#5C6B75;
+  --code-bg:#1D242B; --code-ink:#D5DEE5; --code-dim:#6C7B87; --code-on:rgba(233,138,62,.22); --code-on-edge:#E98A3E;
+  --btn:#FFFFFF; --btn-line:#C9D3D9;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#12171B; --panel:#1A2127; --ink:#E1E8ED; --mut:#8CA0AC; --line:#2B353D;
+  --accent:#E98A3E; --accent-soft:rgba(233,138,62,.16);
+  --link:#6FA5DF; --ok:#48B478; --bad:#E0655E; --pivot:#B195E0;
+  --pill:#D7E2E9; --pill-ink:#16202B;
+  --bar:#4E626F; --bar-edge:#8CA0AC;
+  --code-bg:#141A20; --btn:#212A31; --btn-line:#39454E;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#12171B; --panel:#1A2127; --ink:#E1E8ED; --mut:#8CA0AC; --line:#2B353D;
+  --accent:#E98A3E; --accent-soft:rgba(233,138,62,.16);
+  --link:#6FA5DF; --ok:#48B478; --bad:#E0655E; --pivot:#B195E0;
+  --pill:#D7E2E9; --pill-ink:#16202B;
+  --bar:#4E626F; --bar-edge:#8CA0AC;
+  --code-bg:#141A20; --btn:#212A31; --btn-line:#39454E;
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --paper:#F4F6F7; --panel:#FFFFFF; --ink:#222B31; --mut:#5C6B75; --line:#D9E1E5;
+  --accent:#D96F24; --accent-soft:rgba(217,111,36,.14);
+  --link:#3E7BC4; --ok:#2E9E5B; --bad:#CE4A43; --pivot:#7E5BB5;
+  --pill:#33424E; --pill-ink:#F2F6F8;
+  --bar:#8FA5B3; --bar-edge:#5C6B75;
+  --code-bg:#1D242B; --btn:#FFFFFF; --btn-line:#C9D3D9;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.app{max-width:1520px;margin:0 auto;padding:14px 18px 40px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 22px;padding:4px 2px 12px}
+.brand{font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:-.02em}
+.brand .cursor{color:var(--accent)}
+.brand .sub{font-family:var(--sans);font-weight:400;font-size:12.5px;color:var(--mut);margin-left:10px;letter-spacing:0}
+.themeBtn{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut);display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.themeBtn:hover{border-color:var(--mut);color:var(--ink)}
+.work{display:grid;grid-template-columns:250px minmax(0,1fr) 400px;gap:14px;align-items:start}
+@media (max-width:1180px){.work{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.rail{display:flex;flex-direction:column;gap:12px}
+.ops{padding:10px}
+.ops h3{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut);margin:0 0 6px;font-weight:600}
+.ops h3+h3,.ops .grp+h3{margin-top:12px}
+.grp{display:flex;flex-direction:column;gap:5px}
+.grp button{text-align:left;font-size:12.5px;padding:6px 9px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;display:flex;justify-content:space-between;gap:6px;align-items:baseline;width:100%}
+.grp button:hover{border-color:var(--link)}
+.grp button .hint{font-family:var(--mono);font-size:10px;color:var(--mut);white-space:nowrap}
+.grp button.on{background:var(--pill);color:var(--pill-ink);border-color:var(--pill);font-weight:700}
+.grp button.on .hint{color:var(--pill-ink);opacity:.75}
+.grp button.bug{border-color:color-mix(in srgb,var(--bad) 45%,var(--btn-line))}
+.grp button.bug:hover{border-color:var(--bad)}
+.grp button.bug.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.grp button.bug.on .hint{color:#fff}
+/* ---- canvas ---- */
+.canvas-wrap{min-width:0}
+.scenHd{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.scenHd b{font-size:13.5px}
+.scenHd span{font-size:11.5px;color:var(--mut)}
+.canvas-scroll{overflow-x:auto;padding:4px}
+svg{display:block}
+.stats{display:flex;flex-wrap:wrap;gap:4px 8px;padding:8px 12px;border-top:1px solid var(--line)}
+.stat{font-family:var(--mono);font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:4px;padding:3px 8px}
+.stat b{color:var(--ink);font-size:12.5px;font-variant-numeric:tabular-nums}
+.stat.hot b{color:var(--accent)}
+.stat.bad b{color:var(--bad)}
+.transport{display:flex;gap:6px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);flex-wrap:wrap}
+.transport button{border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;padding:5px 10px;font-family:var(--mono);font-size:12px}
+.transport button:hover:not(:disabled){border-color:var(--link)}
+.transport button:disabled{opacity:.4;cursor:default}
+.transport button.play{background:var(--pill);color:var(--pill-ink);border-color:var(--pill);font-weight:700;min-width:78px}
+.transport select{border:1px solid var(--btn-line);background:var(--paper);border-radius:4px;padding:5px 6px;font-family:var(--mono);font-size:11.5px}
+.transport .keys{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--mut)}
+.track{height:3px;background:var(--line);border-radius:2px;margin:0 12px 10px;overflow:hidden}
+.track i{display:block;height:100%;background:var(--accent);transition:width .18s linear}
+/* svg parts */
+.colLbl{font-family:var(--mono);font-size:10px;font-weight:700;fill:var(--mut);letter-spacing:.08em}
+.fr rect.box{fill:var(--panel);stroke:var(--line);stroke-width:1.2;rx:5}
+.fr rect.hd{fill:color-mix(in srgb,var(--link) 12%,transparent);stroke:none}
+.fr .fn{font-family:var(--mono);font-size:11.5px;font-weight:700;fill:var(--link)}
+.fr .tag{font-family:var(--mono);font-size:9px;fill:var(--mut)}
+.fr.top rect.box{stroke:var(--link);stroke-width:1.8}
+.fr.dead rect.box{stroke:var(--bad);stroke-dasharray:5 3;fill:none}
+.fr.dead rect.hd{fill:color-mix(in srgb,var(--bad) 10%,transparent)}
+.fr.dead .fn{fill:var(--bad)}
+.fr.dead .nm,.fr.dead .ad,.fr.dead .val{opacity:.5}
+.ad{font-family:var(--mono);font-size:8.5px;fill:var(--mut)}
+.nm{font-family:var(--mono);font-size:11.5px;fill:var(--ink)}
+.nm tspan.ty{fill:var(--mut);font-size:10px}
+.cell rect{fill:var(--paper);stroke:var(--bar-edge);stroke-width:1;rx:3}
+.cell text{font-family:var(--mono);font-size:11.5px;font-weight:700;fill:var(--ink);text-anchor:middle}
+.cell.ptr text{font-size:10px;fill:var(--link)}
+.cell.null text{fill:var(--mut)}
+.cell.hot rect{fill:var(--accent);stroke:var(--ink);stroke-width:1.6}
+.cell.hot text{fill:#fff}
+.cell.bang rect{fill:var(--bad);stroke:var(--ink);stroke-width:1.6}
+.cell.bang text{fill:#fff}
+.idx{font-family:var(--mono);font-size:8.5px;fill:var(--mut);text-anchor:middle}
+.hp rect.box{fill:color-mix(in srgb,var(--ok) 9%,transparent);stroke:var(--ok);stroke-width:1.4;rx:5}
+.hp .lbl{font-family:var(--mono);font-size:10px;fill:var(--ok);font-weight:700}
+.hp .sz{font-family:var(--mono);font-size:9px;fill:var(--mut)}
+.hp.freed rect.box{fill:none;stroke:var(--bad);stroke-dasharray:5 3}
+.hp.freed .lbl{fill:var(--bad)}
+.hp.freed .cell rect{stroke:var(--bad);stroke-dasharray:3 2;fill:none}
+.hp.freed .cell text{fill:var(--mut)}
+.hp.leak rect.box{stroke:var(--accent);stroke-dasharray:5 3;fill:var(--accent-soft)}
+.hp.leak .lbl{fill:var(--accent)}
+.arrow{fill:none;stroke:var(--link);stroke-width:1.6;marker-end:url(#ah)}
+.arrow.dang{stroke:var(--bad);stroke-dasharray:5 4;marker-end:url(#ahBad)}
+.arrow.wild{stroke:var(--bad);stroke-dasharray:2 3;marker-end:url(#ahBad)}
+#ah path{fill:var(--link)} #ahBad path{fill:var(--bad)}
+.ghostTxt{font-family:var(--mono);font-size:9.5px;fill:var(--bad)}
+.gutterLbl{font-family:var(--sans);font-size:11.5px;fill:var(--mut)}
+/* ---- right column ---- */
+.side{display:flex;flex-direction:column;gap:12px}
+.codewrap{background:var(--code-bg);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.codewrap .ch{padding:6px 12px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--code-dim);border-bottom:1px solid rgba(255,255,255,.06)}
+pre.code{margin:0;padding:8px 0 10px;overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.62;color:var(--code-ink)}
+pre.code .ln{display:block;padding:0 12px 0 0;white-space:pre;border-left:2px solid transparent}
+pre.code .ln .n{display:inline-block;width:30px;text-align:right;margin-right:12px;color:var(--code-dim);font-size:10.5px;-webkit-user-select:none;user-select:none}
+pre.code .ln.on{background:var(--code-on);border-left-color:var(--code-on-edge)}
+pre.code .ln.on .n{color:var(--code-on-edge)}
+pre.code .cm{color:var(--code-dim);font-style:italic}
+.say{padding:11px 13px}
+.say .step{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut);margin-bottom:5px}
+.say p{margin:0;font-size:13.5px}
+.say code{font-family:var(--mono);font-size:12.5px;background:var(--accent-soft);padding:1px 4px;border-radius:3px}
+.verdict{padding:11px 13px;border-left:3px solid var(--mut);font-size:13px}
+.verdict .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em;display:block;margin-bottom:4px}
+.verdict.trap{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,transparent)}
+.verdict.trap .k{color:var(--bad)}
+.verdict.fix{border-left-color:var(--ok);background:color-mix(in srgb,var(--ok) 8%,transparent)}
+.verdict.fix .k{color:var(--ok)}
+.verdict.note{border-left-color:var(--link);background:color-mix(in srgb,var(--link) 8%,transparent)}
+.verdict.note .k{color:var(--link)}
+.verdict code{font-family:var(--mono);font-size:12px}
+.out{padding:9px 13px;border-top:1px solid var(--line)}
+.out h4{margin:0 0 5px;font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut);font-weight:600}
+.out pre{margin:0;font-family:var(--mono);font-size:12px;color:var(--ink);white-space:pre-wrap;min-height:18px}
+.out pre .ub{color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:5px 14px;padding:8px 12px;border-top:1px solid var(--line);font-size:11px;color:var(--mut)}
+.legend .k{display:inline-flex;align-items:center;gap:5px}
+.legend .sw{width:10px;height:10px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+<header class="top">
+  <div class="brand">memory<span class="cursor">*</span>lab<span class="sub">stack frames, heap blocks and where the arrows really point</span></div>
+  <button class="themeBtn" id="themeBtn"><span class="ic">◐</span><span id="themeTxt">theme</span></button>
+</header>
+
+<div class="work">
+  <div class="rail">
+    <div class="panel ops">
+      <h3>The model</h3>
+      <div class="grp" id="grpA"></div>
+      <h3>The classic traps</h3>
+      <div class="grp" id="grpB"></div>
+    </div>
+    <div class="panel legend" style="border-top:none">
+      <span class="k"><span class="sw" style="background:color-mix(in srgb,var(--link) 12%,transparent);border-color:var(--link)"></span> live frame</span>
+      <span class="k"><span class="sw" style="background:none;border-color:var(--bad);border-style:dashed"></span> dead / freed</span>
+      <span class="k"><span class="sw" style="background:color-mix(in srgb,var(--ok) 20%,transparent);border-color:var(--ok)"></span> heap block</span>
+      <span class="k"><span class="sw" style="background:var(--accent);border-color:var(--accent)"></span> just changed</span>
+    </div>
+  </div>
+
+  <div class="panel canvas-wrap">
+    <div class="scenHd"><b id="scenTitle"></b><span id="scenSub"></span></div>
+    <div class="canvas-scroll"><svg id="svg" width="660" height="440" viewBox="0 0 660 440" role="img" aria-label="memory diagram">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="ahBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+    </svg></div>
+    <div class="stats" id="stats"></div>
+    <div class="transport">
+      <button id="bReset" title="Reset (r)">⏮</button>
+      <button id="bPrev" title="Previous step (←)">◀</button>
+      <button class="play" id="bPlay" title="Play / pause (space)">▶ play</button>
+      <button id="bNext" title="Next step (→)">▶▏</button>
+      <select id="speed" aria-label="speed"><option value="1500">slow</option><option value="900" selected>normal</option><option value="420">fast</option></select>
+      <span class="keys">← → step · space play · r reset</span>
+    </div>
+    <div class="track"><i id="track" style="width:0%"></i></div>
+  </div>
+
+  <div class="side">
+    <div class="codewrap"><div class="ch" id="codeHd">source</div><pre class="code" id="code"></pre></div>
+    <div class="panel say"><div class="step" id="stepN"></div><p id="say"></p></div>
+    <div class="panel" id="verdictWrap" hidden><div class="verdict" id="verdict"></div></div>
+    <div class="panel out"><h4>stdout</h4><pre id="out"></pre></div>
+  </div>
+</div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   A tiny memory machine. Each scenario is a list of steps; every
+   step names a source line, a sentence, and a mutation of the
+   model. We snapshot the model after each step and render the
+   snapshot — so the picture can never drift from the story.
+   ============================================================ */
+const hex = a => a === null ? "NULL" : "0x" + a.toString(16).toUpperCase();
+
+function newMem(){ return { frames:[], heap:[], out:"", hot:[], verdict:null, sp:0x7FFEE1B0, hp:0x600A1000, leaked:0 }; }
+const liveTop = m => m.frames.filter(f=>!f.dead).slice(-1)[0];
+function find(m,name){ for(let i=m.frames.length-1;i>=0;i--){ const v=m.frames[i].vars.find(v=>v.name===name); if(v) return v; } return null; }
+
+/* --- mutations used inside scenario steps --- */
+function push(m,fn){ m.frames.push({fn,vars:[],dead:false}); }
+function pop(m,{ghost=false}={}){ const f=liveTop(m); if(!f) return; if(ghost){ f.dead=true; } else { m.frames.splice(m.frames.indexOf(f),1); m.sp += f.vars.reduce((s,v)=>s+v.size,0); } }
+function dec(m,name,type,val,n){                       /* n = element count for arrays */
+  const es = type.includes("*") ? 8 : (type.startsWith("char") ? 1 : 4);
+  const size = n ? Math.max(4, es*n) : es;
+  m.sp -= size;
+  const v = {name,type,addr:m.sp,size,esize:es,val:n?null:val,cells:n?val.slice():null};
+  liveTop(m).vars.push(v); m.hot=[name]; return v;
+}
+function set(m,name,val){ const v=find(m,name); v.val=val; m.hot=[name]; }
+function setCell(m,name,i,val){ const v=find(m,name); v.cells[i]=val; m.hot=[name+"#"+i]; }
+function mal(m,bytes,cells,esize,label){
+  const b={addr:m.hp,size:bytes,esize:esize||4,cells:cells.slice(),freed:false,leaked:false,label:label||(bytes+" bytes")};
+  m.heap.push(b); m.hp += Math.ceil(bytes/16)*16 + 16; m.hot=["heap"+b.addr]; return b.addr;
+}
+const blk = (m,addr) => m.heap.find(b=>b.addr===addr);
+function freeb(m,addr){ const b=blk(m,addr); b.freed=true; m.hot=["heap"+addr]; }
+function hcell(m,addr,i,val){ const b=blk(m,addr); b.cells[i]=val; m.hot=["heap"+addr+"#"+i]; }
+function say(m,s){ m.out += s; }
+/* write straight to an address — this is how the off-by-one finds its victim */
+function pokeAddr(m,addr,val){
+  for(const f of m.frames) for(const v of f.vars){
+    if(v.cells){ const i=(addr-v.addr)/v.esize; if(i>=0 && i<v.cells.length){ v.cells[i]=val; m.hot=[v.name+"#"+i]; m.bang=1; return v.name+"["+i+"]"; } }
+    else if(addr===v.addr){ v.val=val; m.hot=[v.name]; m.bang=1; return v.name; }
+  }
+  return null;
+}
+const V = (m,k,t) => { m.verdict = {k,t}; };
+
+/* ============================ scenarios ============================ */
+const SCEN = {
+pv:{ name:"Pass by value", hint:"swap()", title:"The swap() that doesn't swap",
+  sub:"why every C course starts here", code:
+`void swap(int x, int y) {
+    int t = x;
+    x = y;
+    y = t;
+}
+
+int main(void) {
+    int a = 3, b = 7;
+    swap(a, b);
+    printf("%d %d\\n", a, b);
+    return 0;
+}`.split("\n"),
+  steps:[
+  {c:6,s:"main() starts. It gets a stack frame — a private drawer for its locals.",d:m=>push(m,"main")},
+  {c:7,s:"a and b are born on the stack. Real bytes, real addresses. Note them.",d:m=>{dec(m,"a","int",3);dec(m,"b","int",7);m.hot=["a","b"];}},
+  {c:8,s:"We call swap(a, b). C has exactly one argument convention: <b>everything is copied</b>. Watch the addresses.",d:m=>{m.hot=["a","b"];}},
+  {c:0,s:"swap() gets its own frame. x and y are <b>copies</b> — same values, brand new addresses.",d:m=>{push(m,"swap");dec(m,"x","int",3);dec(m,"y","int",7);m.hot=["x","y"];}},
+  {c:1,s:"t = x — a third integer, still nothing to do with main.",d:m=>dec(m,"t","int",3)},
+  {c:2,s:"x = y. x is now 7. Look at a: still 3. It was never in the conversation.",d:m=>set(m,"x",7)},
+  {c:3,s:"y = t. y is 3. The swap worked <em>perfectly</em> — on the copies.",d:m=>set(m,"y",3)},
+  {c:4,s:"swap() returns. Its whole frame is torn down; x, y, t cease to exist.",d:m=>{pop(m);m.hot=[];}},
+  {c:9,s:"main prints a and b — untouched, exactly as it left them.",d:m=>{say(m,"3 7\n");m.hot=["a","b"];V(m,"trap","A function can only ever modify its own frame. To change a caller's variable you must hand it the <b>address</b>, not the value. Run <em>Pass by pointer</em> next and compare the two pictures.");}},
+  {c:10,s:"Return 0. Nothing was swapped and no compiler warned you.",d:m=>{}}
+]},
+
+pp:{ name:"Pass by pointer", hint:"swap(&a,&b)", title:"The swap() that does",
+  sub:"the address is the whole trick", code:
+`void swap(int *px, int *py) {
+    int t = *px;
+    *px = *py;
+    *py = t;
+}
+
+int main(void) {
+    int a = 3, b = 7;
+    swap(&a, &b);
+    printf("%d %d\\n", a, b);
+    return 0;
+}`.split("\n"),
+  steps:[
+  {c:6,s:"Same start: main() gets a frame.",d:m=>push(m,"main")},
+  {c:7,s:"a = 3 and b = 7, at two addresses main knows by heart.",d:m=>{dec(m,"a","int",3);dec(m,"b","int",7);m.hot=["a","b"];}},
+  {c:8,s:"swap(&a, &b). The <code>&</code> operator says: don't send the value, send where it lives.",d:m=>{m.hot=["a","b"];}},
+  {c:0,s:"px and py are still copies — but copies of <b>addresses</b>. Follow the arrows back into main's frame.",d:m=>{const a=find(m,"a").addr,b=find(m,"b").addr;push(m,"swap");dec(m,"px","int *",a);dec(m,"py","int *",b);m.hot=["px","py"];}},
+  {c:1,s:"t = *px. The star means <em>go to that address and read</em>. t becomes 3.",d:m=>dec(m,"t","int",3)},
+  {c:2,s:"*px = *py — read through py, write through px. That write lands in <b>main's</b> a.",d:m=>set(m,"a",7)},
+  {c:3,s:"*py = t. main's b becomes 3. swap() never touched a variable it owns.",d:m=>set(m,"b",3)},
+  {c:4,s:"The frame is destroyed as before — but the damage was done next door, and it survives.",d:m=>{pop(m);m.hot=["a","b"];}},
+  {c:9,s:"7 3. Same function shape, one <code>*</code> apart, opposite outcome.",d:m=>{say(m,"7 3\n");m.hot=["a","b"];V(m,"fix","A pointer is nothing mystical — it is an ordinary variable whose value happens to be an address. <code>*p</code> is the verb: <em>go there</em>. Everything else in C's pointer syntax is decoration on those two ideas.");}},
+  {c:10,s:"Return 0, and this time the caller can tell.",d:m=>{}}
+]},
+
+heap:{ name:"malloc & free", hint:"lifecycle", title:"A life on the heap",
+  sub:"the memory you asked for, and gave back", code:
+`int main(void) {
+    int *p = malloc(3 * sizeof(int));
+    if (p == NULL) return 1;
+
+    p[0] = 10;
+    p[1] = 20;
+    p[2] = 30;
+
+    free(p);
+    p = NULL;
+    return 0;
+}`.split("\n"),
+  steps:[
+  {c:0,s:"main() opens. Its frame holds exactly one variable: a pointer.",d:m=>push(m,"main")},
+  {c:1,s:"malloc(12) carves a block out of the heap and returns its address. p — on the stack — stores that address.",d:m=>{const a=mal(m,12,[0,0,0],4,"malloc(12)");dec(m,"p","int *",a);m.hot=["p","heap"+a];}},
+  {c:2,s:"Always check. malloc returns NULL when it can't deliver, and dereferencing NULL is a crash, not a warning.",d:m=>{m.hot=["p"];V(m,"note","Two variables, two lifetimes: <b>p</b> dies when main returns; the <b>block</b> lives until someone calls free. Confusing the two is the source of nearly every heap bug below.");}},
+  {c:4,s:"p[0] = 10 is just <code>*(p + 0) = 10</code> — the subscript is sugar over pointer arithmetic.",d:m=>hcell(m,find(m,"p").val,0,10)},
+  {c:5,s:"p[1] = 20. The +1 steps a whole int, not a byte, because p is an int*.",d:m=>hcell(m,find(m,"p").val,1,20)},
+  {c:6,s:"p[2] = 30. The block is full. p[3] would be off the end — and no one would stop you.",d:m=>hcell(m,find(m,"p").val,2,30)},
+  {c:8,s:"free(p) hands the block back. Note what did <em>not</em> happen: p still holds the address.",d:m=>freeb(m,find(m,"p").val)},
+  {c:9,s:"p = NULL. One line, and the dangling pointer becomes an honest one.",d:m=>{set(m,"p",null);V(m,"fix","<code>free(p)</code> frees the block, not the pointer. Pairing every free with <code>p = NULL;</code> converts a silent use-after-free into a loud, debuggable NULL dereference.");}},
+  {c:10,s:"Clean exit: nothing leaked, nothing dangling.",d:m=>{}}
+]},
+
+uaf:{ name:"Use after free", hint:"dangling", bug:1, title:"The dangling pointer",
+  sub:"the address outlives the block", code:
+`int main(void) {
+    int *p = malloc(2 * sizeof(int));
+    p[0] = 7;
+    p[1] = 9;
+
+    free(p);
+
+    printf("%d\\n", p[0]);
+    p[0] = 99;
+    return 0;
+}`.split("\n"),
+  steps:[
+  {c:0,s:"main() opens.",d:m=>push(m,"main")},
+  {c:1,s:"8 bytes on the heap; p on the stack points at them.",d:m=>{const a=mal(m,8,[0,0],4,"malloc(8)");dec(m,"p","int *",a);m.hot=["p"];}},
+  {c:2,s:"p[0] = 7.",d:m=>hcell(m,find(m,"p").val,0,7)},
+  {c:3,s:"p[1] = 9. Perfectly ordinary so far.",d:m=>hcell(m,find(m,"p").val,1,9)},
+  {c:5,s:"free(p). The allocator takes the block back. p's value does not change one bit.",d:m=>{freeb(m,find(m,"p").val);m.hot=["p"];}},
+  {c:7,s:"Reading p[0] — the arrow now points into memory that isn't ours. It may still print 7. That's the cruel part.",d:m=>{say(m,"7\n");V(m,"trap","It printed the right answer, so the bug looks like it isn't there. The allocator simply hasn't reused those bytes <em>yet</em>. Add a second malloc, or a printf, or ship it — and the same line prints garbage.");}},
+  {c:8,s:"Writing p[0] = 99 is worse: you're scribbling on memory the allocator may have already handed to someone else.",d:m=>{const a=find(m,"p").val;hcell(m,a,0,99);V(m,"trap","Use-after-<b>write</b> corrupts the allocator's own bookkeeping. The crash then happens in an unrelated malloc, thousands of lines later, and you spend an evening debugging innocent code.");}},
+  {c:9,s:"Undefined behaviour, no diagnostic, exit code 0. C trusts you completely.",d:m=>{}}
+]},
+
+ret:{ name:"Returning a local", hint:"&n", bug:1, title:"Returning a local's address",
+  sub:"a pointer to a frame that no longer exists", code:
+`int *make(void) {
+    int n = 42;
+    return &n;
+}
+
+int main(void) {
+    int *p = make();
+    printf("%d\\n", *p);
+    return 0;
+}`.split("\n"),
+  steps:[
+  {c:5,s:"main() starts and calls make().",d:m=>push(m,"main")},
+  {c:0,s:"make() gets its frame, stacked below main's.",d:m=>push(m,"make")},
+  {c:1,s:"n = 42 lives in make's frame. Its lifetime is exactly this call.",d:m=>dec(m,"n","int",42)},
+  {c:2,s:"We return &n — the address of a variable that is about to be destroyed.",d:m=>{m.hot=["n"];}},
+  {c:6,s:"make() returns. Its frame is gone (drawn dashed). p now holds an address into abandoned stack space.",d:m=>{const n=find(m,"n").addr;pop(m,{ghost:true});dec(m,"p","int *",n);m.hot=["p"];V(m,"trap","The value 42 may still be sitting in those bytes — until the next function call reuses the same stack region and overwrites it. This bug reliably survives testing and dies in production.");}},
+  {c:7,s:"*p reads dead stack. Today: 42. After one more function call in between: whatever that call left behind.",d:m=>{say(m,"42   ");say(m,"← today. tomorrow: anything\n");}},
+  {c:8,s:"Compilers do warn about this exact shape — read your warnings.",d:m=>{V(m,"fix","Return by value (<code>int make(void)</code>), take an out-parameter (<code>void make(int *out)</code>), or allocate on the heap and document who frees it. Never hand back the address of a local.");}}
+]},
+
+oob:{ name:"Off-by-one", hint:"i <= n", bug:1, title:"One step past the end",
+  sub:"the loop condition that eats the neighbour", code:
+`int main(void) {
+    int guard = 999;
+    int a[5] = {1, 2, 3, 4, 5};
+
+    for (int i = 0; i <= 5; i++)
+        a[i] = 0;
+
+    printf("guard = %d\\n", guard);
+    return 0;
+}`.split("\n"),
+  steps:[
+  {c:0,s:"main() opens.",d:m=>push(m,"main")},
+  {c:1,s:"guard is an ordinary local — an innocent bystander that happens to sit next to what comes after.",d:m=>dec(m,"guard","int",999)},
+  {c:2,s:"a[5] takes 20 bytes right beside it. Watch the addresses: a's last element ends exactly where guard begins.",d:m=>{dec(m,"a","int[5]",[1,2,3,4,5],5);m.hot=["a"];V(m,"note","Exact layout is the compiler's choice — yours may differ. The point survives either way: past the end of an array is always <em>somebody's</em> memory.");}},
+  {c:3,s:"The loop says i <= 5. Five elements, six iterations. Classic.",d:m=>{m.hot=[];}},
+  {c:4,s:"i = 0 … a[0] = 0.",d:m=>setCell(m,"a",0,0)},
+  {c:4,s:"i = 1 … a[1] = 0.",d:m=>setCell(m,"a",1,0)},
+  {c:4,s:"i = 2 … a[2] = 0.",d:m=>setCell(m,"a",2,0)},
+  {c:4,s:"i = 3 … a[3] = 0.",d:m=>setCell(m,"a",3,0)},
+  {c:4,s:"i = 4 … a[4] = 0. The array is done. The loop is not.",d:m=>setCell(m,"a",4,0)},
+  {c:4,s:"i = 5 … a[5] doesn't exist. The write goes to a's address + 20 bytes — and lands squarely on guard.",d:m=>{const a=find(m,"a");pokeAddr(m,a.addr+20,0);V(m,"trap","No bounds check, no crash, no warning at runtime. A variable you never mentioned changed value. This is how C bugs get blamed on the wrong function.");}},
+  {c:6,s:"guard prints 0. It was 999 and nobody assigned to it.",d:m=>{say(m,"guard = 0\n");m.hot=["guard"];V(m,"fix","Write <code>i &lt; n</code>, not <code>i &lt;= n</code>, and derive n once: <code>sizeof a / sizeof a[0]</code> — but only in the scope where <code>a</code> is a real array, never inside a function where it has decayed to a pointer.");}}
+]},
+
+leak:{ name:"The silent leak", hint:"lost block", bug:1, title:"The block nobody can reach",
+  sub:"losing the only address you had", code:
+`int main(void) {
+    char *s = malloc(32);
+    strcpy(s, "first");
+
+    s = malloc(64);
+    strcpy(s, "second");
+
+    free(s);
+    return 0;
+}`.split("\n"),
+  steps:[
+  {c:0,s:"main() opens.",d:m=>push(m,"main")},
+  {c:1,s:"32 bytes on the heap. s holds the only copy of that address in the entire program.",d:m=>{const a=mal(m,32,["·","·","·","·","·","·"],1,"malloc(32)");blk(m,a).more=26;dec(m,"s","char *",a);m.hot=["s"];}},
+  {c:2,s:"We fill it in. Six bytes used, twenty-six spare.",d:m=>{const a=find(m,"s").val;["f","i","r","s","t","\\0"].forEach((ch,i)=>hcell(m,a,i,ch));m.hot=["heap"+a];}},
+  {c:4,s:"A second malloc — and we overwrite s with the new address. Watch the arrow move.",d:m=>{const a=mal(m,64,["·","·","·","·","·","·"],1,"malloc(64)");blk(m,a).more=58;set(m,"s",a);m.leaked=32;m.heap[0].leaked=true;V(m,"trap","The 32-byte block is still allocated and now unreachable — no pointer anywhere holds its address, so <b>no code can ever free it</b>. That is a leak: not memory you forgot to free, memory you made it impossible to free.");}},
+  {c:5,s:"The second block gets its contents. The first sits there, paid for and abandoned.",d:m=>{const a=find(m,"s").val;["s","e","c","o","n","d"].forEach((ch,i)=>hcell(m,a,i,ch));m.hot=["heap"+a];}},
+  {c:7,s:"free(s) releases 64 bytes. The 32 stay lost until the process exits.",d:m=>{freeb(m,find(m,"s").val);}},
+  {c:8,s:"Exit code 0, tests green, and a loop around this function eats memory until the box falls over.",d:m=>{V(m,"fix","One owner per block, and free before you reassign. Run it under <code>leaks</code> on macOS or <code>valgrind --leak-check=full</code> on Linux — both print the exact line of the malloc that got orphaned.");}}
+]}
+};
+
+/* ============================ build snapshots ============================ */
+function build(sc){
+  const m = newMem(); const snaps=[];
+  for(const st of sc.steps){ m.hot=[]; if(st.d) st.d(m); snaps.push({c:st.c, s:st.s, mem:JSON.parse(JSON.stringify(m))}); }
+  return snaps;
+}
+
+/* ============================ render ============================ */
+const SVGNS="http://www.w3.org/2000/svg";
+const FX=14, FW=310, HX=400, HW=240, CW=34;
+function el(tag,attrs,parent){ const n=document.createElementNS(SVGNS,tag); for(const k in attrs) n.setAttribute(k,attrs[k]); if(parent) parent.appendChild(n); return n; }
+function txt(p,x,y,cls,s,extra){ const t=el("text",Object.assign({x,y,class:cls},extra||{}),p); t.textContent=s; return t; }
+
+function cellBox(p,x,y,w,val,cls){
+  const g=el("g",{class:"cell "+(cls||"")},p);
+  el("rect",{x,y,width:w,height:22},g);
+  let s, k="";
+  if(val===null){ s="NULL"; k="null"; }
+  else if(typeof val==="number" && val>0x1000000){ s=hex(val); k="ptr"; }
+  else s=String(val);
+  if(k) g.setAttribute("class","cell "+k+" "+(cls||""));
+  txt(g,x+w/2,y+15.5,"",s);
+  return g;
+}
+
+function draw(snap){
+  const svg=document.getElementById("svg");
+  [...svg.querySelectorAll("g,text,path")].forEach(n=>n.remove());
+  const m=snap.mem, anchors={}, hot=new Set(m.hot);
+  txt(svg,FX,18,"colLbl","STACK  ↓ grows down");
+  txt(svg,HX,18,"colLbl","HEAP  ↑ grows up");
+
+  /* ---- stack ---- */
+  let y=30;
+  m.frames.forEach((f,fi)=>{
+    const g=el("g",{class:"fr"+(f.dead?" dead":(fi===m.frames.length-1?" top":""))},svg);
+    let h=26, rows=[];
+    f.vars.forEach(v=>{ const rh=v.cells?58:30; rows.push({v,y:y+h,h:rh}); h+=rh; });
+    h+=6;
+    el("rect",{class:"box",x:FX,y,width:FW,height:h,rx:5},g);
+    el("rect",{class:"hd",x:FX+1,y:y+1,width:FW-2,height:22,rx:4},g);
+    txt(g,FX+9,y+16,"fn",f.fn+"()");
+    txt(g,FX+FW-9,y+16,"tag",f.dead?"frame destroyed":(fi===m.frames.length-1?"top of stack":""),{"text-anchor":"end"});
+    rows.forEach(({v,y:ry,h:rh})=>{
+      txt(g,FX+9,ry+15,"ad",hex(v.addr));
+      const nm=txt(g,FX+92,ry+15,"nm",v.name);
+      const sp=el("tspan",{class:"ty"},nm); sp.textContent="  "+v.type;
+      if(v.cells){
+        const bx=FX+92;
+        v.cells.forEach((c,i)=>{
+          const cx=bx+i*(CW+3);
+          cellBox(g,cx,ry+20,CW,c,hot.has(v.name+"#"+i)?(f.dead||m.bang?"bang":"hot"):"");
+          txt(g,cx+CW/2,ry+52,"idx","["+i+"]");
+          anchors[v.addr+i*v.esize]={x:cx+CW,y:ry+31,side:"L"};
+        });
+      } else {
+        const w=76, bx=FX+FW-9-w;
+        cellBox(g,bx,ry+4,w,v.val,hot.has(v.name)?(f.dead||m.bang?"bang":"hot"):"");
+        anchors[v.addr]={x:bx+w,y:ry+15,side:"L"};
+        if(typeof v.val==="number" && v.val>0x1000000) v.__src={x:bx+w,y:ry+15};
+        else if(v.val===null) v.__none=1;
+      }
+    });
+    y+=h+10;
+  });
+
+  /* ---- heap ---- */
+  let hy=30;
+  m.heap.forEach(b=>{
+    const g=el("g",{class:"hp"+(b.freed?" freed":"")+(b.leaked&&!b.freed?" leak":"")},svg);
+    const perRow=Math.min(6,b.cells.length), rows=Math.ceil(b.cells.length/perRow);
+    const h=26+rows*28+(b.more?14:0)+6;
+    el("rect",{class:"box",x:HX,y:hy,width:HW,height:h,rx:5},g);
+    txt(g,HX+9,hy+16,"lbl",b.freed?"FREED":(b.leaked?"LEAKED — unreachable":b.label));
+    txt(g,HX+HW-9,hy+16,"sz",hex(b.addr),{"text-anchor":"end"});
+    b.cells.forEach((c,i)=>{
+      const cx=HX+9+(i%perRow)*(CW+3), cy=hy+26+Math.floor(i/perRow)*28;
+      cellBox(g,cx,cy,CW,c,hot.has("heap"+b.addr+"#"+i)?"hot":"");
+      anchors[b.addr+i*b.esize]={x:cx,y:cy+11,side:"R"};
+    });
+    if(b.more) txt(g,HX+9,hy+h-8,"sz","+"+b.more+" bytes untouched");
+    anchors[b.addr]={x:HX,y:hy+h/2,side:"R"};
+    hy+=h+10;
+  });
+
+  /* ---- arrows: every pointer variable follows its own value ---- */
+  m.frames.forEach(f=>f.vars.forEach(v=>{
+    if(!v.type.includes("*")||typeof v.val!=="number") return;
+    const src=v.__src; if(!src) return;
+    const tgt=anchors[v.val];
+    const ownerDead=f.dead;
+    let dangling=false;
+    const hb=m.heap.find(b=>v.val>=b.addr&&v.val<b.addr+b.size); if(hb&&hb.freed) dangling=true;
+    for(const ff of m.frames) if(ff.dead&&ff.vars.some(x=>x.addr===v.val)) dangling=true;
+    const sx=src.x, sy=src.y;
+    if(!tgt){ el("path",{class:"arrow wild",d:`M${sx},${sy} c-40,0 -60,26 -20,34`},svg); return; }
+    let d;
+    if(tgt.side==="R") d=`M${sx},${sy} C${sx+50},${sy} ${tgt.x-60},${tgt.y} ${tgt.x-3},${tgt.y}`;
+    else d=`M${sx},${sy} C${sx+64},${sy} ${tgt.x+118},${tgt.y} ${tgt.x+6},${tgt.y}`;
+    el("path",{class:"arrow"+(dangling||ownerDead?" dang":""),d},svg);
+  }));
+
+  if(!m.heap.length) txt(svg,HX,46,"gutterLbl","nothing allocated — this program is all stack");
+  const deadFrames=m.frames.filter(f=>f.dead).length;
+  if(deadFrames) txt(svg,FX,y+14,"ghostTxt","dashed = memory the program no longer owns");
+  const H=Math.max(y+(deadFrames?26:12), hy+12, 210);
+  svg.setAttribute("height",H);
+  svg.setAttribute("viewBox",`0 0 660 ${H}`);
+
+  /* ---- stats ---- */
+  const live=m.frames.filter(f=>!f.dead);
+  const sb=live.reduce((s,f)=>s+f.vars.reduce((t,v)=>t+v.size,0),0);
+  const hb2=m.heap.filter(b=>!b.freed).reduce((s,b)=>s+b.size,0);
+  const dang=[...document.querySelectorAll(".arrow.dang")].length;
+  document.getElementById("stats").innerHTML =
+    `<span class="stat">frames <b>${live.length}</b></span>`+
+    `<span class="stat">stack bytes <b>${sb}</b></span>`+
+    `<span class="stat">heap in use <b>${hb2}</b></span>`+
+    (m.leaked?`<span class="stat bad">leaked <b>${m.leaked}</b></span>`:"")+
+    (dang?`<span class="stat bad">dangling pointers <b>${dang}</b></span>`:`<span class="stat">dangling <b>0</b></span>`);
+}
+
+/* ============================ app ============================ */
+let cur="pv", snaps=[], i=0, timer=null;
+
+function paintCode(sc,line){
+  const pre=document.getElementById("code");
+  pre.innerHTML = sc.code.map((L,n)=>{
+    const esc=L.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+               .replace(/(\/\*.*?\*\/|\/\/.*)/g,'<span class="cm">$1</span>');
+    return `<span class="ln${n===line?" on":""}"><span class="n">${n+1}</span>${esc||" "}</span>`;
+  }).join("");
+  const on=pre.querySelector(".ln.on"); if(on) on.scrollIntoView({block:"nearest"});
+}
+
+function show(k){
+  cur=k; const sc=SCEN[k]; snaps=build(sc); i=0; stop();
+  document.getElementById("scenTitle").textContent=sc.title;
+  document.getElementById("scenSub").textContent=sc.sub;
+  document.getElementById("codeHd").textContent=sc.name.toLowerCase()+".c";
+  document.querySelectorAll(".grp button").forEach(b=>b.classList.toggle("on",b.dataset.k===k));
+  render();
+}
+function render(){
+  const sc=SCEN[cur], snap=snaps[i];
+  paintCode(sc,snap.c);
+  draw(snap);
+  document.getElementById("stepN").textContent=`step ${i+1} / ${snaps.length} · line ${snap.c+1}`;
+  document.getElementById("say").innerHTML=snap.s;
+  const v=snap.mem.verdict, w=document.getElementById("verdictWrap");
+  if(v){ w.hidden=false; const d=document.getElementById("verdict");
+    d.className="verdict "+v.k;
+    d.innerHTML=`<span class="k">${v.k==="trap"?"the trap":v.k==="fix"?"the fix":"worth noticing"}</span>${v.t}`;
+  } else w.hidden=true;
+  document.getElementById("out").textContent=snap.mem.out||"";
+  document.getElementById("track").style.width=((i+1)/snaps.length*100)+"%";
+  document.getElementById("bPrev").disabled=i===0;
+  document.getElementById("bNext").disabled=i===snaps.length-1;
+}
+function step(n){ const j=i+n; if(j<0||j>=snaps.length){ if(n>0) stop(); return; } i=j; render(); }
+function stop(){ if(timer){clearInterval(timer);timer=null;} document.getElementById("bPlay").textContent="▶ play"; }
+function play(){
+  if(timer) return stop();
+  if(i===snaps.length-1) i=0;
+  document.getElementById("bPlay").textContent="❚❚ pause";
+  render();
+  timer=setInterval(()=>{ if(i>=snaps.length-1) return stop(); step(1); }, +document.getElementById("speed").value);
+}
+
+/* rail */
+for(const [k,sc] of Object.entries(SCEN)){
+  const b=document.createElement("button");
+  b.dataset.k=k; b.className=sc.bug?"bug":"";
+  b.innerHTML=`<span>${sc.name}</span><span class="hint">${sc.hint}</span>`;
+  b.onclick=()=>show(k);
+  document.getElementById(sc.bug?"grpB":"grpA").appendChild(b);
+}
+document.getElementById("bNext").onclick=()=>{stop();step(1);};
+document.getElementById("bPrev").onclick=()=>{stop();step(-1);};
+document.getElementById("bReset").onclick=()=>{stop();i=0;render();};
+document.getElementById("bPlay").onclick=play;
+document.getElementById("speed").onchange=()=>{ if(timer){stop();play();} };
+addEventListener("keydown",e=>{
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if(e.key==="ArrowRight"){stop();step(1);e.preventDefault();}
+  else if(e.key==="ArrowLeft"){stop();step(-1);e.preventDefault();}
+  else if(e.key===" "){play();e.preventDefault();}
+  else if(e.key.toLowerCase()==="r"){stop();i=0;render();}
+});
+/* theme */
+const tb=document.getElementById("themeBtn");
+function themeLabel(){
+  const t=document.documentElement.dataset.theme;
+  document.getElementById("themeTxt").textContent = t?t:"auto";
+}
+tb.onclick=()=>{
+  const order=["","dark","light"], cur=document.documentElement.dataset.theme||"";
+  const next=order[(order.indexOf(cur)+1)%3];
+  if(next) document.documentElement.dataset.theme=next; else delete document.documentElement.dataset.theme;
+  try{ next?localStorage.setItem("memorylab.theme",next):localStorage.removeItem("memorylab.theme"); }catch(e){}
+  themeLabel();
+};
+themeLabel();
+show("pv");
+</script>
+</body></html>

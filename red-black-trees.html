@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Red-Black Trees — from the AVL bill to a C implementation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EFF3F5;
+  --slide:#FFFFFF;
+  --ink:#22303C;
+  --dim:#5D7285;
+  --faint:#8CA0AE;
+  --rule:#CBD8E0;
+  --accent:#116A83;
+  --accent-soft:#E1EEF2;
+  --node-red:#C62828;
+  --node-black:#14181C;
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --pad:clamp(20px,4vw,64px);
+  /* --- surfaces and ink that used to be hardcoded further down --- */
+  color-scheme:light;
+  --slide-0:rgba(255,255,255,0);
+  --panel-bg:#FAFCFD;
+  --box-bg:#FBFDFE;
+  --btn-bg:#FFFFFF;
+  --pre-bg:#F1F5F7;
+  --pre-ink:#1E2E3A;
+  --code-ink:#0C4E61;
+  --tok-c:#7E93A2;
+  --tok-k:#0C5A73;
+  --tok-n:#8A5A00;
+  --tok-s:#1F6B3F;
+  --svg-node:#FFFFFF;
+  --svg-rule:#9FB3C0;
+  --on-fill:#FFFFFF;
+  --zero:#C3CFD8;
+  --wash:#DCE5EA;
+  --cell:#F4F8FA;
+  --bad:#A4303F;
+  --bad-soft:#F7EAEC;
+  --block:#9C6510;
+  --block-soft:#F6EEE0;
+  --done:#4A6B2F;
+  --done-soft:#EDF2E4;
+  --node-red:#C62828;
+  --node-red-edge:#C62828;
+  --node-black:#14181C;
+  --node-black-edge:#14181C;
+  --on-node:#FFFFFF;
+}
+
+/* The media query is guarded so an explicit light choice still wins,
+   and both [data-theme] blocks exist so the button wins in either
+   direction over whatever the operating system thinks. */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#12171B;
+  --slide:#1A2127;
+  --slide-0:rgba(26,33,39,0);
+  --ink:#E1E8ED;
+  --dim:#9DAFBB;
+  --faint:#778995;
+  --rule:#2E3941;
+  --accent:#5BB7D0;
+  --accent-soft:#16303A;
+  --panel-bg:#1E262D;
+  --box-bg:#171E24;
+  --btn-bg:#212A31;
+  --pre-bg:#141A20;
+  --pre-ink:#D5DEE5;
+  --code-ink:#8FD9EC;
+  --tok-c:#6F8290;
+  --tok-k:#6BC1D8;
+  --tok-n:#D6A355;
+  --tok-s:#6CBE8F;
+  --svg-node:#242E36;
+  --svg-rule:#55646F;
+  --on-fill:#0E1419;
+  --zero:#3D4A54;
+  --wash:#333F48;
+  --cell:#1E262D;
+  --bad:#E0655E;
+  --bad-soft:#382324;
+  --block:#D6A355;
+  --block-soft:#33291A;
+  --done:#93C36B;
+  --done-soft:#212A1B;
+  /* A black node on a black ground is honest and useless. In dark mode the
+     black node stays the darkest thing on the slide -- darker than the box it
+     sits in -- and earns a bright rim so you can still find its edges. */
+  --node-red:#CF3A40;
+  --node-red-edge:#F08A8E;
+  --node-black:#10151A;
+  --node-black-edge:#8FA3B2;
+  --on-node:#F2F7FA;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#12171B;
+  --slide:#1A2127;
+  --slide-0:rgba(26,33,39,0);
+  --ink:#E1E8ED;
+  --dim:#9DAFBB;
+  --faint:#778995;
+  --rule:#2E3941;
+  --accent:#5BB7D0;
+  --accent-soft:#16303A;
+  --panel-bg:#1E262D;
+  --box-bg:#171E24;
+  --btn-bg:#212A31;
+  --pre-bg:#141A20;
+  --pre-ink:#D5DEE5;
+  --code-ink:#8FD9EC;
+  --tok-c:#6F8290;
+  --tok-k:#6BC1D8;
+  --tok-n:#D6A355;
+  --tok-s:#6CBE8F;
+  --svg-node:#242E36;
+  --svg-rule:#55646F;
+  --on-fill:#0E1419;
+  --zero:#3D4A54;
+  --wash:#333F48;
+  --cell:#1E262D;
+  --bad:#E0655E;
+  --bad-soft:#382324;
+  --block:#D6A355;
+  --block-soft:#33291A;
+  --done:#93C36B;
+  --done-soft:#212A1B;
+  /* A black node on a black ground is honest and useless. In dark mode the
+     black node stays the darkest thing on the slide -- darker than the box it
+     sits in -- and earns a bright rim so you can still find its edges. */
+  --node-red:#CF3A40;
+  --node-red-edge:#F08A8E;
+  --node-black:#10151A;
+  --node-black-edge:#8FA3B2;
+  --on-node:#F2F7FA;
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --paper:#EFF3F5;
+  --slide:#FFFFFF;
+  --ink:#22303C;
+  --dim:#5D7285;
+  --faint:#8CA0AE;
+  --rule:#CBD8E0;
+  --accent:#116A83;
+  --accent-soft:#E1EEF2;
+  --node-red:#C62828;
+  --node-black:#14181C;
+  --slide-0:rgba(255,255,255,0);
+  --panel-bg:#FAFCFD;
+  --box-bg:#FBFDFE;
+  --btn-bg:#FFFFFF;
+  --pre-bg:#F1F5F7;
+  --pre-ink:#1E2E3A;
+  --code-ink:#0C4E61;
+  --tok-c:#7E93A2;
+  --tok-k:#0C5A73;
+  --tok-n:#8A5A00;
+  --tok-s:#1F6B3F;
+  --svg-node:#FFFFFF;
+  --svg-rule:#9FB3C0;
+  --on-fill:#FFFFFF;
+  --zero:#C3CFD8;
+  --wash:#DCE5EA;
+  --cell:#F4F8FA;
+  --bad:#A4303F;
+  --bad-soft:#F7EAEC;
+  --block:#9C6510;
+  --block-soft:#F6EEE0;
+  --done:#4A6B2F;
+  --done-soft:#EDF2E4;
+  --node-red-edge:#C62828;
+  --node-black-edge:#14181C;
+  --on-node:#FFFFFF;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:17px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- deck chrome ---------- */
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0;z-index:50;transition:width .28s ease}
+#deck{height:100%;position:relative}
+.slide{
+  display:none;
+  height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:calc(var(--pad) + 14px) var(--pad) 76px;
+  background:var(--slide);
+  scrollbar-width:thin;
+}
+.slide.is-active{display:block;animation:fadein .22s ease both}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.inner{max-width:1080px;margin:0 auto}
+
+#bar{
+  position:fixed;left:0;right:0;bottom:0;height:56px;z-index:40;
+  display:flex;align-items:center;gap:14px;
+  padding:0 var(--pad);
+  background:linear-gradient(to top,var(--slide) 62%,var(--slide-0));
+  font-family:var(--mono);font-size:12px;color:var(--faint);
+}
+#bar .chapter{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bar button{
+  font-family:var(--mono);font-size:12px;
+  border:1px solid var(--rule);background:var(--slide);color:var(--ink);
+  border-radius:3px;padding:6px 12px;cursor:pointer;
+}
+#bar button:hover{border-color:var(--accent);color:var(--accent)}
+#bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
+#count{min-width:56px;text-align:right}
+#bar #theme{min-width:88px;text-align:center}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- type ---------- */
+h1{font-size:clamp(30px,5.4vw,52px);line-height:1.08;font-weight:700;letter-spacing:-.015em;margin:0 0 18px}
+h2{font-size:clamp(23px,3.4vw,34px);line-height:1.18;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+h3{font-size:16px;font-weight:600;margin:26px 0 8px;color:var(--ink)}
+.kicker{font-family:var(--mono);font-size:12px;color:var(--accent);margin:0 0 10px;letter-spacing:.02em}
+.sub{color:var(--dim);font-size:clamp(16px,2vw,19px);margin:0 0 26px;max-width:62ch;font-style:italic}
+p{max-width:66ch;margin:0 0 14px}
+.lede{font-size:19px}
+ul,ol{max-width:66ch;padding-left:22px;margin:0 0 16px}
+li{margin-bottom:9px}
+li::marker{color:var(--faint)}
+b,strong{font-weight:600}
+.hr{height:1px;background:var(--rule);border:0;margin:26px 0}
+.tight li{margin-bottom:5px}
+code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);padding:1px 5px;border-radius:3px;color:var(--code-ink)}
+.small{font-size:14px;color:var(--dim)}
+
+/* ---------- layout ---------- */
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,3.5vw,44px);align-items:start}
+.cols.wide-left{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.cols.wide-right{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
+@media (max-width:820px){.cols,.cols.wide-left,.cols.wide-right{grid-template-columns:1fr;gap:24px}}
+
+.panel{border:1px solid var(--rule);border-radius:4px;padding:18px 20px;background:var(--panel-bg)}
+.panel h3{margin-top:0}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;margin:18px 0;font-size:15.5px;max-width:66ch}
+.note p:last-child{margin-bottom:0}
+
+/* ---------- tables ---------- */
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:6px 0 16px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);border-bottom:1.5px solid var(--ink)}
+td:first-child{color:var(--dim)}
+tbody tr:last-child td{border-bottom:none}
+.num{font-family:var(--mono)}
+
+/* ---------- code ---------- */
+pre{
+  font-family:var(--mono);font-size:12.5px;line-height:1.62;
+  background:var(--pre-bg);border-left:3px solid var(--accent);
+  padding:14px 16px;margin:0 0 16px;border-radius:0 4px 4px 0;
+  overflow-x:auto;color:var(--pre-ink);
+}
+pre.tall{max-height:none}
+pre code{background:none;padding:0;border-radius:0;color:inherit;font-size:inherit;font-family:inherit}
+.tok-c{color:var(--tok-c);font-style:italic}
+.tok-k{color:var(--tok-k);font-weight:500}
+.tok-n{color:var(--tok-n)}
+.tok-s{color:var(--tok-s)}
+
+/* ---------- trees ---------- */
+.treebox{border:1px solid var(--rule);border-radius:4px;background:var(--box-bg);padding:10px}
+svg.tree{display:block;width:100%;height:auto}
+svg.tree.mini{max-width:330px;margin:0 auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.dot.r{background:var(--node-red);border:1px solid var(--node-red-edge)}
+.dot.b{background:var(--node-black);border:1px solid var(--node-black-edge)}
+.dot.n{background:var(--svg-node);border:1px solid var(--faint);border-radius:2px}
+
+/* ---------- controls ---------- */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.controls button,.controls select{
+  font-family:var(--mono);font-size:12px;padding:7px 11px;
+  border:1px solid var(--rule);background:var(--btn-bg);color:var(--ink);border-radius:3px;cursor:pointer;
+}
+.controls button:hover{border-color:var(--accent);color:var(--accent)}
+.controls input[type=number]{font-family:var(--mono);font-size:12px;padding:7px 9px;width:82px;border:1px solid var(--rule);border-radius:3px;background:var(--btn-bg);color:var(--ink)}
+.controls input[type=text]{font-family:var(--mono);font-size:12px;padding:7px 9px;width:86px;border:1px solid var(--rule);border-radius:3px;background:var(--btn-bg);color:var(--ink)}
+.controls input[type=checkbox]{accent-color:var(--accent)}
+.controls input::placeholder{color:var(--faint)}
+.controls label{color:var(--dim)}
+.stat{font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+.stat b{color:var(--ink);font-weight:500}
+
+/* ---------- rules list ---------- */
+ol.props{counter-reset:p;list-style:none;padding-left:0;max-width:none}
+ol.props li{counter-increment:p;position:relative;padding-left:40px;margin-bottom:14px}
+ol.props li::before{
+  content:counter(p);position:absolute;left:0;top:1px;
+  width:26px;height:26px;border-radius:50%;border:1px solid var(--rule);
+  font-family:var(--mono);font-size:12px;color:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+}
+
+@media print{
+  .slide{display:block!important;height:auto;page-break-after:always;padding:24px}
+  #bar,#progress{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+<script>
+/* Pick the theme up before first paint: a dark-mode reader opening this deck
+   should never get a white flash on the way in. */
+(function(){try{var t=localStorage.getItem('deck-theme');
+if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+</head>
+<body>
+<div id="progress"></div>
+<main id="deck">
+
+<!-- 1 ============================================================ -->
+<section class="slide" data-chapter="Opening">
+ <div class="inner">
+  <div class="treebox" style="margin-bottom:28px">
+    <svg class="tree" id="heroTree" viewBox="0 0 700 260" role="img" aria-label="A red-black tree staying balanced while eight keys are inserted in ascending order"></svg>
+    <div class="legend">
+      <span><i class="dot b"></i> black node</span>
+      <span><i class="dot r"></i> red node</span>
+      <span id="heroCap">inserting 10, 20, 30 … 80 in ascending order</span>
+    </div>
+  </div>
+  <h1>Red-black trees</h1>
+  <p class="sub">A binary search tree that stays balanced using one bit per node instead of a stored height — and why that one bit changes what the tree costs to write to.</p>
+  <p class="small">Sorted input is the worst case for a plain BST. The tree above never exceeds four levels while taking it. Use the arrow keys, or the buttons at the bottom, to move through the deck.</p>
+ </div>
+</section>
+
+<!-- 2 ============================================================ -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">01 — the failure we are fixing</p>
+  <h2>A plain BST has no defence against its input</h2>
+  <div class="cols wide-left" style="margin-top:24px">
+   <div>
+    <p>Insert <code>1, 2, 3, 4, 5, 6, 7</code> into an unbalanced BST and every key lands on the right spine. You have written a linked list with extra pointers and worse cache behaviour.</p>
+    <ul>
+      <li>Search, insert, delete all degrade from <b>O(log n)</b> to <b>O(n)</b>.</li>
+      <li>This is not an exotic input. Sorted or nearly-sorted data is the <i>normal</i> case: timestamps, auto-increment IDs, imported files, a rebuilt index.</li>
+      <li>The average case is fine. The average case is not what breaks at 3am.</li>
+    </ul>
+    <div class="note"><p>Balance is not an optimisation. It is the thing that makes the asymptotic promise of a BST true regardless of who supplies the keys.</p></div>
+   </div>
+   <div class="treebox">
+     <svg class="tree mini" id="degenTree" viewBox="0 0 300 300" role="img" aria-label="A degenerate binary search tree forming a straight chain"></svg>
+     <div class="legend"><span>seven ascending keys, unbalanced BST — height 7</span></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 3 ============================================================ -->
+<section class="slide" data-chapter="AVL">
+ <div class="inner">
+  <p class="kicker">02 — the first answer</p>
+  <h2>AVL: measure every subtree, never let it drift</h2>
+  <div class="cols" style="margin-top:24px">
+   <div>
+    <p>AVL enforces the strictest reasonable invariant:</p>
+    <div class="note"><p>For every node, <b>|height(left) − height(right)| ≤ 1</b>.</p></div>
+    <p>To check it, each node stores its height (or a two-bit balance factor). After every insert and delete you walk back up the path, recompute heights, and rotate wherever the balance factor leaves <code>{-1, 0, +1}</code>.</p>
+    <p>It works, and it works well: the height of an AVL tree with <i>n</i> keys never exceeds about <b>1.44 log₂ n</b> — within 44% of a perfectly balanced tree. Lookups are as fast as a BST realistically gets.</p>
+   </div>
+   <div class="panel">
+    <h3>What AVL gets right</h3>
+    <ul class="tight">
+      <li>Hard height guarantee, tighter than any competitor in common use.</li>
+      <li>Simple, symmetric case analysis: LL, LR, RR, RL.</li>
+      <li>Shallowest tree ⇒ fewest key comparisons per lookup.</li>
+    </ul>
+    <h3>So why does anything else exist?</h3>
+    <p style="margin-bottom:0">Because a guarantee about <i>shape</i> is paid for in <i>writes</i>, and AVL's invoice arrives on every single modification — including the ones that change nothing.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 4 ============================================================ -->
+<section class="slide" data-chapter="AVL">
+ <div class="inner">
+  <p class="kicker">03 — the bill</p>
+  <h2>Three costs of being strict</h2>
+  <div style="margin-top:22px">
+   <div class="cols">
+    <div class="panel">
+      <h3>1. Deletion can cascade to the root</h3>
+      <p style="margin-bottom:0">An AVL insertion needs at most one rotation (single or double), because that rotation restores the subtree's <i>original</i> height and the fix stops there. Deletion has no such luck: a rotation can leave the subtree one level shorter than before, which unbalances the parent, which unbalances <i>its</i> parent. One deletion can cost <b>O(log n)</b> rotations.</p>
+    </div>
+    <div class="panel">
+      <h3>2. Metadata on every path, always</h3>
+      <p style="margin-bottom:0">Even when no rotation is needed, every node on the search path has its height recomputed and rewritten. That is a write to <b>O(log n)</b> cache lines per operation, whether or not the shape changed.</p>
+    </div>
+   </div>
+   <div class="panel" style="margin-top:18px">
+     <h3>3. A strict invariant reacts to small disturbances</h3>
+     <p style="margin-bottom:0">|bf| ≤ 1 leaves no slack. A single insertion that nudges one subtree by one level is already a violation, so structural repair — pointer rewriting — is triggered often. Under a lock, or in a shared kernel data structure, every rotation is contention. Under a memory hierarchy, every pointer rewrite is a potential cache miss.</p>
+   </div>
+  </div>
+  <div class="note" style="margin-top:22px"><p>None of this makes AVL wrong. It makes AVL a <b>read-optimised</b> structure. The open question is what you use when writes are frequent, or when the worst-case cost of a <i>single</i> deletion has to be bounded by a constant.</p></div>
+ </div>
+</section>
+
+<!-- 5 ============================================================ -->
+<section class="slide" data-chapter="The reframe">
+ <div class="inner">
+  <p class="kicker">04 — asking a better question</p>
+  <h2>We never needed the tightest tree. We needed a bounded one.</h2>
+  <div class="cols wide-left" style="margin-top:24px">
+   <div>
+    <p>Look at what the asymptotics actually demand. For O(log n) operations, height must be <b>c · log n</b> for some constant <i>c</i>. Any constant. AVL pays a real price on every write to drive <i>c</i> down to 1.44 — but 2 would have been just as good asymptotically, and roughly 1 extra comparison per lookup in practice.</p>
+    <p>So the design question changes from</p>
+    <p class="lede" style="color:var(--dim);font-style:italic">“how do I keep this tree as short as possible?”</p>
+    <p>to</p>
+    <p class="lede" style="color:var(--accent);font-style:italic">“what is the <b>cheapest invariant to maintain</b> that still caps the height at some constant times log n?”</p>
+   </div>
+   <div class="panel">
+    <h3>What “cheap” has to mean</h3>
+    <ul class="tight">
+      <li>Detectable by looking at a node and a couple of its relatives — not by comparing subtree heights.</li>
+      <li>Repairable, in most cases, without touching a single pointer.</li>
+      <li>Bounded number of pointer rewrites per operation, on insert <b>and</b> delete.</li>
+      <li>Stored in as little space as possible.</li>
+    </ul>
+    <p class="small" style="margin-bottom:0">The last constraint is the giveaway. If the invariant only needs one bit per node, it cannot be about heights. It has to be about something local — a label.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 6 ============================================================ -->
+<section class="slide" data-chapter="The insight">
+ <div class="inner">
+  <p class="kicker">05 — the idea</p>
+  <h2>Colour is a budget, not a decoration</h2>
+  <div class="cols" style="margin-top:22px">
+   <div>
+    <p>Give every node one bit: <b>red</b> or <b>black</b>. Then impose two constraints that between them do all the work:</p>
+    <ul>
+      <li><b>Every root-to-leaf path contains the same number of black nodes.</b> Call that number the <i>black-height</i>.</li>
+      <li><b>A red node cannot have a red child.</b></li>
+    </ul>
+    <p>Now reason about the extremes. The <i>shortest</i> possible path is all black — length equal to the black-height, <i>bh</i>. The <i>longest</i> possible path must alternate, because reds cannot touch: black, red, black, red… — length at most <b>2 · bh</b>.</p>
+    <div class="note"><p>The longest path is at most <b>twice</b> the shortest. That is the entire mechanism. No heights are stored, no subtrees are measured, no comparisons of depth are made anywhere.</p></div>
+    <p>Black nodes are the structural skeleton and must be perfectly balanced in count. Red nodes are the slack — free insertions that cost nothing structurally, as long as you never stack two of them.</p>
+   </div>
+   <div>
+    <div class="treebox">
+      <svg class="tree" id="pathTree" viewBox="0 0 380 250" role="img" aria-label="A red-black tree with its shortest all-black path and its longest alternating path highlighted"></svg>
+      <div class="legend">
+        <span><i class="dot b"></i> counted toward black-height</span>
+        <span><i class="dot r"></i> free slack</span>
+      </div>
+    </div>
+    <p class="small" style="margin-top:14px">Both marked paths pass through exactly the same number of black nodes. One is short because it takes no slack; the other is long because it takes the maximum. Neither can be worse than the other by more than a factor of two.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 7 ============================================================ -->
+<section class="slide" data-chapter="The rules">
+ <div class="inner">
+  <p class="kicker">06 — the invariant, stated properly</p>
+  <h2>Five properties</h2>
+  <div class="cols wide-left" style="margin-top:22px">
+   <div>
+    <ol class="props">
+      <li><b>Every node is either red or black.</b> One bit.</li>
+      <li><b>The root is black.</b> Free to enforce — recolouring the root black never breaks anything else.</li>
+      <li><b>Every leaf (NIL) is black.</b> The leaves are the null pointers, not the keys. Treating them as real black nodes removes every special case from the code.</li>
+      <li><b>If a node is red, both its children are black.</b> Equivalently: no two reds in a row on any path.</li>
+      <li><b>For any node, every path from it down to a descendant NIL contains the same number of black nodes.</b></li>
+    </ol>
+   </div>
+   <div class="panel">
+    <h3>Reading them correctly</h3>
+    <p>Properties 4 and 5 are the load-bearing pair. Properties 1–3 are bookkeeping that make 4 and 5 cheap to check.</p>
+    <p>Property 3 is the one students skip. It matters because it makes <code>node-&gt;colour</code> readable without a null check — which is why the C implementation uses a shared sentinel rather than <code>NULL</code>.</p>
+    <p style="margin-bottom:0">Note what is <i>absent</i>: no property mentions height, depth, subtree size, or the number of nodes. Every property is checkable by looking at a node and its immediate children.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 8 ============================================================ -->
+<section class="slide" data-chapter="The rules">
+ <div class="inner">
+  <p class="kicker">07 — why the rules are enough</p>
+  <h2>From five local rules to a global height bound</h2>
+  <div class="cols" style="margin-top:22px">
+   <div>
+    <p>Three steps, no proof machinery.</p>
+    <h3>Step 1 — a subtree with black-height <i>bh</i> holds at least 2<sup>bh</sup> − 1 nodes</h3>
+    <p>Strip out the red nodes by merging each into its parent. What is left is a tree whose every path has exactly <i>bh</i> nodes, so it is at least as full as a perfect tree of that height.</p>
+    <h3>Step 2 — at least half of any path is black</h3>
+    <p>Property 4 forbids consecutive reds, so on a path of height <i>h</i> at most half the nodes are red: <b>bh ≥ h / 2</b>.</p>
+    <h3>Step 3 — combine</h3>
+    <p>n ≥ 2<sup>bh</sup> − 1 ≥ 2<sup>h/2</sup> − 1, and rearranging gives</p>
+    <div class="note"><p><b>h ≤ 2 log₂(n + 1)</b></p></div>
+    <p>Search, insert and delete all follow one root-to-leaf path, so all three are <b>O(log n)</b> — and the constant is 2 instead of AVL's 1.44.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>What the constant actually costs you</h3>
+     <table>
+      <thead><tr><th>n</th><th>AVL max height</th><th>RB max height</th><th>difference</th></tr></thead>
+      <tbody id="heightTable"></tbody>
+     </table>
+     <p class="small" style="margin-bottom:0">These are worst-case bounds, not typical heights. A red-black tree built from random keys sits close to log₂ n in practice — the gap only opens up under adversarial input.</p>
+    </div>
+    <div class="note"><p>Trade a handful of extra comparisons on lookup for a constant bound on rotations per write. Whether that is a good trade depends entirely on your read/write ratio — which is the honest answer to “AVL or red-black?”.</p></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 9 ============================================================ -->
+<section class="slide" data-chapter="Comparison">
+ <div class="inner">
+  <p class="kicker">08 — side by side</p>
+  <h2>The honest comparison</h2>
+  <table style="margin-top:20px">
+   <thead><tr><th style="width:26%">&nbsp;</th><th>AVL</th><th>Red-black</th></tr></thead>
+   <tbody>
+    <tr><td>Invariant</td><td>height(L) − height(R) ∈ {−1,0,1} at every node</td><td>equal black counts on all paths; no red-red edge</td></tr>
+    <tr><td>Metadata per node</td><td>a height (int) or balance factor (2 bits)</td><td>one colour bit</td></tr>
+    <tr><td>Worst-case height</td><td class="num">≈ 1.44 log₂ n</td><td class="num">2 log₂(n+1)</td></tr>
+    <tr><td>Rotations per insert</td><td class="num">≤ 2</td><td class="num">≤ 2</td></tr>
+    <tr><td>Rotations per delete</td><td class="num">O(log n)</td><td class="num">≤ 3</td></tr>
+    <tr><td>Repair without pointer writes</td><td>never — every fix is a rotation</td><td>usually — recolouring handles most cases</td></tr>
+    <tr><td>Lookup speed</td><td>faster (shallower tree)</td><td>slightly slower</td></tr>
+    <tr><td>Write-heavy workloads</td><td>slower</td><td>faster</td></tr>
+    <tr><td>Implementation difficulty</td><td>moderate; deletion is fiddly</td><td>harder; deletion has four cases plus mirrors</td></tr>
+    <tr><td>Where you find it</td><td>read-dominated in-memory indexes</td><td>Linux kernel, C++ <code>std::map</code>, Java <code>TreeMap</code></td></tr>
+   </tbody>
+  </table>
+  <div class="note"><p>Notice the row that is <i>not</i> a difference: both structures rotate at most twice per insertion. The myth that "AVL rotates more" is only reliably true for <b>deletion</b>, and for the aggregate amount of restructuring over a long run of mixed operations. Do not repeat the myth in the strong form — measure it instead.</p></div>
+ </div>
+</section>
+
+<!-- 10 ============================================================ -->
+<section class="slide" data-chapter="Comparison">
+ <div class="inner">
+  <p class="kicker">09 — evidence, not assertion</p>
+  <h2>Predict first, then run it</h2>
+  <p class="sub">Both trees below are real implementations running in this page. Write your prediction down before you press anything.</p>
+  <div class="controls">
+    <label class="stat">n =</label>
+    <input type="number" id="benchN" value="2000" min="100" max="20000" step="100">
+    <button id="runSorted">Insert 1…n in order</button>
+    <button id="runRandom">Insert n random keys</button>
+    <button id="runMixed">Insert n, then delete all</button>
+  </div>
+  <div id="benchOut"></div>
+  <div class="cols" style="margin-top:8px">
+    <div class="panel">
+      <h3>Questions worth asking before you press</h3>
+      <ul class="tight">
+        <li>Which tree performs more <i>total</i> rotations inserting a sorted run?</li>
+        <li>What is the largest number of rotations either tree needs for a <i>single</i> deletion?</li>
+        <li>How much taller does the red-black tree actually end up?</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Reading the result honestly</h3>
+      <p style="margin-bottom:0">The per-operation worst case is the guarantee you can rely on. Total counts vary with input order and tell you about typical cost. If the numbers contradict what you expected, the numbers are right — go and work out why.</p>
+    </div>
+  </div>
+ </div>
+</section>
+
+<!-- 11 ============================================================ -->
+<section class="slide" data-chapter="Insertion">
+ <div class="inner">
+  <p class="kicker">10 — insertion</p>
+  <h2>New nodes are always red. That choice is the whole design.</h2>
+  <div class="cols" style="margin-top:22px">
+   <div>
+    <p>You insert exactly as in a plain BST — walk down, attach at the null position — then colour the new node and repair. The colour you choose determines how hard the repair is.</p>
+    <h3>If you inserted it black</h3>
+    <p>Property 5 breaks immediately. Every path through the new node now has one extra black node, and every path <i>not</i> through it does not. That is a <b>global</b> violation: to fix it you would have to reason about the whole tree.</p>
+    <h3>If you insert it red</h3>
+    <p>Property 5 is untouched — red nodes are not counted. The only property that can break is 4, and only if the parent happens to be red. That is a <b>local</b> violation involving four nodes: the new node, its parent, its grandparent, and its uncle.</p>
+    <div class="note"><p>Every repair either terminates immediately, or pushes an identical local problem <b>two levels up</b> and repeats. At most log n / 2 iterations, at most 2 rotations in total.</p></div>
+   </div>
+   <div class="panel">
+    <h3>The repair loop, in one sentence</h3>
+    <p>While the parent is red, look at the <b>uncle</b>: if it is red, recolour; if it is black, rotate.</p>
+    <p>That single question — <i>what colour is the uncle?</i> — splits the whole algorithm in two, and it is worth making a student say it out loud before showing them any code.</p>
+    <h3>Three cases</h3>
+    <ul class="tight">
+      <li><b>Case 1</b> — uncle red: recolour, move up. No rotation.</li>
+      <li><b>Case 2</b> — uncle black, node is an <i>inner</i> child (triangle): rotate at the parent to convert into Case 3.</li>
+      <li><b>Case 3</b> — uncle black, node is an <i>outer</i> child (line): recolour and rotate at the grandparent. Loop ends.</li>
+    </ul>
+    <p class="small" style="margin-bottom:0">Each case has a mirror image for when the parent is a right child. The mirror is the same code with <code>left</code> and <code>right</code> swapped — write one, derive the other, never invent it twice.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 12 ============================================================ -->
+<section class="slide" data-chapter="Insertion">
+ <div class="inner">
+  <p class="kicker">11 — insert fixup</p>
+  <h2>Case 1: the uncle is red — recolour and climb</h2>
+  <div class="cols" style="margin-top:20px">
+   <div class="treebox"><svg class="tree mini" id="c1a" viewBox="0 0 320 200" role="img" aria-label="Before: red parent, red uncle, red new node"></svg><div class="legend"><span>before — Z and its parent P are both red</span></div></div>
+   <div class="treebox"><svg class="tree mini" id="c1b" viewBox="0 0 320 200" role="img" aria-label="After: parent and uncle recoloured black, grandparent red"></svg><div class="legend"><span>after — recolour, then treat G as the new Z</span></div></div>
+  </div>
+  <div class="cols" style="margin-top:20px">
+   <div>
+    <p>Both children of G are red, so G must have been black. Push G's blackness down to both children:</p>
+    <ul class="tight">
+      <li>P → black, U → black, G → red.</li>
+      <li>Every path through G still crosses the same number of black nodes, so property 5 survives untouched.</li>
+      <li>G is now red and might have a red parent — so set <code>z = G</code> and go round again.</li>
+    </ul>
+   </div>
+   <div class="note">
+    <p>No pointer is written. This is the case AVL cannot have: a rebalance that costs three colour bits and nothing else.</p>
+    <p style="margin-bottom:0">It is also the reason the loop exists at all. Cases 2 and 3 terminate; Case 1 is the one that can repeat, and each repetition moves two levels closer to the root.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 13 ============================================================ -->
+<section class="slide" data-chapter="Insertion">
+ <div class="inner">
+  <p class="kicker">12 — insert fixup</p>
+  <h2>Cases 2 and 3: the uncle is black — rotate</h2>
+  <p class="sub">With a black uncle, recolouring no longer balances: pushing blackness down from G would rob every path through U. The shape has to change.</p>
+  <div class="cols" style="margin-top:8px">
+   <div>
+    <h3>Case 2 — the triangle</h3>
+    <div class="treebox"><svg class="tree mini" id="c2a" viewBox="0 0 300 200"></svg><div class="legend"><span>Z is the inner child of P</span></div></div>
+    <p style="margin-top:12px">Rotate at <b>P</b> in the direction that swings Z outward. Nothing is recoloured. This is purely a normalising move: it turns the zig-zag into a straight line so that a single case can finish the job.</p>
+   </div>
+   <div>
+    <h3>Case 3 — the line</h3>
+    <div class="treebox"><svg class="tree mini" id="c3a" viewBox="0 0 300 200"></svg><div class="legend"><span>after rotating at P — now Z, P, G form a line</span></div></div>
+    <p style="margin-top:12px">Recolour <b>P black</b> and <b>G red</b>, then rotate at <b>G</b>. P rises into G's old position.</p>
+   </div>
+  </div>
+  <div class="cols" style="margin-top:16px">
+    <div class="treebox"><svg class="tree mini" id="c3b" viewBox="0 0 300 190"></svg><div class="legend"><span>final — subtree root is black, loop terminates</span></div></div>
+    <div>
+      <div class="note"><p>The subtree root ends up <b>black</b>, so it cannot conflict with whatever is above it. The loop condition <code>parent-&gt;colour == RED</code> is now false. Case 3 always ends the repair.</p></div>
+      <p>Count the rotations across the whole insert: Case 1 does none, Case 2 does one, Case 3 does one and then stops. Worst path through the algorithm is Case 1 repeated, then Case 2, then Case 3 — <b>at most two rotations, ever</b>.</p>
+    </div>
+  </div>
+ </div>
+</section>
+
+<!-- 14 ============================================================ -->
+<section class="slide" data-chapter="Playground">
+ <div class="inner">
+  <p class="kicker">13 — play with it</p>
+  <h2>Build one yourself</h2>
+  <div class="controls">
+    <input type="number" id="pgKey" placeholder="key" style="width:88px">
+    <button id="pgInsert">Insert</button>
+    <button id="pgDelete">Delete</button>
+    <button id="pgRandom">Add random key</button>
+    <button id="pgSorted">Insert next in order</button>
+    <button id="pgClear">Clear</button>
+    <label class="stat"><input type="checkbox" id="pgNil"> show NIL leaves</label>
+  </div>
+  <div class="treebox">
+    <svg class="tree" id="pgTree" viewBox="0 0 700 320" role="img" aria-label="Interactive red-black tree"></svg>
+  </div>
+  <div class="stat" id="pgStats" style="margin-top:12px"></div>
+  <div class="cols" style="margin-top:16px">
+    <div class="panel">
+      <h3>Things to try deliberately</h3>
+      <ul class="tight">
+        <li>Insert 1…15 in order and watch the black-height increase in steps, never gradually.</li>
+        <li>Find an insertion that causes a recolour to propagate more than one level.</li>
+        <li>Delete the root repeatedly. Count how often the shape changes at all.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>What the counters mean</h3>
+      <p style="margin-bottom:0">Rotations are pointer rewrites. Recolours are single-bit writes. When you compare structures, these are not the same unit of cost — that asymmetry is exactly what red-black trees are exploiting.</p>
+    </div>
+  </div>
+ </div>
+</section>
+
+<!-- 15 ============================================================ -->
+<section class="slide" data-chapter="Deletion">
+ <div class="inner">
+  <p class="kicker">14 — deletion</p>
+  <h2>Deletion is harder, and it is worth knowing why before you write it</h2>
+  <div class="cols wide-left" style="margin-top:22px">
+   <div>
+    <p>Removing a <b>red</b> node is free. It is not counted by property 5 and it has no red children, so nothing breaks.</p>
+    <p>Removing a <b>black</b> node destroys property 5 on every path that went through it. Those paths are now one black short, and there is no local recolouring that fixes a deficit — you cannot invent a black node.</p>
+    <h3>The double-black trick</h3>
+    <p>Pretend the node that moved into the gap carries an <b>extra unit of blackness</b>. Property 5 is now satisfied by construction, at the price of a node that is either "doubly black" or "red-and-black". The job of the fixup is to discharge that extra unit — either by finding a red node nearby that can absorb it, or by pushing it up to the parent and trying again.</p>
+    <div class="note"><p>Insert fixup asks <i>what colour is the uncle?</i>. Delete fixup asks <i>what colour is the sibling, and what colour are the sibling's children?</i>. Same shape of algorithm, one more level of case analysis.</p></div>
+   </div>
+   <div class="panel">
+    <h3>The four cases (x is doubly black, w is its sibling)</h3>
+    <table>
+     <thead><tr><th>case</th><th>condition</th><th>action</th></tr></thead>
+     <tbody>
+      <tr><td class="num">1</td><td>w is red</td><td>rotate at parent, recolour — reduces to case 2, 3 or 4</td></tr>
+      <tr><td class="num">2</td><td>w black, both its children black</td><td>colour w red, move the extra black to the parent, <b>loop</b></td></tr>
+      <tr><td class="num">3</td><td>w black, inner child red</td><td>rotate at w — reduces to case 4</td></tr>
+      <tr><td class="num">4</td><td>w black, outer child red</td><td>rotate at parent, recolour — <b>done</b></td></tr>
+     </tbody>
+    </table>
+    <p class="small">Only case 2 loops, and it performs no rotation. Cases 1, 3 and 4 rotate once each and cases 3–4 terminate, which is where the guarantee of <b>at most 3 rotations per deletion</b> comes from.</p>
+    <p class="small" style="margin-bottom:0">Do not try to memorise this table. Implement it from the table, then let a property validator prove you got it right.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 16 ============================================================ -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">15 — implementation in C</p>
+  <h2>Two decisions before you write a line</h2>
+  <div class="cols" style="margin-top:20px">
+   <div>
+    <h3>Decision 1: parent pointers</h3>
+    <p>The fixup walks <b>upwards</b> — node, parent, grandparent, uncle. A recursive BST implementation walks downwards and rebuilds on the way out, which is elegant for AVL and awkward here.</p>
+    <p>Store a <code>parent</code> pointer. The alternative — passing <code>Node **</code> around and reattaching subtrees — is legitimate but forces you to hold pointer indirection and tree logic in your head at the same time. Learn the algorithm first; optimise the representation later if you ever need to.</p>
+    <h3>Decision 2: a sentinel NIL, not NULL</h3>
+    <p>Property 3 says the leaves are black nodes. Take that literally: allocate <b>one</b> black node and point every empty child at it.</p>
+    <ul class="tight">
+      <li><code>x-&gt;parent-&gt;colour</code> is always safe to read — no null checks anywhere in the fixup.</li>
+      <li>The root's parent is the sentinel, so "am I the root?" is <code>x-&gt;parent == t-&gt;nil</code>.</li>
+      <li>Deletion temporarily writes to <code>nil-&gt;parent</code>. That is intentional and safe, but it means the sentinel is <b>not</b> thread-safe to share across trees.</li>
+    </ul>
+   </div>
+   <div>
+<pre><code>#include &lt;stdlib.h&gt;
+
+typedef enum { RED, BLACK } Colour;
+
+typedef struct Node {
+    int           key;
+    Colour        colour;
+    struct Node  *left, *right, *parent;
+} Node;
+
+typedef struct {
+    Node *root;
+    Node *nil;          /* the shared black leaf */
+} RBTree;
+
+RBTree *rb_create(void)
+{
+    RBTree *t = malloc(sizeof *t);
+    if (!t) return NULL;
+
+    t-&gt;nil = malloc(sizeof *t-&gt;nil);
+    if (!t-&gt;nil) { free(t); return NULL; }
+
+    t-&gt;nil-&gt;colour = BLACK;
+    t-&gt;nil-&gt;key    = 0;
+    t-&gt;nil-&gt;left   = t-&gt;nil-&gt;right = t-&gt;nil-&gt;parent = t-&gt;nil;
+
+    t-&gt;root = t-&gt;nil;
+    return t;
+}</code></pre>
+    <p class="small">The sentinel pointing at itself is not a trick for its own sake: it means an accidental read of <code>nil-&gt;left</code> yields a black node rather than a segfault, which keeps the fixup code free of defensive branches.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 17 ============================================================ -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">16 — implementation in C</p>
+  <h2>Rotations: the only operation that moves pointers</h2>
+  <div class="cols" style="margin-top:20px">
+   <div>
+<pre><code>/* x's right child y takes x's place;
+   x becomes y's left child.        */
+static void left_rotate(RBTree *t, Node *x)
+{
+    Node *y = x-&gt;right;             /* y != nil */
+
+    x-&gt;right = y-&gt;left;             /* 1. move y's left subtree */
+    if (y-&gt;left != t-&gt;nil)
+        y-&gt;left-&gt;parent = x;
+
+    y-&gt;parent = x-&gt;parent;          /* 2. link y to x's parent  */
+    if (x-&gt;parent == t-&gt;nil)
+        t-&gt;root = y;
+    else if (x == x-&gt;parent-&gt;left)
+        x-&gt;parent-&gt;left = y;
+    else
+        x-&gt;parent-&gt;right = y;
+
+    y-&gt;left   = x;                  /* 3. put x below y         */
+    x-&gt;parent = y;
+}
+
+static void right_rotate(RBTree *t, Node *y)
+{
+    Node *x = y-&gt;left;              /* x != nil */
+
+    y-&gt;left = x-&gt;right;
+    if (x-&gt;right != t-&gt;nil)
+        x-&gt;right-&gt;parent = y;
+
+    x-&gt;parent = y-&gt;parent;
+    if (y-&gt;parent == t-&gt;nil)
+        t-&gt;root = x;
+    else if (y == y-&gt;parent-&gt;right)
+        y-&gt;parent-&gt;right = x;
+    else
+        y-&gt;parent-&gt;left = x;
+
+    x-&gt;right  = y;
+    y-&gt;parent = x;
+}</code></pre>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>The three-step shape</h3>
+      <p>Every rotation is the same three edge rewrites, and getting them in the wrong order is the classic bug:</p>
+      <ol class="tight">
+        <li>Re-home the subtree that changes parents.</li>
+        <li>Attach the rising node to the old parent — including the <code>root</code> case.</li>
+        <li>Attach the sinking node below the rising one.</li>
+      </ol>
+      <p style="margin-bottom:0">Six pointer fields are written. Six, not four — students routinely forget the <code>parent</code> back-links and then discover it three hours later inside the delete fixup.</p>
+    </div>
+    <div class="note">
+      <p><b>Right rotate is not a separate algorithm.</b> Write <code>left_rotate</code>, then produce <code>right_rotate</code> by swapping every <code>left</code> with <code>right</code>. If your two functions differ in any other way, one of them is wrong.</p>
+    </div>
+    <p class="small">Neither rotation reads or writes a colour, and neither changes the in-order sequence of keys. A rotation is a pure shape change — colours are the caller's problem.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 18 ============================================================ -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">17 — implementation in C</p>
+  <h2>Insert and its fixup</h2>
+  <div class="cols" style="margin-top:20px">
+   <div>
+<pre><code>/* returns 1 inserted, 0 duplicate, -1 out of memory */
+int rb_insert(RBTree *t, int key)
+{
+    Node *parent = t-&gt;nil, *cur = t-&gt;root;
+
+    while (cur != t-&gt;nil) {              /* plain BST descent */
+        parent = cur;
+        if      (key &lt; cur-&gt;key) cur = cur-&gt;left;
+        else if (key &gt; cur-&gt;key) cur = cur-&gt;right;
+        else                     return 0;
+    }
+
+    Node *z = malloc(sizeof *z);
+    if (!z) return -1;
+    z-&gt;key    = key;
+    z-&gt;left   = z-&gt;right = t-&gt;nil;
+    z-&gt;parent = parent;
+    z-&gt;colour = RED;                     /* always red */
+
+    if      (parent == t-&gt;nil)     t-&gt;root        = z;
+    else if (key &lt; parent-&gt;key)    parent-&gt;left   = z;
+    else                           parent-&gt;right  = z;
+
+    insert_fixup(t, z);
+    return 1;
+}</code></pre>
+   </div>
+   <div>
+<pre><code>static void insert_fixup(RBTree *t, Node *z)
+{
+    while (z-&gt;parent-&gt;colour == RED) {
+
+        if (z-&gt;parent == z-&gt;parent-&gt;parent-&gt;left) {
+            Node *u = z-&gt;parent-&gt;parent-&gt;right;   /* uncle */
+
+            if (u-&gt;colour == RED) {               /* case 1 */
+                z-&gt;parent-&gt;colour         = BLACK;
+                u-&gt;colour                 = BLACK;
+                z-&gt;parent-&gt;parent-&gt;colour = RED;
+                z = z-&gt;parent-&gt;parent;
+            } else {
+                if (z == z-&gt;parent-&gt;right) {      /* case 2 */
+                    z = z-&gt;parent;
+                    left_rotate(t, z);
+                }
+                z-&gt;parent-&gt;colour         = BLACK;/* case 3 */
+                z-&gt;parent-&gt;parent-&gt;colour = RED;
+                right_rotate(t, z-&gt;parent-&gt;parent);
+            }
+        } else {
+            /* mirror: swap every left and right above */
+            Node *u = z-&gt;parent-&gt;parent-&gt;left;
+
+            if (u-&gt;colour == RED) {
+                z-&gt;parent-&gt;colour         = BLACK;
+                u-&gt;colour                 = BLACK;
+                z-&gt;parent-&gt;parent-&gt;colour = RED;
+                z = z-&gt;parent-&gt;parent;
+            } else {
+                if (z == z-&gt;parent-&gt;left) {
+                    z = z-&gt;parent;
+                    right_rotate(t, z);
+                }
+                z-&gt;parent-&gt;colour         = BLACK;
+                z-&gt;parent-&gt;parent-&gt;colour = RED;
+                left_rotate(t, z-&gt;parent-&gt;parent);
+            }
+        }
+    }
+    t-&gt;root-&gt;colour = BLACK;              /* property 2, free */
+}</code></pre>
+   </div>
+  </div>
+  <div class="note"><p>The loop condition is the whole termination argument. Case 1 leaves <code>z</code> red two levels higher and re-tests. Cases 2 and 3 end with a black subtree root, so the condition fails. The final line enforces property 2 unconditionally, which is legal because recolouring the root black adds one to every path equally.</p></div>
+ </div>
+</section>
+
+<!-- 19 ============================================================ -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">18 — implementation in C</p>
+  <h2>Delete, transplant, and the fixup</h2>
+  <div class="cols" style="margin-top:18px">
+   <div>
+<pre><code>static void transplant(RBTree *t, Node *u, Node *v)
+{
+    if      (u-&gt;parent == t-&gt;nil)   t-&gt;root = v;
+    else if (u == u-&gt;parent-&gt;left)  u-&gt;parent-&gt;left  = v;
+    else                            u-&gt;parent-&gt;right = v;
+    v-&gt;parent = u-&gt;parent;      /* safe even if v is nil */
+}
+
+static Node *minimum(RBTree *t, Node *x)
+{
+    while (x-&gt;left != t-&gt;nil) x = x-&gt;left;
+    return x;
+}
+
+void rb_delete(RBTree *t, Node *z)
+{
+    Node   *y = z, *x;
+    Colour  y_original = y-&gt;colour;
+
+    if (z-&gt;left == t-&gt;nil) {
+        x = z-&gt;right;
+        transplant(t, z, z-&gt;right);
+    } else if (z-&gt;right == t-&gt;nil) {
+        x = z-&gt;left;
+        transplant(t, z, z-&gt;left);
+    } else {
+        y = minimum(t, z-&gt;right);      /* in-order successor */
+        y_original = y-&gt;colour;
+        x = y-&gt;right;
+
+        if (y-&gt;parent == z) {
+            x-&gt;parent = y;
+        } else {
+            transplant(t, y, y-&gt;right);
+            y-&gt;right = z-&gt;right;
+            y-&gt;right-&gt;parent = y;
+        }
+        transplant(t, z, y);
+        y-&gt;left = z-&gt;left;
+        y-&gt;left-&gt;parent = y;
+        y-&gt;colour = z-&gt;colour;
+    }
+    free(z);
+
+    if (y_original == BLACK)
+        delete_fixup(t, x);           /* a black one vanished */
+}</code></pre>
+    <p class="small">Note what is being tracked: not the colour of the node you asked to delete, but the colour of the node that <b>actually left its position</b>. When z has two children, z's colour is inherited by y and it is <i>y's</i> old colour that disappears from the tree.</p>
+   </div>
+   <div>
+<pre><code>static void delete_fixup(RBTree *t, Node *x)
+{
+    while (x != t-&gt;root &amp;&amp; x-&gt;colour == BLACK) {
+
+        if (x == x-&gt;parent-&gt;left) {
+            Node *w = x-&gt;parent-&gt;right;        /* sibling */
+
+            if (w-&gt;colour == RED) {                    /* 1 */
+                w-&gt;colour         = BLACK;
+                x-&gt;parent-&gt;colour = RED;
+                left_rotate(t, x-&gt;parent);
+                w = x-&gt;parent-&gt;right;
+            }
+            if (w-&gt;left-&gt;colour  == BLACK &amp;&amp;
+                w-&gt;right-&gt;colour == BLACK) {           /* 2 */
+                w-&gt;colour = RED;
+                x = x-&gt;parent;
+            } else {
+                if (w-&gt;right-&gt;colour == BLACK) {       /* 3 */
+                    w-&gt;left-&gt;colour = BLACK;
+                    w-&gt;colour       = RED;
+                    right_rotate(t, w);
+                    w = x-&gt;parent-&gt;right;
+                }
+                w-&gt;colour         = x-&gt;parent-&gt;colour; /* 4 */
+                x-&gt;parent-&gt;colour = BLACK;
+                w-&gt;right-&gt;colour  = BLACK;
+                left_rotate(t, x-&gt;parent);
+                x = t-&gt;root;                  /* terminate */
+            }
+        } else {
+            Node *w = x-&gt;parent-&gt;left;        /* mirror */
+
+            if (w-&gt;colour == RED) {
+                w-&gt;colour = BLACK;
+                x-&gt;parent-&gt;colour = RED;
+                right_rotate(t, x-&gt;parent);
+                w = x-&gt;parent-&gt;left;
+            }
+            if (w-&gt;right-&gt;colour == BLACK &amp;&amp;
+                w-&gt;left-&gt;colour  == BLACK) {
+                w-&gt;colour = RED;
+                x = x-&gt;parent;
+            } else {
+                if (w-&gt;left-&gt;colour == BLACK) {
+                    w-&gt;right-&gt;colour = BLACK;
+                    w-&gt;colour        = RED;
+                    left_rotate(t, w);
+                    w = x-&gt;parent-&gt;left;
+                }
+                w-&gt;colour         = x-&gt;parent-&gt;colour;
+                x-&gt;parent-&gt;colour = BLACK;
+                w-&gt;left-&gt;colour   = BLACK;
+                right_rotate(t, x-&gt;parent);
+                x = t-&gt;root;
+            }
+        }
+    }
+    x-&gt;colour = BLACK;      /* discharge the extra black */
+}</code></pre>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 20 ============================================================ -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">19 — prove it works</p>
+  <h2>Write the validator before you write delete</h2>
+  <p class="sub">A red-black tree can be wrong for thousands of operations and still return correct answers to every search. Only a property check catches it.</p>
+  <div class="cols" style="margin-top:8px">
+   <div>
+<pre><code>/* returns black-height via *bh, or 0 on violation */
+static int check(RBTree *t, Node *n, int *bh,
+                 long lo, long hi)
+{
+    if (n == t-&gt;nil) { *bh = 1; return 1; }
+
+    if (n-&gt;key &lt;= lo || n-&gt;key &gt;= hi)          /* BST order */
+        return 0;
+
+    if (n-&gt;colour == RED &amp;&amp;                    /* property 4 */
+        (n-&gt;left-&gt;colour == RED || n-&gt;right-&gt;colour == RED))
+        return 0;
+
+    int lb, rb;
+    if (!check(t, n-&gt;left,  &amp;lb, lo, n-&gt;key)) return 0;
+    if (!check(t, n-&gt;right, &amp;rb, n-&gt;key, hi)) return 0;
+
+    if (lb != rb) return 0;                    /* property 5 */
+
+    *bh = lb + (n-&gt;colour == BLACK);
+    return 1;
+}
+
+int rb_valid(RBTree *t)
+{
+    int bh;
+    if (t-&gt;root-&gt;colour != BLACK) return 0;    /* property 2 */
+    if (t-&gt;nil-&gt;colour  != BLACK) return 0;    /* property 3 */
+    return check(t, t-&gt;root, &amp;bh, LONG_MIN, LONG_MAX);
+}</code></pre>
+   </div>
+   <div>
+<pre><code>/* randomised differential test against a sorted array */
+#define N 20000
+int main(void)
+{
+    RBTree *t = rb_create();
+    char   *present = calloc(N, 1);
+    srand(12345);
+
+    for (int op = 0; op &lt; 500000; op++) {
+        int k = rand() % N;
+
+        if (rand() &amp; 1) {
+            int r = rb_insert(t, k);
+            assert(r == (present[k] ? 0 : 1));
+            present[k] = 1;
+        } else {
+            Node *z = rb_search(t, k);
+            assert((z != t-&gt;nil) == present[k]);
+            if (z != t-&gt;nil) rb_delete(t, z);
+            present[k] = 0;
+        }
+        assert(rb_valid(t));      /* every single op */
+    }
+    puts("ok");
+    return 0;
+}</code></pre>
+    <div class="note">
+      <p><b>Build it like this:</b></p>
+      <p style="margin-bottom:0"><code>gcc -Wall -Wextra -O2 -fsanitize=address,undefined rb.c -o rb</code></p>
+    </div>
+    <p class="small" style="margin-bottom:0">Asserting the invariant after <i>every</i> operation is deliberately expensive and deliberately worth it — it turns "the tree broke at some point" into "the tree broke on this exact operation with this exact key". Drop the assert to every 100th op once it passes, if you want to run it longer.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 21 ============================================================ -->
+<section class="slide" data-chapter="Closing">
+ <div class="inner">
+  <p class="kicker">20 — where it lives, and what to do next</p>
+  <h2>Red-black trees in production, and your exercises</h2>
+  <div class="cols" style="margin-top:20px">
+   <div>
+    <h3>Where you are already using one</h3>
+    <ul class="tight">
+      <li><b>Linux kernel</b> — the CFS scheduler's run queue, the <code>epoll</code> interest set, virtual memory area lookup, and the ext3/4 directory index.</li>
+      <li><b>C++</b> — <code>std::map</code>, <code>std::set</code>, <code>std::multimap</code> in every major standard library.</li>
+      <li><b>Java</b> — <code>TreeMap</code>, <code>TreeSet</code>, and the treeified buckets inside <code>HashMap</code> once a bucket exceeds eight entries.</li>
+    </ul>
+    <p class="small">The common thread is write-heavy or latency-sensitive workloads where a single operation must not be allowed to take O(log n) rotations. That is the requirement AVL cannot meet.</p>
+    <div class="note"><p>If someone asks in an interview "why does the kernel use a red-black tree rather than AVL?", the answer is not "it is faster". It is <b>bounded rebalancing cost per operation, and cheaper repairs under contention, at the price of a slightly deeper tree</b>.</p></div>
+   </div>
+   <div class="panel">
+    <h3>Exercises — write the prediction down first</h3>
+    <ol class="tight">
+      <li>Before running anything: how many rotations does inserting 1…7 into an empty red-black tree require? Now instrument <code>left_rotate</code> and <code>right_rotate</code> with a counter and check.</li>
+      <li>Implement <code>rb_create</code>, <code>rb_search</code>, <code>rb_insert</code>, <code>rb_valid</code>. Do not start deletion until the validator passes 10⁵ random insertions.</li>
+      <li>What is the black-height of the tree after inserting 1…1000 in order? Predict, then measure.</li>
+      <li>Implement <code>rb_delete</code> and run the differential harness on the previous slide under AddressSanitizer.</li>
+      <li>Instrument both trees: for 10⁵ mixed operations, report total rotations, total recolours, and the <b>maximum rotations in any single operation</b> for AVL and red-black. Explain the difference between the two columns.</li>
+      <li>Property 2 says the root is black. Show that enforcing it is always free — that recolouring a red root black can never violate properties 4 or 5.</li>
+    </ol>
+   </div>
+  </div>
+ </div>
+</section>
+
+</main>
+
+<nav id="bar">
+  <span id="count">1 / 21</span>
+  <button id="prev" aria-label="Previous slide">Back</button>
+  <button id="next" aria-label="Next slide">Next</button>
+  <span class="chapter" id="chapter"></span>
+  <button id="theme" title="Colour theme — auto, light, dark (T)">◐ Auto</button>
+</nav>
+
+<script>
+"use strict";
+/* ============================================================
+   1. deck navigation
+   ============================================================ */
+var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+var idx = 0;
+var elProg = document.getElementById('progress');
+var elCount = document.getElementById('count');
+var elChap = document.getElementById('chapter');
+var btnPrev = document.getElementById('prev');
+var btnNext = document.getElementById('next');
+
+function show(i){
+  idx = Math.max(0, Math.min(slides.length - 1, i));
+  slides.forEach(function(s, k){ s.classList.toggle('is-active', k === idx); });
+  slides[idx].scrollTop = 0;
+  elProg.style.width = ((idx + 1) / slides.length * 100) + '%';
+  elCount.textContent = (idx + 1) + ' / ' + slides.length;
+  elChap.textContent = slides[idx].dataset.chapter || '';
+  btnPrev.disabled = idx === 0;
+  btnNext.disabled = idx === slides.length - 1;
+  if (location.hash !== '#' + (idx + 1)) history.replaceState(null, '', '#' + (idx + 1));
+}
+btnPrev.addEventListener('click', function(){ show(idx - 1); });
+btnNext.addEventListener('click', function(){ show(idx + 1); });
+document.addEventListener('keydown', function(e){
+  var t = e.target.tagName;
+  if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') return;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') { show(idx + 1); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(idx - 1); e.preventDefault(); }
+  else if (e.key === 'Home') { show(0); }
+  else if (e.key === 'End') { show(slides.length - 1); }
+});
+(function(){
+  var x0 = null, y0 = null;
+  document.getElementById('deck').addEventListener('touchstart', function(e){
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+  }, {passive:true});
+  document.getElementById('deck').addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    var dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.8) show(idx + (dx < 0 ? 1 : -1));
+    x0 = null;
+  }, {passive:true});
+})();
+
+/* ============================================================
+   2. syntax highlighting
+   ============================================================ */
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+var KW = /\b(if|else|while|for|return|struct|typedef|enum|static|void|int|char|long|const|sizeof|NULL|break|continue|assert|puts|calloc|malloc|free|srand|rand|main)\b/;
+function highlight(src){
+  var re = /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|(#\s*\w+)|("(?:[^"\\]|\\.)*")|\b(if|else|while|for|return|struct|typedef|enum|static|void|int|char|long|const|sizeof|NULL|break|continue|assert|puts|calloc|malloc|free|srand|rand|main)\b|\b(\d+)\b/g;
+  var out = '', last = 0, m;
+  while ((m = re.exec(src)) !== null) {
+    out += esc(src.slice(last, m.index));
+    if (m[1])      out += '<span class="tok-c">' + esc(m[1]) + '</span>';
+    else if (m[2]) out += '<span class="tok-k">' + esc(m[2]) + '</span>';
+    else if (m[3]) out += '<span class="tok-s">' + esc(m[3]) + '</span>';
+    else if (m[4]) out += '<span class="tok-k">' + esc(m[4]) + '</span>';
+    else           out += '<span class="tok-n">' + esc(m[5]) + '</span>';
+    last = re.lastIndex;
+  }
+  out += esc(src.slice(last));
+  return out;
+}
+Array.prototype.forEach.call(document.querySelectorAll('pre code'), function(el){
+  el.innerHTML = highlight(el.textContent);
+});
+
+/* ============================================================
+   3. red-black tree (mirrors the C on the code slides)
+   ============================================================ */
+function makeRB(){
+  var NIL = { colour:'B', key:null };
+  NIL.left = NIL.right = NIL.parent = NIL;
+  var T = { NIL:NIL, root:NIL, size:0, rot:0, recol:0, maxRot:0, _r:0 };
+
+  function paint(n, c){ if (n.colour !== c) { n.colour = c; T.recol++; } }
+  function lrot(x){
+    T.rot++; T._r++;
+    var y = x.right;
+    x.right = y.left;
+    if (y.left !== NIL) y.left.parent = x;
+    y.parent = x.parent;
+    if (x.parent === NIL) T.root = y;
+    else if (x === x.parent.left) x.parent.left = y;
+    else x.parent.right = y;
+    y.left = x; x.parent = y;
+  }
+  function rrot(y){
+    T.rot++; T._r++;
+    var x = y.left;
+    y.left = x.right;
+    if (x.right !== NIL) x.right.parent = y;
+    x.parent = y.parent;
+    if (y.parent === NIL) T.root = x;
+    else if (y === y.parent.right) y.parent.right = x;
+    else y.parent.left = x;
+    x.right = y; y.parent = x;
+  }
+  function fixInsert(z){
+    while (z.parent.colour === 'R') {
+      if (z.parent === z.parent.parent.left) {
+        var u = z.parent.parent.right;
+        if (u.colour === 'R') {
+          paint(z.parent,'B'); paint(u,'B'); paint(z.parent.parent,'R');
+          z = z.parent.parent;
+        } else {
+          if (z === z.parent.right) { z = z.parent; lrot(z); }
+          paint(z.parent,'B'); paint(z.parent.parent,'R');
+          rrot(z.parent.parent);
+        }
+      } else {
+        var u2 = z.parent.parent.left;
+        if (u2.colour === 'R') {
+          paint(z.parent,'B'); paint(u2,'B'); paint(z.parent.parent,'R');
+          z = z.parent.parent;
+        } else {
+          if (z === z.parent.left) { z = z.parent; rrot(z); }
+          paint(z.parent,'B'); paint(z.parent.parent,'R');
+          lrot(z.parent.parent);
+        }
+      }
+    }
+    paint(T.root,'B');
+  }
+  function transplant(u, v){
+    if (u.parent === NIL) T.root = v;
+    else if (u === u.parent.left) u.parent.left = v;
+    else u.parent.right = v;
+    v.parent = u.parent;
+  }
+  function minimum(x){ while (x.left !== NIL) x = x.left; return x; }
+  function fixDelete(x){
+    while (x !== T.root && x.colour === 'B') {
+      if (x === x.parent.left) {
+        var w = x.parent.right;
+        if (w.colour === 'R') { paint(w,'B'); paint(x.parent,'R'); lrot(x.parent); w = x.parent.right; }
+        if (w.left.colour === 'B' && w.right.colour === 'B') { paint(w,'R'); x = x.parent; }
+        else {
+          if (w.right.colour === 'B') { paint(w.left,'B'); paint(w,'R'); rrot(w); w = x.parent.right; }
+          paint(w, x.parent.colour); paint(x.parent,'B'); paint(w.right,'B');
+          lrot(x.parent); x = T.root;
+        }
+      } else {
+        var w2 = x.parent.left;
+        if (w2.colour === 'R') { paint(w2,'B'); paint(x.parent,'R'); rrot(x.parent); w2 = x.parent.left; }
+        if (w2.right.colour === 'B' && w2.left.colour === 'B') { paint(w2,'R'); x = x.parent; }
+        else {
+          if (w2.left.colour === 'B') { paint(w2.right,'B'); paint(w2,'R'); lrot(w2); w2 = x.parent.left; }
+          paint(w2, x.parent.colour); paint(x.parent,'B'); paint(w2.left,'B');
+          rrot(x.parent); x = T.root;
+        }
+      }
+    }
+    paint(x,'B');
+  }
+
+  T.search = function(k){
+    var x = T.root;
+    while (x !== NIL && x.key !== k) x = (k < x.key) ? x.left : x.right;
+    return x;
+  };
+  T.insert = function(k){
+    T._r = 0;
+    var p = NIL, cur = T.root;
+    while (cur !== NIL) {
+      p = cur;
+      if (k < cur.key) cur = cur.left;
+      else if (k > cur.key) cur = cur.right;
+      else return false;
+    }
+    var z = { key:k, colour:'R', left:NIL, right:NIL, parent:p };
+    if (p === NIL) T.root = z;
+    else if (k < p.key) p.left = z;
+    else p.right = z;
+    fixInsert(z);
+    T.size++;
+    if (T._r > T.maxRot) T.maxRot = T._r;
+    T.last = z;
+    return true;
+  };
+  T.remove = function(k){
+    T._r = 0;
+    var z = T.search(k);
+    if (z === NIL) return false;
+    var y = z, x, yc = y.colour;
+    if (z.left === NIL)       { x = z.right; transplant(z, z.right); }
+    else if (z.right === NIL) { x = z.left;  transplant(z, z.left);  }
+    else {
+      y = minimum(z.right); yc = y.colour; x = y.right;
+      if (y.parent === z) x.parent = y;
+      else { transplant(y, y.right); y.right = z.right; y.right.parent = y; }
+      transplant(z, y);
+      y.left = z.left; y.left.parent = y; y.colour = z.colour;
+    }
+    if (yc === 'B') fixDelete(x);
+    T.size--;
+    if (T._r > T.maxRot) T.maxRot = T._r;
+    T.last = null;
+    return true;
+  };
+  T.height = function(){
+    return (function h(n){ return n === NIL ? 0 : 1 + Math.max(h(n.left), h(n.right)); })(T.root);
+  };
+  T.blackHeight = function(){
+    var b = 0, n = T.root;
+    while (n !== NIL) { if (n.colour === 'B') b++; n = n.left; }
+    return b + 1;
+  };
+  T.valid = function(){
+    if (T.root.colour !== 'B') return false;
+    var ok = true;
+    function chk(n, lo, hi){
+      if (n === NIL) return 1;
+      if ((lo !== null && n.key <= lo) || (hi !== null && n.key >= hi)) { ok = false; return 0; }
+      if (n.colour === 'R' && (n.left.colour === 'R' || n.right.colour === 'R')) { ok = false; return 0; }
+      var a = chk(n.left, lo, n.key), b = chk(n.right, n.key, hi);
+      if (a !== b) ok = false;
+      return a + (n.colour === 'B' ? 1 : 0);
+    }
+    chk(T.root, null, null);
+    return ok;
+  };
+  return T;
+}
+
+/* ============================================================
+   4. AVL tree, for the comparison harness
+   ============================================================ */
+function makeAVL(){
+  var T = { root:null, size:0, rot:0, maxRot:0, _r:0 };
+  function h(n){ return n ? n.h : 0; }
+  function upd(n){ n.h = 1 + Math.max(h(n.left), h(n.right)); }
+  function bf(n){ return h(n.left) - h(n.right); }
+  function rrot(y){ T.rot++; T._r++; var x = y.left;  y.left  = x.right; x.right = y; upd(y); upd(x); return x; }
+  function lrot(x){ T.rot++; T._r++; var y = x.right; x.right = y.left;  y.left  = x; upd(x); upd(y); return y; }
+  function bal(n){
+    upd(n);
+    var b = bf(n);
+    if (b > 1)  { if (bf(n.left)  < 0) n.left  = lrot(n.left);  return rrot(n); }
+    if (b < -1) { if (bf(n.right) > 0) n.right = rrot(n.right); return lrot(n); }
+    return n;
+  }
+  function ins(n, k){
+    if (!n) { T.size++; return { key:k, h:1, left:null, right:null }; }
+    if (k < n.key) n.left = ins(n.left, k);
+    else if (k > n.key) n.right = ins(n.right, k);
+    else return n;
+    return bal(n);
+  }
+  function mn(n){ while (n.left) n = n.left; return n; }
+  function del(n, k){
+    if (!n) return null;
+    if (k < n.key) n.left = del(n.left, k);
+    else if (k > n.key) n.right = del(n.right, k);
+    else {
+      T.size--;
+      if (!n.left)  return n.right;
+      if (!n.right) return n.left;
+      var s = mn(n.right);
+      n.key = s.key;
+      T.size++;
+      n.right = del(n.right, s.key);
+    }
+    return bal(n);
+  }
+  T.insert = function(k){ T._r = 0; ins2(k); if (T._r > T.maxRot) T.maxRot = T._r; };
+  function ins2(k){ T.root = ins(T.root, k); }
+  T.remove = function(k){ T._r = 0; T.root = del(T.root, k); if (T._r > T.maxRot) T.maxRot = T._r; };
+  T.height = function(){ return h(T.root); };
+  T.valid = function(){
+    var ok = true;
+    (function chk(n){
+      if (!n) return 0;
+      var a = chk(n.left), b = chk(n.right);
+      if (Math.abs(a - b) > 1) ok = false;
+      return 1 + Math.max(a, b);
+    })(T.root);
+    return ok;
+  };
+  return T;
+}
+
+/* ============================================================
+   5. SVG rendering
+   ============================================================ */
+/* Colours live in the CSS custom properties so the theme switch can move
+   them. These diagrams are SVG *strings*, not styled elements, so nothing
+   already on screen updates by itself: each render records how to repeat
+   itself and repaintAll() replays the lot once the palette has changed. */
+var C_RED, C_RED_EDGE, C_BLACK, C_BLACK_EDGE, C_ON_NODE,
+    C_NODE, C_INK, C_RULE, C_ACCENT, C_FAINT;
+
+function readTokens(){
+  var cs = getComputedStyle(document.documentElement);
+  function t(n, fb){ var v = (cs.getPropertyValue(n) || '').trim(); return v || fb; }
+  C_RED        = t('--node-red',        '#C62828');
+  C_RED_EDGE   = t('--node-red-edge',   C_RED);
+  C_BLACK      = t('--node-black',      '#14181C');
+  C_BLACK_EDGE = t('--node-black-edge', C_BLACK);
+  C_ON_NODE    = t('--on-node',         '#FFFFFF');
+  C_NODE       = t('--svg-node',        '#FFFFFF');
+  C_INK        = t('--ink',             '#22303C');
+  C_RULE       = t('--rule',            '#CBD8E0');
+  C_ACCENT     = t('--accent',          '#116A83');
+  C_FAINT      = t('--faint',           '#8CA0AE');
+}
+readTokens();
+
+var _painters = [];
+function _paints(el, fn){
+  for (var i = 0; i < _painters.length; i++) {
+    if (_painters[i][0] === el) { _painters[i][1] = fn; return; }
+  }
+  _painters.push([el, fn]);
+}
+function repaintAll(){
+  readTokens();
+  for (var i = 0; i < _painters.length; i++) _painters[i][1]();
+}
+
+function svgNode(x, y, label, colour, r){
+  r = r || 15;
+  var fill   = colour === 'R' ? C_RED      : (colour === 'B' ? C_BLACK      : C_NODE);
+  var stroke = colour === 'R' ? C_RED_EDGE : (colour === 'B' ? C_BLACK_EDGE : C_INK);
+  var text   = colour === 'P' ? C_INK : C_ON_NODE;
+  return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + fill +
+         '" stroke="' + stroke + '" stroke-width="1.5"/>' +
+         '<text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle" fill="' + text +
+         '" font-family="JetBrains Mono, monospace" font-size="' + (r > 13 ? 12 : 10) +
+         '" font-weight="500">' + label + '</text>';
+}
+function svgEdge(x1, y1, x2, y2, emph){
+  return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 +
+         '" stroke="' + (emph ? C_ACCENT : C_RULE) + '" stroke-width="' + (emph ? 3 : 1.5) + '"/>';
+}
+
+function renderTree(svg, T, opts){
+  opts = opts || {};
+  if (!svg) return;
+  _paints(svg, function(){ renderTree(svg, T, opts); });
+  var items = [], i = 0, maxd = 0, nilMap = [];
+  (function walk(n, d, par, side){
+    if (n === T.NIL) {
+      if (opts.nil && par) { var ph = { nilLeaf:true, d:d, par:par, side:side }; items.push(ph); nilMap.push(ph); }
+      return;
+    }
+    walk(n.left, d + 1, n, 'L');
+    items.push({ node:n, d:d });
+    if (d > maxd) maxd = d;
+    walk(n.right, d + 1, n, 'R');
+  })(T.root, 0, null, null);
+
+  if (!items.length) {
+    svg.setAttribute('viewBox', '0 0 400 90');
+    svg.innerHTML = '<text x="200" y="50" text-anchor="middle" fill="' + C_FAINT +
+      '" font-family="JetBrains Mono, monospace" font-size="13">empty tree</text>';
+    return;
+  }
+  items.forEach(function(it, k){ it.x = k; if (it.d > maxd) maxd = it.d; });
+
+  var cols = items.length;
+  var cw = cols > 26 ? 26 : (cols > 16 ? 36 : 48);
+  var r  = cols > 26 ? 10 : (cols > 16 ? 12 : 15);
+  var ch = 56, m = 24;
+  var W = cols * cw + m * 2, H = (maxd + 1) * ch + m;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+  function px(it){ return m + it.x * cw + cw / 2; }
+  function py(it){ return m + it.d * ch; }
+  var pos = new Map();
+  items.forEach(function(it){ if (it.node) pos.set(it.node, it); });
+
+  var edges = '', circles = '';
+  items.forEach(function(it){
+    if (!it.node) return;
+    ['left','right'].forEach(function(side){
+      var c = it.node[side];
+      if (c !== T.NIL && pos.has(c)) {
+        var e = pos.get(c);
+        var emph = opts.emph && opts.emph.has(it.node) && opts.emph.has(c);
+        edges += svgEdge(px(it), py(it), px(e), py(e), emph);
+      }
+    });
+  });
+  nilMap.forEach(function(ph){
+    var p = pos.get(ph.par);
+    if (!p) return;
+    edges += svgEdge(px(p), py(p), px(ph), py(ph), false);
+    circles += '<rect x="' + (px(ph) - 6) + '" y="' + (py(ph) - 6) + '" width="12" height="12" rx="2" fill="' +
+               C_BLACK_EDGE + '" opacity="0.55"/>';
+  });
+  items.forEach(function(it){
+    if (!it.node) return;
+    circles += svgNode(px(it), py(it), it.node.key, it.node.colour, r);
+    if (opts.mark && it.node === opts.mark) {
+      circles += '<circle cx="' + px(it) + '" cy="' + py(it) + '" r="' + (r + 5) +
+                 '" fill="none" stroke="' + C_ACCENT + '" stroke-width="2"/>';
+    }
+  });
+  svg.innerHTML = edges + circles;
+}
+
+function drawMini(id, spec){
+  var svg = document.getElementById(id);
+  if (!svg) return;
+  _paints(svg, function(){ drawMini(id, spec); });
+  svg.setAttribute('viewBox', '0 0 ' + spec.w + ' ' + spec.h);
+  var map = {};
+  spec.nodes.forEach(function(n){ map[n.id] = n; });
+  var s = '';
+  (spec.edges || []).forEach(function(e){
+    var A = map[e[0]], B = map[e[1]];
+    s += svgEdge(A.x, A.y, B.x, B.y, false);
+  });
+  spec.nodes.forEach(function(n){
+    s += svgNode(n.x, n.y, n.l, n.c, 17);
+    if (n.sub) s += '<text x="' + n.x + '" y="' + (n.y + 34) + '" text-anchor="middle" fill="' + C_ACCENT +
+                    '" font-family="JetBrains Mono, monospace" font-size="10">' + n.sub + '</text>';
+  });
+  svg.innerHTML = s;
+}
+
+/* ============================================================
+   6. slide 1 — hero build
+   ============================================================ */
+(function(){
+  var svg = document.getElementById('heroTree');
+  var cap = document.getElementById('heroCap');
+  var keys = [10,20,30,40,50,60,70,80];
+  var T = makeRB();
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) {
+    keys.forEach(function(k){ T.insert(k); });
+    renderTree(svg, T);
+    return;
+  }
+  var i = 0;
+  (function step(){
+    if (i >= keys.length) {
+      cap.textContent = 'height ' + T.height() + ', black-height ' + T.blackHeight() + ', ' + T.rot + ' rotations in total';
+      return;
+    }
+    T.insert(keys[i++]);
+    renderTree(svg, T, { mark:T.last });
+    cap.textContent = 'inserted ' + keys.slice(0, i).join(', ');
+    setTimeout(step, 420);
+  })();
+})();
+
+/* ============================================================
+   7. slide 2 — degenerate BST
+   ============================================================ */
+(function(){
+  var nodes = [], edges = [];
+  for (var i = 0; i < 7; i++) {
+    nodes.push({ id:'n' + i, x:46 + i * 33, y:30 + i * 38, l:String(i + 1), c:'P' });
+    if (i) edges.push(['n' + (i - 1), 'n' + i]);
+  }
+  drawMini('degenTree', { w:300, h:300, nodes:nodes, edges:edges });
+})();
+
+/* ============================================================
+   8. slide 6 — shortest vs longest path
+   ============================================================ */
+(function(){
+  var svg = document.getElementById('pathTree');
+  var T = makeRB();
+  [30,15,45,10,20,40,60,5,12,55,70,65].forEach(function(k){ T.insert(k); });
+  var best = null, worst = null;
+  (function dfs(n, path){
+    if (n === T.NIL) {
+      if (!best || path.length < best.length)  best  = path.slice();
+      if (!worst || path.length > worst.length) worst = path.slice();
+      return;
+    }
+    path.push(n); dfs(n.left, path); dfs(n.right, path); path.pop();
+  })(T.root, []);
+  var emph = new Set(best.concat(worst));
+  renderTree(svg, T, { emph:emph });
+  var cap = svg.parentNode.querySelector('.legend');
+  cap.insertAdjacentHTML('beforeend',
+    '<span>shortest path ' + best.length + ' nodes, longest ' + worst.length +
+    ' nodes, black-height ' + T.blackHeight() + '</span>');
+})();
+
+/* ============================================================
+   9. slides 12-13 — insert fixup case diagrams
+   ============================================================ */
+drawMini('c1a', { w:320, h:222, nodes:[
+  { id:'g', x:160, y:45, l:'G', c:'B' },
+  { id:'p', x:90,  y:115, l:'P', c:'R' },
+  { id:'u', x:245, y:115, l:'U', c:'R' },
+  { id:'z', x:45,  y:175, l:'Z', c:'R', sub:'new node' }
+], edges:[['g','p'],['g','u'],['p','z']] });
+
+drawMini('c1b', { w:320, h:222, nodes:[
+  { id:'g', x:160, y:45, l:'G', c:'R', sub:'z moves up to here' },
+  { id:'p', x:90,  y:115, l:'P', c:'B' },
+  { id:'u', x:245, y:115, l:'U', c:'B' },
+  { id:'z', x:45,  y:175, l:'Z', c:'R' }
+], edges:[['g','p'],['g','u'],['p','z']] });
+
+drawMini('c2a', { w:300, h:222, nodes:[
+  { id:'g', x:150, y:45, l:'G', c:'B' },
+  { id:'p', x:80,  y:115, l:'P', c:'R' },
+  { id:'u', x:235, y:115, l:'U', c:'B' },
+  { id:'z', x:130, y:175, l:'Z', c:'R', sub:'inner child' }
+], edges:[['g','p'],['g','u'],['p','z']] });
+
+drawMini('c3a', { w:300, h:222, nodes:[
+  { id:'g', x:150, y:45, l:'G', c:'B' },
+  { id:'z', x:80,  y:115, l:'Z', c:'R' },
+  { id:'u', x:235, y:115, l:'U', c:'B' },
+  { id:'p', x:35,  y:175, l:'P', c:'R', sub:'outer child' }
+], edges:[['g','z'],['g','u'],['z','p']] });
+
+drawMini('c3b', { w:300, h:212, nodes:[
+  { id:'z', x:140, y:45, l:'Z', c:'B' },
+  { id:'p', x:70,  y:120, l:'P', c:'R' },
+  { id:'g', x:210, y:120, l:'G', c:'R' },
+  { id:'u', x:262, y:172, l:'U', c:'B' }
+], edges:[['z','p'],['z','g'],['g','u']] });
+
+/* ============================================================
+   10. slide 8 — height bound table
+   ============================================================ */
+(function(){
+  var tb = document.getElementById('heightTable');
+  if (!tb) return;
+  [1000, 100000, 1000000, 1000000000].forEach(function(n){
+    var avl = Math.floor(1.44 * Math.log2(n));
+    var rb  = Math.floor(2 * Math.log2(n + 1));
+    tb.insertAdjacentHTML('beforeend',
+      '<tr><td class="num">' + n.toLocaleString() + '</td><td class="num">' + avl +
+      '</td><td class="num">' + rb + '</td><td class="num">+' + (rb - avl) + ' levels</td></tr>');
+  });
+})();
+
+/* ============================================================
+   11. slide 10 — measured comparison
+   ============================================================ */
+(function(){
+  var out = document.getElementById('benchOut');
+  if (!out) return;
+
+  function shuffled(n){
+    var a = [], i;
+    for (i = 1; i <= n; i++) a.push(i);
+    for (i = n - 1; i > 0; i--) { var j = (Math.random() * (i + 1)) | 0, t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function row(label, a, b, note){
+    return '<tr><td>' + label + '</td><td class="num">' + a + '</td><td class="num">' + b +
+           '</td><td class="small">' + (note || '') + '</td></tr>';
+  }
+  function run(mode){
+    var n = Math.max(100, Math.min(20000, parseInt(document.getElementById('benchN').value, 10) || 2000));
+    var keys = (mode === 'sorted') ? Array.from({ length:n }, function(_, i){ return i + 1; }) : shuffled(n);
+    var rb = makeRB(), av = makeAVL();
+    var t0 = performance.now();
+    keys.forEach(function(k){ rb.insert(k); av.insert(k); });
+    var insRB = { rot:rb.rot, max:rb.maxRot, recol:rb.recol },
+        insAV = { rot:av.rot, max:av.maxRot };
+    var html = '<table><thead><tr><th>measurement</th><th>AVL</th><th>red-black</th><th></th></tr></thead><tbody>';
+    html += row('rotations, all ' + n + ' insertions', insAV.rot, insRB.rot);
+    html += row('most rotations in one insertion', insAV.max, insRB.max, 'both bounded by 2');
+    html += row('recolourings', '&mdash;', insRB.recol, 'colour-bit writes, no pointers moved');
+
+    if (mode === 'mixed') {
+      rb.rot = av.rot = 0; rb.maxRot = av.maxRot = 0; rb.recol = 0;
+      var order = shuffled(n).map(function(i){ return keys[i - 1]; });
+      order.forEach(function(k){ rb.remove(k); av.remove(k); });
+      html += row('rotations, all ' + n + ' deletions', av.rot, rb.rot);
+      html += row('most rotations in one deletion', av.maxRot, rb.maxRot,
+                  'AVL is O(log n), red-black is capped at 3');
+      html += row('recolourings during deletion', '&mdash;', rb.recol);
+      html += row('nodes remaining', av.size, rb.size);
+    } else {
+      html += row('final height', av.height(), rb.height(),
+                  'perfectly balanced would be ' + Math.ceil(Math.log2(n + 1)));
+      html += row('black-height', '&mdash;', rb.blackHeight());
+    }
+    html += row('invariant holds afterwards', av.valid() ? 'yes' : 'NO', rb.valid() ? 'yes' : 'NO');
+    html += '</tbody></table>';
+    html += '<p class="small">' + n.toLocaleString() + ' keys, ' +
+            (mode === 'sorted' ? 'ascending order' : 'random order') +
+            ', completed in ' + (performance.now() - t0).toFixed(0) + ' ms.</p>';
+    out.innerHTML = html;
+  }
+  document.getElementById('runSorted').addEventListener('click', function(){ run('sorted'); });
+  document.getElementById('runRandom').addEventListener('click', function(){ run('random'); });
+  document.getElementById('runMixed').addEventListener('click',  function(){ run('mixed');  });
+  out.innerHTML = '<p class="small">Nothing measured yet. Commit to an answer, then press a button.</p>';
+})();
+
+/* ============================================================
+   12. slide 14 — playground
+   ============================================================ */
+(function(){
+  var svg = document.getElementById('pgTree');
+  if (!svg) return;
+  var T = makeRB(), nextKey = 1;
+  var stats = document.getElementById('pgStats');
+  var chkNil = document.getElementById('pgNil');
+  var input = document.getElementById('pgKey');
+
+  function draw(){
+    renderTree(svg, T, { nil:chkNil.checked, mark:T.last });
+    stats.innerHTML = 'nodes <b>' + T.size + '</b> &nbsp; height <b>' + T.height() +
+      '</b> &nbsp; black-height <b>' + T.blackHeight() + '</b> &nbsp; rotations <b>' + T.rot +
+      '</b> &nbsp; recolours <b>' + T.recol + '</b> &nbsp; properties <b>' +
+      (T.valid() ? 'hold' : 'VIOLATED') + '</b>';
+  }
+  function ins(k){ if (!isNaN(k)) { T.insert(k); draw(); } }
+  document.getElementById('pgInsert').addEventListener('click', function(){
+    ins(parseInt(input.value, 10)); input.value = ''; input.focus();
+  });
+  input.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') { ins(parseInt(input.value, 10)); input.value = ''; }
+  });
+  document.getElementById('pgDelete').addEventListener('click', function(){
+    var k = parseInt(input.value, 10);
+    if (!isNaN(k)) { T.remove(k); draw(); }
+    input.value = ''; input.focus();
+  });
+  document.getElementById('pgRandom').addEventListener('click', function(){
+    ins(1 + ((Math.random() * 99) | 0));
+  });
+  document.getElementById('pgSorted').addEventListener('click', function(){
+    while (T.search(nextKey) !== T.NIL) nextKey++;
+    ins(nextKey++);
+  });
+  document.getElementById('pgClear').addEventListener('click', function(){
+    T = makeRB(); nextKey = 1; draw();
+  });
+  chkNil.addEventListener('change', draw);
+
+  [50, 25, 75, 12, 37, 62, 87].forEach(function(k){ T.insert(k); });
+  T.last = null;
+  draw();
+})();
+
+/* ============================================================
+   13. boot
+   ============================================================ */
+(function(){
+  var h = parseInt((location.hash || '').replace('#', ''), 10);
+  show(isNaN(h) ? 0 : h - 1);
+})();
+
+/* ============================================================
+   theme -- auto / light / dark
+   The choice is stored under one key shared by every deck in this
+   set, so switching here switches the rest of them too.
+   ============================================================ */
+(function(){
+  var KEY = 'deck-theme';
+  var root = document.documentElement;
+  var btn = document.getElementById('theme');
+  var modes = ['auto', 'light', 'dark'];
+  var labels = { auto:'\u25D0 Auto', light:'\u2600 Light', dark:'\u263E Dark' };
+  var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  var mode = 'auto';
+  try { var v = localStorage.getItem(KEY); if (modes.indexOf(v) >= 0) mode = v; } catch (e) {}
+
+  function apply(persist){
+    if (mode === 'auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', mode);
+    if (btn) {
+      btn.textContent = labels[mode];
+      btn.setAttribute('aria-label', 'Colour theme: ' + mode + '. Click to change.');
+    }
+    if (persist) { try { localStorage.setItem(KEY, mode); } catch (e) {} }
+    /* The diagrams are SVG strings built from the old custom-property values,
+       so they are stale the moment the palette moves. Draw them again. */
+    repaintAll();
+  }
+  function cycle(){ mode = modes[(modes.indexOf(mode) + 1) % modes.length]; apply(true); }
+
+  if (btn) btn.addEventListener('click', cycle);
+  document.addEventListener('keydown', function(e){
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') return;
+    if (e.key === 't' || e.key === 'T') cycle();
+  });
+  if (mq) {
+    var onSys = function(){ if (mode === 'auto') apply(false); };
+    if (mq.addEventListener) mq.addEventListener('change', onSys);
+    else if (mq.addListener) mq.addListener(onSys);
+  }
+  apply(false);
+})();
+</script>
+</body>
+</html>

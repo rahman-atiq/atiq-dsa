@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B-Trees — when the cost model breaks, and how to fix it in C</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EFF3F5;
+  --slide:#FFFFFF;
+  --ink:#22303C;
+  --dim:#5D7285;
+  --faint:#8CA0AE;
+  --rule:#CBD8E0;
+  --accent:#116A83;
+  --accent-soft:#E1EEF2;
+  --block:#9C6510;
+  --block-soft:#F6EEE0;
+  --cell:#F4F8FA;
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --pad:clamp(20px,4vw,64px);
+  /* --- surfaces and ink that used to be hardcoded further down --- */
+  color-scheme:light;
+  --slide-0:rgba(255,255,255,0);
+  --panel-bg:#FAFCFD;
+  --box-bg:#FBFDFE;
+  --btn-bg:#FFFFFF;
+  --pre-bg:#F1F5F7;
+  --pre-ink:#1E2E3A;
+  --code-ink:#0C4E61;
+  --tok-c:#7E93A2;
+  --tok-k:#0C5A73;
+  --tok-n:#8A5A00;
+  --tok-s:#1F6B3F;
+  --svg-node:#FFFFFF;
+  --svg-rule:#9FB3C0;
+  --on-fill:#FFFFFF;
+  --zero:#C3CFD8;
+  --wash:#DCE5EA;
+  --cell:#F4F8FA;
+  --bad:#A4303F;
+  --bad-soft:#F7EAEC;
+  --block:#9C6510;
+  --block-soft:#F6EEE0;
+  --done:#4A6B2F;
+  --done-soft:#EDF2E4;
+  --node-red:#C62828;
+  --node-red-edge:#C62828;
+  --node-black:#14181C;
+  --node-black-edge:#14181C;
+  --on-node:#FFFFFF;
+}
+
+/* The media query is guarded so an explicit light choice still wins,
+   and both [data-theme] blocks exist so the button wins in either
+   direction over whatever the operating system thinks. */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#12171B;
+  --slide:#1A2127;
+  --slide-0:rgba(26,33,39,0);
+  --ink:#E1E8ED;
+  --dim:#9DAFBB;
+  --faint:#778995;
+  --rule:#2E3941;
+  --accent:#5BB7D0;
+  --accent-soft:#16303A;
+  --panel-bg:#1E262D;
+  --box-bg:#171E24;
+  --btn-bg:#212A31;
+  --pre-bg:#141A20;
+  --pre-ink:#D5DEE5;
+  --code-ink:#8FD9EC;
+  --tok-c:#6F8290;
+  --tok-k:#6BC1D8;
+  --tok-n:#D6A355;
+  --tok-s:#6CBE8F;
+  --svg-node:#242E36;
+  --svg-rule:#55646F;
+  --on-fill:#0E1419;
+  --zero:#3D4A54;
+  --wash:#333F48;
+  --cell:#1E262D;
+  --bad:#E0655E;
+  --bad-soft:#382324;
+  --block:#D6A355;
+  --block-soft:#33291A;
+  --done:#93C36B;
+  --done-soft:#212A1B;
+  /* A black node on a black ground is honest and useless. In dark mode the
+     black node stays the darkest thing on the slide -- darker than the box it
+     sits in -- and earns a bright rim so you can still find its edges. */
+  --node-red:#CF3A40;
+  --node-red-edge:#F08A8E;
+  --node-black:#10151A;
+  --node-black-edge:#8FA3B2;
+  --on-node:#F2F7FA;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#12171B;
+  --slide:#1A2127;
+  --slide-0:rgba(26,33,39,0);
+  --ink:#E1E8ED;
+  --dim:#9DAFBB;
+  --faint:#778995;
+  --rule:#2E3941;
+  --accent:#5BB7D0;
+  --accent-soft:#16303A;
+  --panel-bg:#1E262D;
+  --box-bg:#171E24;
+  --btn-bg:#212A31;
+  --pre-bg:#141A20;
+  --pre-ink:#D5DEE5;
+  --code-ink:#8FD9EC;
+  --tok-c:#6F8290;
+  --tok-k:#6BC1D8;
+  --tok-n:#D6A355;
+  --tok-s:#6CBE8F;
+  --svg-node:#242E36;
+  --svg-rule:#55646F;
+  --on-fill:#0E1419;
+  --zero:#3D4A54;
+  --wash:#333F48;
+  --cell:#1E262D;
+  --bad:#E0655E;
+  --bad-soft:#382324;
+  --block:#D6A355;
+  --block-soft:#33291A;
+  --done:#93C36B;
+  --done-soft:#212A1B;
+  /* A black node on a black ground is honest and useless. In dark mode the
+     black node stays the darkest thing on the slide -- darker than the box it
+     sits in -- and earns a bright rim so you can still find its edges. */
+  --node-red:#CF3A40;
+  --node-red-edge:#F08A8E;
+  --node-black:#10151A;
+  --node-black-edge:#8FA3B2;
+  --on-node:#F2F7FA;
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --paper:#EFF3F5;
+  --slide:#FFFFFF;
+  --ink:#22303C;
+  --dim:#5D7285;
+  --faint:#8CA0AE;
+  --rule:#CBD8E0;
+  --accent:#116A83;
+  --accent-soft:#E1EEF2;
+  --block:#9C6510;
+  --block-soft:#F6EEE0;
+  --cell:#F4F8FA;
+  --slide-0:rgba(255,255,255,0);
+  --panel-bg:#FAFCFD;
+  --box-bg:#FBFDFE;
+  --btn-bg:#FFFFFF;
+  --pre-bg:#F1F5F7;
+  --pre-ink:#1E2E3A;
+  --code-ink:#0C4E61;
+  --tok-c:#7E93A2;
+  --tok-k:#0C5A73;
+  --tok-n:#8A5A00;
+  --tok-s:#1F6B3F;
+  --svg-node:#FFFFFF;
+  --svg-rule:#9FB3C0;
+  --on-fill:#FFFFFF;
+  --zero:#C3CFD8;
+  --wash:#DCE5EA;
+  --bad:#A4303F;
+  --bad-soft:#F7EAEC;
+  --done:#4A6B2F;
+  --done-soft:#EDF2E4;
+  --node-red:#C62828;
+  --node-red-edge:#C62828;
+  --node-black:#14181C;
+  --node-black-edge:#14181C;
+  --on-node:#FFFFFF;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0;z-index:50;transition:width .28s ease}
+#deck{height:100%;position:relative}
+.slide{display:none;height:100%;overflow-y:auto;overflow-x:hidden;padding:calc(var(--pad) + 14px) var(--pad) 76px;background:var(--slide);scrollbar-width:thin}
+.slide.is-active{display:block;animation:fadein .22s ease both}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.inner{max-width:1080px;margin:0 auto}
+
+#bar{position:fixed;left:0;right:0;bottom:0;height:56px;z-index:40;display:flex;align-items:center;gap:14px;padding:0 var(--pad);background:linear-gradient(to top,var(--slide) 62%,var(--slide-0));font-family:var(--mono);font-size:12px;color:var(--faint)}
+#bar .chapter{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bar button{font-family:var(--mono);font-size:12px;border:1px solid var(--rule);background:var(--slide);color:var(--ink);border-radius:3px;padding:6px 12px;cursor:pointer}
+#bar button:hover{border-color:var(--accent);color:var(--accent)}
+#bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
+#count{min-width:56px;text-align:right}
+#bar #theme{min-width:88px;text-align:center}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+h1{font-size:clamp(30px,5.4vw,52px);line-height:1.08;font-weight:700;letter-spacing:-.015em;margin:0 0 18px}
+h2{font-size:clamp(23px,3.4vw,34px);line-height:1.18;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+h3{font-size:16px;font-weight:600;margin:26px 0 8px}
+.kicker{font-family:var(--mono);font-size:12px;color:var(--accent);margin:0 0 10px;letter-spacing:.02em}
+.sub{color:var(--dim);font-size:clamp(16px,2vw,19px);margin:0 0 26px;max-width:62ch;font-style:italic}
+p{max-width:66ch;margin:0 0 14px}
+.lede{font-size:19px}
+ul,ol{max-width:66ch;padding-left:22px;margin:0 0 16px}
+li{margin-bottom:9px}
+li::marker{color:var(--faint)}
+b,strong{font-weight:600}
+.tight li{margin-bottom:5px}
+code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);padding:1px 5px;border-radius:3px;color:var(--code-ink)}
+.small{font-size:14px;color:var(--dim)}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,3.5vw,44px);align-items:start}
+.cols.wide-left{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.cols.wide-right{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
+@media (max-width:820px){.cols,.cols.wide-left,.cols.wide-right{grid-template-columns:1fr;gap:24px}}
+
+.panel{border:1px solid var(--rule);border-radius:4px;padding:18px 20px;background:var(--panel-bg)}
+.panel h3{margin-top:0}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;margin:18px 0;font-size:15.5px;max-width:66ch}
+.note p:last-child{margin-bottom:0}
+.note.io{border-left-color:var(--block);background:var(--block-soft)}
+
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:6px 0 16px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);border-bottom:1.5px solid var(--ink)}
+td:first-child{color:var(--dim)}
+tbody tr:last-child td{border-bottom:none}
+.num{font-family:var(--mono)}
+.slow{color:var(--block);font-weight:600}
+
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.62;background:var(--pre-bg);border-left:3px solid var(--accent);padding:14px 16px;margin:0 0 16px;border-radius:0 4px 4px 0;overflow-x:auto;color:var(--pre-ink)}
+pre code{background:none;padding:0;border-radius:0;color:inherit;font-size:inherit;font-family:inherit}
+.tok-c{color:var(--tok-c);font-style:italic}
+.tok-k{color:var(--tok-k);font-weight:500}
+.tok-n{color:var(--tok-n)}
+.tok-s{color:var(--tok-s)}
+
+.treebox{border:1px solid var(--rule);border-radius:4px;background:var(--box-bg);padding:10px;overflow-x:auto}
+svg.tree{display:block;width:100%;height:auto;margin-inline:auto}
+svg.tree.mini{max-width:420px;margin:0 auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.swatch{width:14px;height:11px;border-radius:2px;display:inline-block;border:1px solid var(--svg-rule)}
+.swatch.i{background:var(--svg-node)}
+.swatch.l{background:var(--cell)}
+.swatch.h{background:var(--block-soft);border-color:var(--block)}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.controls button,.controls select{font-family:var(--mono);font-size:12px;padding:7px 11px;border:1px solid var(--rule);background:var(--btn-bg);color:var(--ink);border-radius:3px;cursor:pointer}
+.controls button:hover{border-color:var(--accent);color:var(--accent)}
+.controls input[type=number]{font-family:var(--mono);font-size:12px;padding:7px 9px;width:86px;border:1px solid var(--rule);border-radius:3px;background:var(--btn-bg);color:var(--ink)}
+.controls input[type=text]{font-family:var(--mono);font-size:12px;padding:7px 9px;width:86px;border:1px solid var(--rule);border-radius:3px;background:var(--btn-bg);color:var(--ink)}
+.controls input[type=checkbox]{accent-color:var(--accent)}
+.controls input::placeholder{color:var(--faint)}
+.controls label{color:var(--dim)}
+.stat{font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+.stat b{color:var(--ink);font-weight:500}
+
+ol.props{counter-reset:p;list-style:none;padding-left:0;max-width:none}
+ol.props li{counter-increment:p;position:relative;padding-left:40px;margin-bottom:14px}
+ol.props li::before{content:counter(p);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;border:1px solid var(--rule);font-family:var(--mono);font-size:12px;color:var(--accent);display:flex;align-items:center;justify-content:center}
+
+@media print{.slide{display:block!important;height:auto;page-break-after:always;padding:24px}#bar,#progress{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<script>
+/* Pick the theme up before first paint: a dark-mode reader opening this deck
+   should never get a white flash on the way in. */
+(function(){try{var t=localStorage.getItem('deck-theme');
+if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+</head>
+<body>
+<div id="progress"></div>
+<main id="deck">
+
+<!-- 1 -->
+<section class="slide" data-chapter="Opening">
+ <div class="inner">
+  <div class="treebox" style="margin-bottom:26px">
+    <svg class="tree" id="heroTree" role="img" aria-label="A B-tree of minimum degree three holding forty keys in three levels"></svg>
+    <div class="legend">
+      <span><i class="swatch i"></i> internal node</span>
+      <span><i class="swatch l"></i> leaf</span>
+      <span id="heroCap"></span>
+    </div>
+  </div>
+  <h1>B-trees</h1>
+  <p class="sub">A search tree built for a machine where reading one byte and reading four thousand bytes cost exactly the same — which is every machine you have ever used.</p>
+  <p class="small">Red-black trees asked how cheaply a tree can be kept balanced. B-trees ask a different question: what if counting comparisons was the wrong thing to count all along? Arrow keys, or the buttons below, to move through the deck.</p>
+ </div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">01 — the assumption nobody stated</p>
+  <h2>Every balanced BST assumes all memory costs the same</h2>
+  <p class="sub">It does not. It has not since about 1970.</p>
+  <div class="cols wide-left">
+   <div>
+    <table>
+     <thead><tr><th>where the data is</th><th>latency</th><th>if an L1 hit took 1 second</th></tr></thead>
+     <tbody>
+      <tr><td>L1 cache</td><td class="num">~1 ns</td><td class="num">1 second</td></tr>
+      <tr><td>L3 cache</td><td class="num">~15 ns</td><td class="num">15 seconds</td></tr>
+      <tr><td>main memory</td><td class="num">~80 ns</td><td class="num">1.5 minutes</td></tr>
+      <tr><td>NVMe SSD</td><td class="num slow">~80 µs</td><td class="num slow">22 hours</td></tr>
+      <tr><td>spinning disk seek</td><td class="num slow">~8 ms</td><td class="num slow">3 months</td></tr>
+     </tbody>
+    </table>
+    <p>When we counted comparisons and called it O(log n), we were implicitly charging the same price for every node we touched. On the top two rows that is roughly honest. On the bottom two it is off by a factor of a hundred thousand.</p>
+   </div>
+   <div class="panel">
+    <h3>The thing being counted</h3>
+    <p>In an in-memory algorithm the scarce resource is the comparison. Once the data outgrows RAM the scarce resource is the <b>block transfer</b>, and comparisons become free by comparison.</p>
+    <p style="margin-bottom:0">Any structure that is optimal under one cost model will usually be badly wrong under the other. That is not a flaw in red-black trees. It is a change in the problem.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">02 — the damage, in numbers</p>
+  <h2>A perfectly balanced tree is still 30 blocks deep</h2>
+  <div class="cols">
+   <div>
+    <p>Take a billion keys in a red-black tree. Everything works exactly as promised: height around 30, no degenerate chains, every rotation bounded.</p>
+    <ul>
+      <li>Each node is maybe 40 bytes, allocated by <code>malloc</code> whenever the key arrived.</li>
+      <li>Consecutive nodes on a search path are <b>nowhere near each other</b> in memory. The tree's logical structure and its physical layout have nothing to do with one another.</li>
+      <li>So each of the 30 hops is its own cache miss, and if the index lives on disk, its own read.</li>
+    </ul>
+    <div class="note io">
+      <p><b>30 hops × 80 µs on NVMe = 2.4 ms for a single lookup.</b></p>
+      <p style="margin-bottom:0">Roughly 400 lookups per second, per thread. A database doing that would be unusable.</p>
+    </div>
+    <p>And the pathology is worse than the arithmetic suggests: each read pulls in a 4 KB page to deliver 40 useful bytes. <b>99% of every transfer is discarded.</b></p>
+   </div>
+   <div class="panel">
+    <h3>Things that do not fix this</h3>
+    <ul class="tight">
+      <li><b>A tighter balance invariant.</b> AVL gets you to 1.44 log₂ n instead of 2 log₂ n. You go from 30 hops to 22. Still catastrophic.</li>
+      <li><b>A faster comparison.</b> Comparisons were never the cost.</li>
+      <li><b>A better allocator.</b> It helps at the margin, but the tree still visits one key per block read.</li>
+      <li><b>More RAM.</b> Works until the data grows, which it does.</li>
+    </ul>
+    <p class="small" style="margin-bottom:0">Every one of these attacks the constant factor. The problem is not the constant factor.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-chapter="The reframe">
+ <div class="inner">
+  <p class="kicker">03 — where the leverage actually is</p>
+  <h2>The problem is the base of the logarithm</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>The height of any tree with branching factor <i>b</i> is log<sub>b</sub> n. A binary tree fixes b = 2, and every balancing scheme in the world then fights over the constant in front.</p>
+    <p>But log<sub>b</sub> n = log₂ n / log₂ b. Raising the branching factor divides the height. It is the only lever that moves the number of block reads by an order of magnitude rather than a percentage.</p>
+    <table>
+     <thead><tr><th>keys</th><th>b = 2</th><th>b = 128</th><th>b = 256</th></tr></thead>
+     <tbody id="fanTable"></tbody>
+    </table>
+    <p class="small">Height in levels, rounded up. The middle and right columns are not cleverer algorithms. They are the same algorithm with a different number in one place.</p>
+   </div>
+   <div class="panel">
+    <h3>So why was anyone using b = 2?</h3>
+    <p>Because in RAM, a wide node buys you nothing. Touching 256 keys inside a node costs 256 comparisons whether they are contiguous or not, and a binary tree does log₂ n comparisons in total — which is fewer.</p>
+    <p>Under a block cost model that reasoning inverts. The comparisons inside a node are free, because the node <b>already arrived</b> as a single transfer. Only the number of nodes visited is billed.</p>
+    <p style="margin-bottom:0">Wide nodes are not a general improvement. They are the correct answer to a specific cost model, and the wrong answer to the one red-black trees were designed for.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-chapter="The insight">
+ <div class="inner">
+  <p class="kicker">04 — the idea</p>
+  <h2>You already paid for the whole block. Fill it.</h2>
+  <div>
+   <div style="max-width:66ch">
+    <p>The unit of transfer between memory and storage is a page, typically 4 KB. Between RAM and cache, it is a 64-byte line. In both cases the hardware charges you for the whole unit no matter how much of it you read.</p>
+    <p>So size the node to the unit:</p>
+    <div class="note io">
+      <p style="margin-bottom:0">4096 bytes ÷ (8-byte key + 8-byte child pointer) ≈ <b>256 children per node</b>.</p>
+    </div>
+    <p>A billion keys now fit in <b>four levels</b>. Four block reads per lookup instead of thirty — and in practice three, because the root and the level below it stay resident in cache after the first few queries.</p>
+    <p>Nothing about the search logic changed. It is still descend-and-compare. What changed is that each descent now discards one two-hundred-and-fifty-sixth of the search space instead of one half.</p>
+   </div>
+   <div style="margin-top:8px">
+    <div class="treebox">
+      <svg class="tree" id="cmpB" role="img" aria-label="The same keys stored in a B-tree, three levels deep"></svg>
+      <div class="legend"><span id="cmpBCap"></span></div>
+    </div>
+    <div class="treebox" style="margin-top:14px">
+      <svg class="tree" id="cmpRB" role="img" aria-label="The same keys stored in a red-black tree, six levels deep"></svg>
+      <div class="legend"><span id="cmpRBCap"></span></div>
+    </div>
+    <p class="small" style="margin-top:12px">Identical key set, identical asymptotics, both perfectly valid balanced search trees. Count the levels. Now imagine each level is a disk seek.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-chapter="Definition">
+ <div class="inner">
+  <p class="kicker">05 — the structure, stated properly</p>
+  <h2>A B-tree of minimum degree t</h2>
+  <div class="cols wide-left">
+   <div>
+    <ol class="props">
+      <li>Every node holds its keys in <b>sorted order</b>, and a node with <i>k</i> keys has exactly <b>k + 1</b> children.</li>
+      <li>Every node except the root holds at least <b>t − 1</b> keys, and therefore at least <b>t</b> children. This is the guarantee that stops the tree going sparse.</li>
+      <li>Every node holds at most <b>2t − 1</b> keys, and therefore at most <b>2t</b> children. This is what makes a node fit one block. A node with 2t − 1 keys is <b>full</b>.</li>
+      <li>The root may hold as few as one key — or none, if the tree is empty.</li>
+      <li><b>All leaves are at exactly the same depth.</b> Not approximately. Exactly.</li>
+    </ol>
+    <p>Keys inside a node partition the key space for its children: everything in child <i>i</i> lies strictly between key <i>i−1</i> and key <i>i</i>. It is a binary search tree's ordering rule, generalised from one key per node to many.</p>
+   </div>
+   <div class="panel">
+    <h3>Read property 5 again</h3>
+    <p>This is the invariant, and it is a much stronger statement than "balanced". A red-black tree permits one path to be twice another. A B-tree permits <b>no variation at all</b> in leaf depth.</p>
+    <p>Every operation in this deck exists to preserve it. That is why B-trees grow and shrink from the <b>root</b> rather than the leaves: adding a level at the top is the only change that keeps all leaves level with each other.</p>
+    <h3>Why "minimum degree"?</h3>
+    <p style="margin-bottom:0">Some textbooks use <i>order m</i> = maximum children, and disagree with each other about whether m counts keys or children. CLRS uses minimum degree t and it removes the ambiguity, so this deck does too. t = 2 gives the smallest legal B-tree: 1 to 3 keys, 2 to 4 children.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-chapter="Definition">
+ <div class="inner">
+  <p class="kicker">06 — why the height collapses</p>
+  <h2>From "at least t−1 keys" to a height bound</h2>
+  <div class="cols">
+   <div>
+    <p>Only property 2 matters here. The worst case for height is the <b>emptiest legal tree</b>: root with one key and two children, every other node with the minimum t − 1 keys and t children.</p>
+    <p>Count the nodes level by level: 1, then 2, then 2t, then 2t², and so on. At height h the tree has at least</p>
+    <div class="note"><p>n ≥ 2t<sup>h</sup> − 1, so <b>h ≤ log<sub>t</sub>((n + 1) / 2)</b></p></div>
+    <p>Which is O(log n) again — but with t in the base, and t is a number you choose to match your hardware rather than a number the data structure forces on you.</p>
+    <h3>The number that actually matters</h3>
+    <p>A lookup costs <b>h + 1</b> node reads. Inside each node you do a scan over up to 2t − 1 keys, which is real work but happens entirely in cache on data that has already arrived.</p>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Worst-case height, by t</h3>
+      <table>
+       <thead><tr><th>t</th><th>max keys/node</th><th>n = 10⁶</th><th>n = 10⁹</th></tr></thead>
+       <tbody id="heightTable"></tbody>
+      </table>
+      <p class="small" style="margin-bottom:0">These are worst cases, assuming every node is as empty as the rules allow. Random insertion leaves nodes roughly 69% full on average, so real trees sit a level below these numbers.</p>
+    </div>
+    <div class="note io">
+      <p style="margin-bottom:0">The root is read on every single query, so it stays in cache permanently. The level below it is read on every query too, and for t = 128 that is 128 nodes — half a megabyte, also resident. In practice a four-level B-tree costs <b>one</b> actual disk read.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-chapter="Measurement">
+ <div class="inner">
+  <p class="kicker">07 — evidence, not assertion</p>
+  <h2>Predict first, then run it</h2>
+  <p class="sub">Real B-tree and red-black implementations, built in this page from the same keys. Commit to a number before you press.</p>
+  <div class="controls">
+    <label class="stat">keys</label>
+    <input type="number" id="mN" value="50000" min="1000" max="300000" step="1000">
+    <label class="stat">t</label>
+    <select id="mT"><option>2</option><option>8</option><option selected>32</option><option>128</option></select>
+    <button id="mRun">Build both and measure</button>
+  </div>
+  <div id="mOut"></div>
+  <div class="cols" style="margin-top:8px">
+    <div class="panel">
+      <h3>Before you press</h3>
+      <ul class="tight">
+        <li>How many levels will each tree have?</li>
+        <li>How many nodes does a single lookup touch in each?</li>
+        <li>What fraction of each B-tree node is actually occupied?</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>What this does not show</h3>
+      <p style="margin-bottom:0">Both trees are in RAM here, so wall-clock time will not separate them cleanly — JavaScript objects are scattered in both cases. The measurement that transfers to a real system is <b>nodes visited per lookup</b>, because that is what becomes a block read once the index stops fitting in memory.</p>
+    </div>
+  </div>
+ </div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-chapter="Search">
+ <div class="inner">
+  <p class="kicker">08 — search</p>
+  <h2>Search is the easy one, and it sets up everything else</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>At each node, scan the sorted keys for the first one that is not less than your target.</p>
+    <ul>
+      <li>If it matches, you are done.</li>
+      <li>If the node is a leaf, the key is not in the tree.</li>
+      <li>Otherwise descend into the child at that position and repeat.</li>
+    </ul>
+    <p>That is it. The whole algorithm is "narrow the interval, go down one level", exactly as in a BST — the interval just narrows by a factor of 2t instead of 2.</p>
+    <h3>Linear scan or binary search inside the node?</h3>
+    <p>Binary search is O(log t) instead of O(t), which sounds obviously better and often is not. A linear scan over a contiguous sorted array is perfectly predicted by the prefetcher and branch predictor; a binary search jumps around and mispredicts almost every step.</p>
+    <div class="note"><p>For t up to roughly 64, measure before you switch. Either way the cost is inside one already-loaded block, so it is not where your lookup time is going.</p></div>
+   </div>
+   <div class="panel">
+    <h3>The invariant search relies on</h3>
+    <p>Keys within a node are sorted, and child <i>i</i> holds exactly the keys strictly between key <i>i−1</i> and key <i>i</i>. Every insert and delete operation in the rest of this deck has to preserve that, including in the middle of a split or a merge.</p>
+    <h3>Cost</h3>
+    <ul class="tight">
+      <li>Node reads: <b>h + 1</b>, which is O(log<sub>t</sub> n).</li>
+      <li>Comparisons: O(t) per node, O(t · log<sub>t</sub> n) in total.</li>
+    </ul>
+    <p class="small" style="margin-bottom:0">Note that the comparison count is <i>worse</i> than a red-black tree's. That is the trade, and under a block cost model it is an excellent one.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-chapter="Insertion">
+ <div class="inner">
+  <p class="kicker">09 — insertion</p>
+  <h2>Every key goes into a leaf. The problem is what happens when the leaf is full.</h2>
+  <div class="cols">
+   <div>
+    <p>A new key always belongs in a leaf — descend as if searching, and insert it into the sorted array there. If the leaf has room, you are finished, and no other node in the tree is touched.</p>
+    <p>If the leaf already holds 2t − 1 keys, it <b>overflows</b>. The fix is a <b>split</b>:</p>
+    <ul class="tight">
+      <li>The full node's 2t − 1 keys divide into t−1 on the left, a single <b>median</b>, and t−1 on the right.</li>
+      <li>Left and right become two legal nodes, each with the minimum t − 1 keys.</li>
+      <li>The median moves <b>up</b> into the parent, as the separator between them.</li>
+    </ul>
+    <p>Which raises the obvious question: what if the parent is full too?</p>
+   </div>
+   <div class="panel">
+    <h3>Two ways to handle that</h3>
+    <p><b>Split on the way up.</b> Insert into the leaf, and if it overflows, split and push the median up, repeating as far as necessary. Natural, and it splits only the nodes that genuinely needed it.</p>
+    <p><b>Split on the way down.</b> While descending, split <i>every</i> full node you pass through, before you go into it. By the time you reach the leaf, every node on the path has room, so a split can never cascade.</p>
+    <div class="note io">
+      <p style="margin-bottom:0">CLRS and most real implementations take the second option. It costs a handful of unnecessary splits, and buys a <b>single downward pass</b>: you never have to walk back up, never have to keep the path pinned in memory, and never hold a lock on a node you have already left.</p>
+    </div>
+    <p class="small" style="margin-bottom:0">That last point is why databases care. Under concurrency, an algorithm that only ever moves downward can release the parent's latch as soon as the child is known to be safe.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-chapter="Insertion">
+ <div class="inner">
+  <p class="kicker">10 — insertion</p>
+  <h2>Splitting a full child</h2>
+  <div class="cols">
+   <div>
+    <div class="treebox"><svg class="tree mini" id="splitA"></svg><div class="legend"><span>before — the child is full, t = 3</span></div></div>
+   </div>
+   <div>
+    <div class="treebox"><svg class="tree mini" id="splitB"></svg><div class="legend"><span>after — median 40 has moved up</span></div></div>
+   </div>
+  </div>
+  <div class="cols" style="margin-top:18px">
+   <div>
+    <p>With t = 3 a full node holds 5 keys. Split it at the median:</p>
+    <ul class="tight">
+      <li>keys <span class="num">10 20</span> stay in the original node,</li>
+      <li>keys <span class="num">50 60</span> move into a new right sibling,</li>
+      <li>key <span class="num">40</span> moves up into the parent,</li>
+      <li>and if it is an internal node, its 6 children divide 3 and 3.</li>
+    </ul>
+    <p>Both halves end up with exactly t − 1 keys, which is the legal minimum — never below it. The parent gains one key and one child.</p>
+   </div>
+   <div>
+    <div class="note"><p>Splitting is the only way a B-tree gets taller, and it only happens at the root. When the root itself is full, a fresh root is created with the old root as its single child, then that child is split. The new root has one key and two children — which is exactly what property 4 permits.</p></div>
+    <p>This is why all leaves stay at the same depth. Growth happens at the top, so every leaf gains a level at the same instant. No leaf can ever be one level deeper than another.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-chapter="Playground">
+ <div class="inner">
+  <p class="kicker">11 — play with it</p>
+  <h2>Build one yourself</h2>
+  <div class="controls">
+    <input type="number" id="pgKey" placeholder="key">
+    <button id="pgInsert">Insert</button>
+    <button id="pgDelete">Delete</button>
+    <button id="pgRandom">Add random key</button>
+    <button id="pgSorted">Insert next in order</button>
+    <label class="stat">t</label>
+    <select id="pgT"><option>2</option><option selected>3</option><option>4</option></select>
+    <button id="pgClear">Clear</button>
+  </div>
+  <div class="treebox">
+    <svg class="tree" id="pgTree" role="img" aria-label="Interactive B-tree"></svg>
+  </div>
+  <div class="stat" id="pgStats" style="margin-top:12px"></div>
+  <div class="cols" style="margin-top:16px">
+    <div class="panel">
+      <h3>Things to try deliberately</h3>
+      <ul class="tight">
+        <li>Insert 1…20 in order with t = 2 and watch the height jump — it never grows gradually.</li>
+        <li>Find an insertion that splits a node which did not need splitting. That is the price of the single downward pass.</li>
+        <li>Delete keys until a merge happens, then keep going until the root collapses.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Occupancy</h3>
+      <p style="margin-bottom:0">Watch the fill percentage as you add random keys. It settles around 69% — <i>ln 2</i> — not 100%. Every real B-tree wastes about a third of every block, and it is still enormously ahead. That slack is what makes most insertions touch exactly one node.</p>
+    </div>
+  </div>
+ </div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-chapter="Deletion">
+ <div class="inner">
+  <p class="kicker">12 — deletion</p>
+  <h2>Deletion is the hard one, for the mirror-image reason</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Insertion's enemy is overflow: a node with too many keys. Deletion's enemy is <b>underflow</b>: a node dropping below t − 1 keys, which breaks property 2 and lets the tree go sparse and tall.</p>
+    <p>And there is a second complication insertion did not have. A key you want to delete might sit in an <b>internal</b> node, where you cannot simply remove it — its two surrounding children would be left with nothing separating them.</p>
+    <h3>The same trick as insertion, inverted</h3>
+    <p>Rather than deleting and repairing upward, guarantee on the way <b>down</b> that you never enter a node that could underflow:</p>
+    <div class="note">
+      <p style="margin-bottom:0">Before descending into a child, ensure that child has <b>at least t keys</b> — one more than the minimum. Then removing a key from it can never take it below t − 1.</p>
+    </div>
+    <p>Topping up a thin child is done by <b>borrowing</b> from an adjacent sibling if one can spare a key, or <b>merging</b> with a sibling if neither can.</p>
+   </div>
+   <div class="panel">
+    <h3>Borrow, or rotate</h3>
+    <p>Borrowing is not a straight steal. The sibling's nearest key moves <b>up</b> into the parent, and the parent's separator moves <b>down</b> into the thin child. The ordering rule survives because the separator was always between them. If the nodes are internal, the corresponding child pointer moves across too.</p>
+    <h3>Merge</h3>
+    <p>When both neighbours sit at the minimum, no borrow is possible. Instead, the thin child, the parent's separator key, and the sibling all combine into one node holding (t−1) + 1 + (t−1) = 2t − 1 keys — exactly full, and legal.</p>
+    <p style="margin-bottom:0">The parent loses one key. If the parent was the root and that was its last key, the merged node becomes the new root and the tree loses a level — from the top, so all leaves rise together.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-chapter="Deletion">
+ <div class="inner">
+  <p class="kicker">13 — deletion</p>
+  <h2>The case table</h2>
+  <div class="cols">
+    <div class="treebox"><svg class="tree mini" id="borrowA"></svg><div class="legend"><span>underflow at the shaded child, t = 3</span></div></div>
+    <div class="treebox"><svg class="tree mini" id="borrowB"></svg><div class="legend"><span>borrow — 30 rises, 35 comes down</span></div></div>
+  </div>
+  <table style="margin-top:20px">
+   <thead><tr><th>situation</th><th>what you do</th><th>then</th></tr></thead>
+   <tbody>
+    <tr><td>Key is in a <b>leaf</b></td><td>Remove it from the array.</td><td>done — the descent already guaranteed room</td></tr>
+    <tr><td>Key is in an <b>internal</b> node, left child has ≥ t keys</td><td>Replace it with its <b>predecessor</b> (rightmost key of the left subtree), then delete that predecessor recursively.</td><td>recurse into the left child</td></tr>
+    <tr><td>Key is in an <b>internal</b> node, right child has ≥ t keys</td><td>Replace it with its <b>successor</b> (leftmost key of the right subtree), then delete that successor recursively.</td><td>recurse into the right child</td></tr>
+    <tr><td>Key is internal, <b>both</b> children at the minimum</td><td><b>Merge</b> the two children with the key between them.</td><td>delete the key from the merged node</td></tr>
+    <tr><td>Key is <b>not here</b>, the child you must enter has t − 1 keys</td><td>Top it up first: borrow from the left sibling, else the right sibling, else merge.</td><td>descend, now safely</td></tr>
+   </tbody>
+  </table>
+  <div class="note"><p>Rows 2 and 3 should look familiar — that is BST deletion with two children, generalised. What is new is row 5, the guarantee-before-descent, which is what keeps the whole thing to a single downward pass.</p></div>
+ </div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-chapter="B+ trees">
+ <div class="inner">
+  <p class="kicker">14 — the variant the world actually ships</p>
+  <h2>B⁺ trees: move everything to the leaves</h2>
+  <div class="cols">
+   <div>
+    <p>A textbook B-tree stores real data next to every key, at every level. Almost no production system does that. The B⁺ variant makes two changes:</p>
+    <ul>
+      <li><b>Records live only in the leaves.</b> Internal nodes hold separator keys and child pointers — nothing else. They are pure routing.</li>
+      <li><b>Leaves are linked left to right.</b> Each leaf points at its successor.</li>
+    </ul>
+    <p>Both changes are small. Both matter enormously.</p>
+    <h3>What that buys</h3>
+    <ul class="tight">
+      <li><b>Higher fanout.</b> Without payload in internal nodes, a 4 KB block holds far more separators, so the tree is shallower again.</li>
+      <li><b>Range scans become sequential.</b> <code>WHERE age BETWEEN 30 AND 40</code> is one descent to the first leaf, then a straight walk along the leaf chain. No re-descent, no random I/O.</li>
+      <li><b>Uniform latency.</b> Every lookup costs exactly h reads, because a key match at an internal node is only a separator, never an answer. Predictable beats occasionally-fast.</li>
+    </ul>
+   </div>
+   <div class="panel">
+    <h3>The cost</h3>
+    <p>Separator keys are duplicated — once as a router, once in a leaf. A few percent more space, and the separators are no longer required to be keys that still exist. Deleting a key does not oblige you to remove it from the internal nodes above; it just stays as a boundary marker.</p>
+    <p>That is a feature, not a compromise: deletion in a B⁺ tree touches fewer nodes than in a plain B-tree, because it almost always stops at the leaf.</p>
+    <h3>Who uses which</h3>
+    <table>
+     <thead><tr><th>system</th><th>structure</th></tr></thead>
+     <tbody>
+      <tr><td>MySQL InnoDB</td><td>B⁺ tree (clustered)</td></tr>
+      <tr><td>PostgreSQL indexes</td><td>B⁺ tree (Lehman-Yao)</td></tr>
+      <tr><td>SQLite</td><td>B⁺ for tables, B-tree for indexes</td></tr>
+      <tr><td>NTFS, XFS, ext4 htree</td><td>B⁺ / B-tree variants</td></tr>
+      <tr><td>btrfs</td><td>copy-on-write B-tree</td></tr>
+     </tbody>
+    </table>
+    <p class="small" style="margin-bottom:0">Learn the plain B-tree first. Every B⁺ implementation is this algorithm with the payload moved and a sibling pointer added.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">15 — implementation in C</p>
+  <h2>The node layout is the design decision</h2>
+  <div class="cols">
+   <div>
+<pre><code>#include &lt;stdlib.h&gt;
+#include &lt;limits.h&gt;
+
+#define T     3                /* minimum degree  */
+#define MAXK  (2*T - 1)        /* 2t-1 keys       */
+#define MAXC  (2*T)            /* 2t children     */
+
+typedef struct BNode {
+    int            n;          /* keys in use     */
+    int            leaf;       /* 1 if no children*/
+    int            key[MAXK];
+    struct BNode  *child[MAXC];
+} BNode;
+
+typedef struct { BNode *root; } BTree;
+
+static BNode *node_new(int leaf)
+{
+    BNode *x = malloc(sizeof *x);
+    if (!x) return NULL;
+    x-&gt;n    = 0;
+    x-&gt;leaf = leaf;
+    return x;
+}
+
+BTree *bt_create(void)
+{
+    BTree *t = malloc(sizeof *t);
+    if (!t) return NULL;
+    t-&gt;root = node_new(1);
+    if (!t-&gt;root) { free(t); return NULL; }
+    return t;
+}</code></pre>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Why the arrays are inline</h3>
+      <p>Writing <code>int *key</code> and allocating separately would look tidier and would destroy the entire point. The node has to be <b>one contiguous run of bytes</b>, because the whole design rests on it arriving in a single transfer.</p>
+      <p style="margin-bottom:0">The same applies to the child array. Fixed-size, inline, sized by a compile-time constant so the compiler can compute every offset.</p>
+    </div>
+    <div class="note io">
+      <p style="margin-bottom:0">Print <code>sizeof(BNode)</code> and compare it with your page size. On a real system you pick T so that the result lands just under 4096 — that is the whole tuning story. For teaching, T = 3 keeps the diagrams legible.</p>
+    </div>
+    <h3>No parent pointers</h3>
+    <p style="margin-bottom:0">Unlike the red-black tree, nothing here ever needs to walk upward. Both insert and delete repair the tree <b>on the way down</b>, so plain recursion is enough and the node stays smaller.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">16 — implementation in C</p>
+  <h2>Search, and splitting a full child</h2>
+  <div class="cols">
+   <div>
+<pre><code>/* first index i with key[i] &gt;= k */
+static int find_key(BNode *x, int k)
+{
+    int i = 0;
+    while (i &lt; x-&gt;n &amp;&amp; x-&gt;key[i] &lt; k) i++;
+    return i;
+}
+
+BNode *bt_search(BNode *x, int k, int *pos)
+{
+    int i = find_key(x, k);
+
+    if (i &lt; x-&gt;n &amp;&amp; x-&gt;key[i] == k) {
+        *pos = i;
+        return x;
+    }
+    if (x-&gt;leaf) return NULL;
+    return bt_search(x-&gt;child[i], k, pos);
+}</code></pre>
+    <div class="note"><p><code>find_key</code> is used by search, insert and all five deletion cases. Write it once and make it obviously correct — an off-by-one here surfaces as corruption three operations later.</p></div>
+   </div>
+   <div>
+<pre><code>/* x-&gt;child[i] is full; split it around its median */
+static void split_child(BNode *x, int i)
+{
+    BNode *y = x-&gt;child[i];
+    BNode *z = node_new(y-&gt;leaf);
+
+    z-&gt;n = T - 1;
+    for (int j = 0; j &lt; T - 1; j++)          /* right half */
+        z-&gt;key[j] = y-&gt;key[j + T];
+    if (!y-&gt;leaf)
+        for (int j = 0; j &lt; T; j++)
+            z-&gt;child[j] = y-&gt;child[j + T];
+    y-&gt;n = T - 1;                            /* left half  */
+
+    for (int j = x-&gt;n; j &gt; i; j--)           /* make room  */
+        x-&gt;child[j + 1] = x-&gt;child[j];
+    x-&gt;child[i + 1] = z;
+
+    for (int j = x-&gt;n - 1; j &gt;= i; j--)
+        x-&gt;key[j + 1] = x-&gt;key[j];
+
+    x-&gt;key[i] = y-&gt;key[T - 1];               /* median up  */
+    x-&gt;n++;
+}</code></pre>
+    <p class="small" style="margin-bottom:0">Trace the indices once by hand with T = 3. y holds keys 0…4; z takes 3 and 4; the median is key 2; y is left with 0 and 1. Children 0…5 divide as 0…2 and 3…5. Everything else in the file depends on these six lines being right.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 18 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">17 — implementation in C</p>
+  <h2>Insert: split everything full on the way down</h2>
+  <div class="cols">
+   <div>
+<pre><code>/* precondition: x is not full */
+static void insert_nonfull(BNode *x, int k)
+{
+    int i = x-&gt;n - 1;
+
+    if (x-&gt;leaf) {
+        while (i &gt;= 0 &amp;&amp; k &lt; x-&gt;key[i]) {
+            x-&gt;key[i + 1] = x-&gt;key[i];
+            i--;
+        }
+        x-&gt;key[i + 1] = k;
+        x-&gt;n++;
+        return;
+    }
+
+    while (i &gt;= 0 &amp;&amp; k &lt; x-&gt;key[i]) i--;
+    i++;
+
+    if (x-&gt;child[i]-&gt;n == MAXK) {
+        split_child(x, i);
+        if (k &gt; x-&gt;key[i]) i++;   /* median decides side */
+    }
+    insert_nonfull(x-&gt;child[i], k);
+}</code></pre>
+   </div>
+   <div>
+<pre><code>void bt_insert(BTree *t, int k)
+{
+    BNode *r = t-&gt;root;
+
+    if (r-&gt;n == MAXK) {           /* root full: grow up */
+        BNode *s = node_new(0);
+        s-&gt;child[0] = r;
+        t-&gt;root = s;
+        split_child(s, 0);
+        insert_nonfull(s, k);
+    } else {
+        insert_nonfull(r, k);
+    }
+}</code></pre>
+    <div class="note">
+      <p>Nine lines, and they contain the only place a B-tree ever gets taller. The new root starts with one key and two children, which property 4 explicitly allows, and every leaf gains a level simultaneously.</p>
+    </div>
+    <h3>The precondition is the proof</h3>
+    <p>Read the comment above <code>insert_nonfull</code> as a contract. <code>bt_insert</code> establishes it for the root; the split inside the loop re-establishes it for each child before descending. Because it always holds, a leaf insertion can never overflow, and no repair pass upward is ever needed.</p>
+    <p class="small" style="margin-bottom:0">Duplicate keys are not handled here — this version will happily store the same key twice. Decide your policy (reject, or count) and enforce it in <code>bt_insert</code> with a search first.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">18 — implementation in C</p>
+  <h2>Delete: the five cases, in code</h2>
+  <div class="cols">
+   <div>
+<pre><code>static void node_remove(BNode *x, int k);
+
+static int get_pred(BNode *x, int i)
+{
+    BNode *c = x-&gt;child[i];
+    while (!c-&gt;leaf) c = c-&gt;child[c-&gt;n];
+    return c-&gt;key[c-&gt;n - 1];
+}
+
+static int get_succ(BNode *x, int i)
+{
+    BNode *c = x-&gt;child[i + 1];
+    while (!c-&gt;leaf) c = c-&gt;child[0];
+    return c-&gt;key[0];
+}
+
+static void remove_internal(BNode *x, int i)
+{
+    int k = x-&gt;key[i];
+
+    if (x-&gt;child[i]-&gt;n &gt;= T) {              /* case 2 */
+        int pred = get_pred(x, i);
+        x-&gt;key[i] = pred;
+        node_remove(x-&gt;child[i], pred);
+    } else if (x-&gt;child[i + 1]-&gt;n &gt;= T) {   /* case 3 */
+        int succ = get_succ(x, i);
+        x-&gt;key[i] = succ;
+        node_remove(x-&gt;child[i + 1], succ);
+    } else {                                /* case 4 */
+        merge(x, i);
+        node_remove(x-&gt;child[i], k);
+    }
+}</code></pre>
+   </div>
+   <div>
+<pre><code>static void node_remove(BNode *x, int k)
+{
+    int i = find_key(x, k);
+
+    if (i &lt; x-&gt;n &amp;&amp; x-&gt;key[i] == k) {
+        if (x-&gt;leaf) {                      /* case 1 */
+            for (int j = i + 1; j &lt; x-&gt;n; j++)
+                x-&gt;key[j - 1] = x-&gt;key[j];
+            x-&gt;n--;
+        } else {
+            remove_internal(x, i);
+        }
+        return;
+    }
+
+    if (x-&gt;leaf) return;                    /* not present */
+
+    int last = (i == x-&gt;n);                 /* case 5 */
+    if (x-&gt;child[i]-&gt;n &lt; T) fill(x, i);
+
+    if (last &amp;&amp; i &gt; x-&gt;n) node_remove(x-&gt;child[i - 1], k);
+    else                  node_remove(x-&gt;child[i], k);
+}
+
+void bt_delete(BTree *t, int k)
+{
+    node_remove(t-&gt;root, k);
+
+    if (t-&gt;root-&gt;n == 0 &amp;&amp; !t-&gt;root-&gt;leaf) {
+        BNode *old = t-&gt;root;               /* shrink */
+        t-&gt;root = old-&gt;child[0];
+        free(old);
+    }
+}</code></pre>
+    <div class="note"><p>The <code>last</code> variable is the subtle line. If you were heading into the rightmost child and <code>fill</code> merged it leftwards, that child no longer exists at index <code>i</code> — it is now part of <code>child[i-1]</code>. Get this wrong and you read freed memory.</p></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 20 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">19 — implementation in C</p>
+  <h2>Topping up a thin child: borrow and merge</h2>
+  <div class="cols">
+   <div>
+<pre><code>static void borrow_from_prev(BNode *x, int i)
+{
+    BNode *c = x-&gt;child[i], *s = x-&gt;child[i - 1];
+
+    for (int j = c-&gt;n - 1; j &gt;= 0; j--)
+        c-&gt;key[j + 1] = c-&gt;key[j];
+    if (!c-&gt;leaf)
+        for (int j = c-&gt;n; j &gt;= 0; j--)
+            c-&gt;child[j + 1] = c-&gt;child[j];
+
+    c-&gt;key[0] = x-&gt;key[i - 1];        /* parent comes down */
+    if (!c-&gt;leaf) c-&gt;child[0] = s-&gt;child[s-&gt;n];
+
+    x-&gt;key[i - 1] = s-&gt;key[s-&gt;n - 1]; /* sibling goes up   */
+    c-&gt;n++;
+    s-&gt;n--;
+}
+
+static void borrow_from_next(BNode *x, int i)
+{
+    BNode *c = x-&gt;child[i], *s = x-&gt;child[i + 1];
+
+    c-&gt;key[c-&gt;n] = x-&gt;key[i];
+    if (!c-&gt;leaf) c-&gt;child[c-&gt;n + 1] = s-&gt;child[0];
+
+    x-&gt;key[i] = s-&gt;key[0];
+
+    for (int j = 1; j &lt; s-&gt;n; j++)
+        s-&gt;key[j - 1] = s-&gt;key[j];
+    if (!s-&gt;leaf)
+        for (int j = 1; j &lt;= s-&gt;n; j++)
+            s-&gt;child[j - 1] = s-&gt;child[j];
+
+    c-&gt;n++;
+    s-&gt;n--;
+}</code></pre>
+   </div>
+   <div>
+<pre><code>static void merge(BNode *x, int i)
+{
+    BNode *c = x-&gt;child[i], *s = x-&gt;child[i + 1];
+
+    c-&gt;key[T - 1] = x-&gt;key[i];       /* separator drops in */
+    for (int j = 0; j &lt; s-&gt;n; j++)
+        c-&gt;key[j + T] = s-&gt;key[j];
+    if (!c-&gt;leaf)
+        for (int j = 0; j &lt;= s-&gt;n; j++)
+            c-&gt;child[j + T] = s-&gt;child[j];
+
+    for (int j = i + 1; j &lt; x-&gt;n; j++)
+        x-&gt;key[j - 1] = x-&gt;key[j];
+    for (int j = i + 2; j &lt;= x-&gt;n; j++)
+        x-&gt;child[j - 1] = x-&gt;child[j];
+
+    c-&gt;n += s-&gt;n + 1;
+    x-&gt;n--;
+    free(s);
+}
+
+static void fill(BNode *x, int i)
+{
+    if (i != 0 &amp;&amp; x-&gt;child[i - 1]-&gt;n &gt;= T)
+        borrow_from_prev(x, i);
+    else if (i != x-&gt;n &amp;&amp; x-&gt;child[i + 1]-&gt;n &gt;= T)
+        borrow_from_next(x, i);
+    else if (i != x-&gt;n)
+        merge(x, i);
+    else
+        merge(x, i - 1);
+}</code></pre>
+    <p class="small" style="margin-bottom:0"><code>merge</code> is <code>split_child</code> run backwards, and the index arithmetic is the same arithmetic reversed. If you got the split right, check the merge against it rather than deriving it from scratch.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">20 — prove it works</p>
+  <h2>Write the validator before you write delete</h2>
+  <p class="sub">A broken B-tree answers most searches correctly for a long time. Only a structural check finds the damage on the operation that caused it.</p>
+  <div class="cols">
+   <div>
+<pre><code>typedef struct { int ok; int leaf_depth; } Check;
+
+static void check(BNode *x, int depth, int is_root,
+                  long lo, long hi, Check *c)
+{
+    if (x-&gt;n &gt; MAXK)                       c-&gt;ok = 0;
+    if (!is_root &amp;&amp; x-&gt;n &lt; T - 1)          c-&gt;ok = 0;
+    if (is_root &amp;&amp; !x-&gt;leaf &amp;&amp; x-&gt;n &lt; 1)   c-&gt;ok = 0;
+
+    for (int j = 0; j &lt; x-&gt;n; j++) {
+        if (j &amp;&amp; x-&gt;key[j-1] &gt;= x-&gt;key[j]) c-&gt;ok = 0;
+        if (x-&gt;key[j] &lt;= lo || x-&gt;key[j] &gt;= hi) c-&gt;ok = 0;
+    }
+
+    if (x-&gt;leaf) {
+        if (c-&gt;leaf_depth &lt; 0)             c-&gt;leaf_depth = depth;
+        else if (c-&gt;leaf_depth != depth)   c-&gt;ok = 0;
+        return;
+    }
+    for (int j = 0; j &lt;= x-&gt;n; j++)
+        check(x-&gt;child[j], depth + 1, 0,
+              j == 0     ? lo : x-&gt;key[j-1],
+              j == x-&gt;n  ? hi : x-&gt;key[j], c);
+}
+
+int bt_valid(BTree *t)
+{
+    Check c = { 1, -1 };
+    check(t-&gt;root, 0, 1, LONG_MIN, LONG_MAX, &amp;c);
+    return c.ok;
+}</code></pre>
+   </div>
+   <div>
+<pre><code>#define N 20000
+
+int main(void)
+{
+    BTree *t = bt_create();
+    char  *present = calloc(N, 1);
+    int    pos;
+    srand(12345);
+
+    for (int op = 0; op &lt; 500000; op++) {
+        int k = rand() % N;
+
+        if (rand() &amp; 1) {
+            if (!present[k]) { bt_insert(t, k); present[k] = 1; }
+        } else {
+            if (present[k]) { bt_delete(t, k); present[k] = 0; }
+        }
+        assert(bt_valid(t));
+        assert((bt_search(t-&gt;root, k, &amp;pos) != NULL)
+               == (present[k] != 0));
+    }
+    puts("ok");
+    return 0;
+}</code></pre>
+    <div class="note">
+      <p><b>Build it like this:</b></p>
+      <p style="margin-bottom:0"><code>gcc -Wall -Wextra -O2 -fsanitize=address,undefined bt.c -o bt</code></p>
+    </div>
+    <p class="small" style="margin-bottom:0">The five checks in <code>check</code> map one-to-one onto the five properties. The leaf-depth check is the one that catches the subtle bugs — a merge that loses a level shows up here and almost nowhere else.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 22 -->
+<section class="slide" data-chapter="Closing">
+ <div class="inner">
+  <p class="kicker">21 — where it lives, and what to do next</p>
+  <h2>In production, and when not to reach for one</h2>
+  <div class="cols">
+   <div>
+    <h3>Where you are already using one</h3>
+    <ul class="tight">
+      <li><b>Every relational database index</b> you have ever created — InnoDB, PostgreSQL, SQL Server, Oracle, SQLite.</li>
+      <li><b>Filesystems</b> — NTFS, HFS+, XFS, btrfs, ext4's directory hashing.</li>
+      <li><b>In-memory too</b>, increasingly: Rust's <code>BTreeMap</code> and Abseil's B-tree containers beat red-black trees on modern CPUs, because the cache line is a block and the same argument applies one level up the hierarchy.</li>
+    </ul>
+    <div class="note io">
+      <p style="margin-bottom:0"><b>When not to.</b> Random-key write-heavy workloads are the weak spot: every insert dirties a different page, so the disk sees random writes. That is the case LSM trees (RocksDB, Cassandra, LevelDB) were built for — they buffer in memory and write sequentially, paying for it with slower reads.</p>
+    </div>
+    <p class="small" style="margin-bottom:0">If a database uses a B⁺ tree and its competitor uses an LSM tree, they are not disagreeing about data structures. They are disagreeing about read/write ratio.</p>
+   </div>
+   <div class="panel">
+    <h3>Exercises — write the prediction down first</h3>
+    <ol class="tight">
+      <li>Before running anything: inserting 1…20 into an empty B-tree with t = 2, how many splits occur and what is the final height? Instrument <code>split_child</code> and check.</li>
+      <li>Predict the height for n = 10⁶ with t = 50. Then build it and measure.</li>
+      <li>Implement <code>bt_create</code>, <code>bt_search</code>, <code>bt_insert</code> and <code>bt_valid</code>. Do not start deletion until the validator survives 10⁵ random insertions.</li>
+      <li>Implement deletion and run the differential harness under AddressSanitizer.</li>
+      <li>Measure average node occupancy after 10⁵ <b>random</b> insertions, then after 10⁵ <b>ascending</b> insertions. The two numbers differ a lot. Explain why before you look it up.</li>
+      <li>Splitting on the way down splits nodes that would never have overflowed. Count them. What did the wasted splits buy?</li>
+      <li>Set T to 128 and replace the linear scan in <code>find_key</code> with binary search. Measure. If it did not help, work out why.</li>
+      <li>Compare against the red-black deck: for the same 10⁶ keys, which structure does more total pointer writes, and which touches more distinct cache lines per lookup?</li>
+    </ol>
+   </div>
+  </div>
+ </div>
+</section>
+
+</main>
+
+<nav id="bar">
+  <span id="count">1 / 22</span>
+  <button id="prev" aria-label="Previous slide">Back</button>
+  <button id="next" aria-label="Next slide">Next</button>
+  <span class="chapter" id="chapter"></span>
+  <button id="theme" title="Colour theme — auto, light, dark (T)">◐ Auto</button>
+</nav>
+
+<script>
+"use strict";
+/* ---------------- deck navigation ---------------- */
+var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+var idx = 0;
+var elProg = document.getElementById('progress'), elCount = document.getElementById('count'),
+    elChap = document.getElementById('chapter'), btnPrev = document.getElementById('prev'),
+    btnNext = document.getElementById('next');
+function show(i){
+  idx = Math.max(0, Math.min(slides.length - 1, i));
+  slides.forEach(function(s, k){ s.classList.toggle('is-active', k === idx); });
+  slides[idx].scrollTop = 0;
+  elProg.style.width = ((idx + 1) / slides.length * 100) + '%';
+  elCount.textContent = (idx + 1) + ' / ' + slides.length;
+  elChap.textContent = slides[idx].dataset.chapter || '';
+  btnPrev.disabled = idx === 0;
+  btnNext.disabled = idx === slides.length - 1;
+  if (location.hash !== '#' + (idx + 1)) history.replaceState(null, '', '#' + (idx + 1));
+}
+btnPrev.addEventListener('click', function(){ show(idx - 1); });
+btnNext.addEventListener('click', function(){ show(idx + 1); });
+document.addEventListener('keydown', function(e){
+  var t = e.target.tagName;
+  if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') return;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') { show(idx + 1); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(idx - 1); e.preventDefault(); }
+  else if (e.key === 'Home') show(0);
+  else if (e.key === 'End') show(slides.length - 1);
+});
+(function(){
+  var x0 = null, y0 = null, d = document.getElementById('deck');
+  d.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive:true});
+  d.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.8) show(idx + (dx < 0 ? 1 : -1));
+    x0 = null;
+  }, {passive:true});
+})();
+
+/* ---------------- syntax highlighting ---------------- */
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function highlight(src){
+  var re = /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|(#\s*\w+)|("(?:[^"\\]|\\.)*")|\b(if|else|while|for|return|struct|typedef|int|char|long|void|static|const|sizeof|NULL|break|continue|assert|puts|calloc|malloc|free|srand|rand|main)\b|\b(\d+)\b/g;
+  var out = '', last = 0, m;
+  while ((m = re.exec(src)) !== null) {
+    out += esc(src.slice(last, m.index));
+    if (m[1]) out += '<span class="tok-c">' + esc(m[1]) + '</span>';
+    else if (m[2]) out += '<span class="tok-k">' + esc(m[2]) + '</span>';
+    else if (m[3]) out += '<span class="tok-s">' + esc(m[3]) + '</span>';
+    else if (m[4]) out += '<span class="tok-k">' + esc(m[4]) + '</span>';
+    else out += '<span class="tok-n">' + esc(m[5]) + '</span>';
+    last = re.lastIndex;
+  }
+  return out + esc(src.slice(last));
+}
+Array.prototype.forEach.call(document.querySelectorAll('pre code'), function(el){
+  el.innerHTML = highlight(el.textContent);
+});
+
+/* ---------------- B-tree (mirrors the C) ---------------- */
+function makeBT(t){
+  function nn(leaf){ return { leaf:leaf, keys:[], children:[] }; }
+  var T = { t:t, root:nn(true), size:0, splits:0, merges:0, borrows:0 };
+
+  function splitChild(x, i){
+    T.splits++;
+    var y = x.children[i];
+    var z = nn(y.leaf);
+    z.keys = y.keys.splice(t);
+    if (!y.leaf) z.children = y.children.splice(t);
+    var med = y.keys.pop();
+    x.keys.splice(i, 0, med);
+    x.children.splice(i + 1, 0, z);
+  }
+  function insertNonFull(x, k){
+    var i = x.keys.length - 1;
+    if (x.leaf) {
+      while (i >= 0 && k < x.keys[i]) i--;
+      x.keys.splice(i + 1, 0, k);
+      return;
+    }
+    while (i >= 0 && k < x.keys[i]) i--;
+    i++;
+    if (x.children[i].keys.length === 2 * t - 1) {
+      splitChild(x, i);
+      if (k > x.keys[i]) i++;
+    }
+    insertNonFull(x.children[i], k);
+  }
+  function findKey(x, k){ var i = 0; while (i < x.keys.length && x.keys[i] < k) i++; return i; }
+  function getPred(x, i){ var c = x.children[i]; while (!c.leaf) c = c.children[c.children.length - 1]; return c.keys[c.keys.length - 1]; }
+  function getSucc(x, i){ var c = x.children[i + 1]; while (!c.leaf) c = c.children[0]; return c.keys[0]; }
+  function borrowPrev(x, i){
+    T.borrows++;
+    var c = x.children[i], s = x.children[i - 1];
+    c.keys.unshift(x.keys[i - 1]);
+    if (!c.leaf) c.children.unshift(s.children.pop());
+    x.keys[i - 1] = s.keys.pop();
+  }
+  function borrowNext(x, i){
+    T.borrows++;
+    var c = x.children[i], s = x.children[i + 1];
+    c.keys.push(x.keys[i]);
+    if (!c.leaf) c.children.push(s.children.shift());
+    x.keys[i] = s.keys.shift();
+  }
+  function mergeAt(x, i){
+    T.merges++;
+    var c = x.children[i], s = x.children[i + 1];
+    c.keys.push(x.keys[i]);
+    c.keys = c.keys.concat(s.keys);
+    if (!c.leaf) c.children = c.children.concat(s.children);
+    x.keys.splice(i, 1);
+    x.children.splice(i + 1, 1);
+  }
+  function fill(x, i){
+    if (i !== 0 && x.children[i - 1].keys.length >= t) borrowPrev(x, i);
+    else if (i !== x.keys.length && x.children[i + 1].keys.length >= t) borrowNext(x, i);
+    else if (i !== x.keys.length) mergeAt(x, i);
+    else mergeAt(x, i - 1);
+  }
+  function removeInternal(x, i){
+    var k = x.keys[i];
+    if (x.children[i].keys.length >= t) { var p = getPred(x, i); x.keys[i] = p; rm(x.children[i], p); }
+    else if (x.children[i + 1].keys.length >= t) { var s = getSucc(x, i); x.keys[i] = s; rm(x.children[i + 1], s); }
+    else { mergeAt(x, i); rm(x.children[i], k); }
+  }
+  function rm(x, k){
+    var i = findKey(x, k);
+    if (i < x.keys.length && x.keys[i] === k) {
+      if (x.leaf) x.keys.splice(i, 1); else removeInternal(x, i);
+      return;
+    }
+    if (x.leaf) return;
+    var last = (i === x.keys.length);
+    if (x.children[i].keys.length < t) fill(x, i);
+    if (last && i > x.keys.length) rm(x.children[i - 1], k);
+    else rm(x.children[i], k);
+  }
+
+  T.visits = 0;
+  T.search = function(k){
+    var x = T.root, v = 0;
+    for (;;) {
+      v++;
+      var i = findKey(x, k);
+      if (i < x.keys.length && x.keys[i] === k) { T.visits = v; return true; }
+      if (x.leaf) { T.visits = v; return false; }
+      x = x.children[i];
+    }
+  };
+  T.insert = function(k, distinct){
+    if (!distinct && T.search(k)) return false;
+    var r = T.root;
+    if (r.keys.length === 2 * t - 1) {
+      var s = nn(false);
+      s.children = [r];
+      T.root = s;
+      splitChild(s, 0);
+      insertNonFull(s, k);
+    } else insertNonFull(r, k);
+    T.size++;
+    return true;
+  };
+  T.remove = function(k){
+    if (!T.search(k)) return false;
+    rm(T.root, k);
+    if (T.root.keys.length === 0 && !T.root.leaf) T.root = T.root.children[0];
+    T.size--;
+    return true;
+  };
+  T.height = function(){ var d = 0, x = T.root; while (!x.leaf) { x = x.children[0]; d++; } return d; };
+  T.stats = function(){
+    var nodes = 0, keys = 0;
+    (function w(x){ nodes++; keys += x.keys.length; if (!x.leaf) x.children.forEach(w); })(T.root);
+    return { nodes:nodes, keys:keys, fill: keys / (nodes * (2 * t - 1)) };
+  };
+  T.valid = function(){
+    var ok = true, ld = -1;
+    (function chk(x, d, lo, hi, root){
+      if (x.keys.length > 2 * t - 1) ok = false;
+      if (!root && x.keys.length < t - 1) ok = false;
+      if (root && !x.leaf && x.keys.length < 1) ok = false;
+      for (var j = 0; j < x.keys.length; j++) {
+        if (j && x.keys[j - 1] >= x.keys[j]) ok = false;
+        if (lo !== null && x.keys[j] <= lo) ok = false;
+        if (hi !== null && x.keys[j] >= hi) ok = false;
+      }
+      if (x.leaf) {
+        if (x.children.length) ok = false;
+        if (ld < 0) ld = d; else if (ld !== d) ok = false;
+        return;
+      }
+      if (x.children.length !== x.keys.length + 1) { ok = false; return; }
+      for (var c = 0; c <= x.keys.length; c++)
+        chk(x.children[c], d + 1, c === 0 ? lo : x.keys[c - 1], c === x.keys.length ? hi : x.keys[c], false);
+    })(T.root, 0, null, null, true);
+    return ok;
+  };
+  return T;
+}
+
+/* ---------------- red-black tree, for comparison only ---------------- */
+function makeRB(){
+  var NIL = { colour:'B', key:null };
+  NIL.left = NIL.right = NIL.parent = NIL;
+  var T = { NIL:NIL, root:NIL, size:0, visits:0 };
+  function lrot(x){ var y = x.right; x.right = y.left; if (y.left !== NIL) y.left.parent = x;
+    y.parent = x.parent; if (x.parent === NIL) T.root = y; else if (x === x.parent.left) x.parent.left = y; else x.parent.right = y;
+    y.left = x; x.parent = y; }
+  function rrot(y){ var x = y.left; y.left = x.right; if (x.right !== NIL) x.right.parent = y;
+    x.parent = y.parent; if (y.parent === NIL) T.root = x; else if (y === y.parent.right) y.parent.right = x; else y.parent.left = x;
+    x.right = y; y.parent = x; }
+  function fix(z){
+    while (z.parent.colour === 'R') {
+      if (z.parent === z.parent.parent.left) {
+        var u = z.parent.parent.right;
+        if (u.colour === 'R') { z.parent.colour = 'B'; u.colour = 'B'; z.parent.parent.colour = 'R'; z = z.parent.parent; }
+        else { if (z === z.parent.right) { z = z.parent; lrot(z); }
+          z.parent.colour = 'B'; z.parent.parent.colour = 'R'; rrot(z.parent.parent); }
+      } else {
+        var u2 = z.parent.parent.left;
+        if (u2.colour === 'R') { z.parent.colour = 'B'; u2.colour = 'B'; z.parent.parent.colour = 'R'; z = z.parent.parent; }
+        else { if (z === z.parent.left) { z = z.parent; rrot(z); }
+          z.parent.colour = 'B'; z.parent.parent.colour = 'R'; lrot(z.parent.parent); }
+      }
+    }
+    T.root.colour = 'B';
+  }
+  T.insert = function(k){
+    var p = NIL, cur = T.root;
+    while (cur !== NIL) { p = cur; if (k < cur.key) cur = cur.left; else if (k > cur.key) cur = cur.right; else return false; }
+    var z = { key:k, colour:'R', left:NIL, right:NIL, parent:p };
+    if (p === NIL) T.root = z; else if (k < p.key) p.left = z; else p.right = z;
+    fix(z); T.size++; return true;
+  };
+  T.search = function(k){
+    var x = T.root, v = 0;
+    while (x !== NIL) { v++; if (x.key === k) { T.visits = v; return true; } x = k < x.key ? x.left : x.right; }
+    T.visits = v; return false;
+  };
+  T.height = function(){ return (function h(n){ return n === NIL ? 0 : 1 + Math.max(h(n.left), h(n.right)); })(T.root); };
+  return T;
+}
+
+/* ---------------- drawing ---------------- */
+/* Colours live in the CSS custom properties so the theme switch can move
+   them. These diagrams are SVG *strings*, not styled elements, so nothing
+   already on screen updates by itself: each render records how to repeat
+   itself and repaintAll() replays the lot once the palette has changed. */
+var C_INK, C_RULE, C_FAINT, C_ACCENT, C_BLOCK, C_BLOCKSOFT, C_CELL,
+    C_NODE, C_RED, C_RED_EDGE, C_BLACK, C_BLACK_EDGE, C_ON_NODE;
+
+function readTokens(){
+  var cs = getComputedStyle(document.documentElement);
+  function t(n, fb){ var v = (cs.getPropertyValue(n) || '').trim(); return v || fb; }
+  C_INK        = t('--ink','#22303C');
+  C_RULE       = t('--svg-rule','#9FB3C0');
+  C_FAINT      = t('--faint','#8CA0AE');
+  C_ACCENT     = t('--accent','#116A83');
+  C_BLOCK      = t('--block','#9C6510');
+  C_BLOCKSOFT  = t('--block-soft','#F6EEE0');
+  C_CELL       = t('--cell','#F4F8FA');
+  C_NODE       = t('--svg-node','#FFFFFF');
+  C_RED        = t('--node-red','#C62828');
+  C_RED_EDGE   = t('--node-red-edge', C_RED);
+  C_BLACK      = t('--node-black','#14181C');
+  C_BLACK_EDGE = t('--node-black-edge', C_BLACK);
+  C_ON_NODE    = t('--on-node','#FFFFFF');
+}
+readTokens();
+
+var _painters = [];
+function _paints(el, fn){
+  for (var i = 0; i < _painters.length; i++) {
+    if (_painters[i][0] === el) { _painters[i][1] = fn; return; }
+  }
+  _painters.push([el, fn]);
+}
+function repaintAll(){
+  readTokens();
+  for (var i = 0; i < _painters.length; i++) _painters[i][1]();
+}
+
+function sizeSVG(svg, W){
+  var d = W < 620 ? Math.min(W * 1.7, 720) : W;
+  svg.style.width = d + 'px';
+  var narrow = (window.innerWidth || 1024) < 760;
+  svg.style.maxWidth = (narrow || d > 1100) ? 'none' : '100%';
+}
+function boxSVG(x, y, keys, cw, bh, leaf, hl){
+  var w = Math.max(keys.length, 1) * cw + 6;
+  var fill = hl ? C_BLOCKSOFT : (leaf ? C_CELL : C_NODE);
+  var stroke = hl ? C_BLOCK : C_RULE;
+  var s = '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + bh +
+          '" rx="2" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + (hl ? 2 : 1.2) + '"/>';
+  for (var i = 0; i < keys.length; i++) {
+    if (i) s += '<line x1="' + (x + 3 + i * cw) + '" y1="' + (y + 3) + '" x2="' + (x + 3 + i * cw) +
+                '" y2="' + (y + bh - 3) + '" stroke="' + C_RULE + '" stroke-width="0.8"/>';
+    s += '<text x="' + (x + 3 + i * cw + cw / 2) + '" y="' + (y + bh / 2 + 4) + '" text-anchor="middle" fill="' +
+         C_INK + '" font-family="JetBrains Mono, monospace" font-size="11">' + keys[i] + '</text>';
+  }
+  return s;
+}
+function lineSVG(x1, y1, x2, y2){
+  return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 +
+         '" stroke="' + C_RULE + '" stroke-width="1.2"/>';
+}
+
+function renderB(svg, T, opts){
+  opts = opts || {};
+  if (!svg) return;
+  _paints(svg, function(){ renderB(svg, T, opts); });
+  var root = T.root;
+  if (!root.keys.length && root.leaf) {
+    svg.setAttribute('viewBox', '0 0 400 80');
+    svg.style.width = '100%';
+    svg.innerHTML = '<text x="200" y="46" text-anchor="middle" fill="' + C_FAINT +
+      '" font-family="JetBrains Mono, monospace" font-size="13">empty tree</text>';
+    return;
+  }
+  var maxK = 0;
+  (function w(x){ x.keys.forEach(function(k){ if (k > maxK) maxK = k; }); if (!x.leaf) x.children.forEach(w); })(root);
+  var digits = String(maxK).length;
+  var cw = 14 + 8 * digits, bh = 26, vgap = 56, hgap = 16, pad = 3;
+  function nw(n){ return Math.max(n.keys.length, 1) * cw + pad * 2; }
+  (function measure(n){
+    n._w = nw(n);
+    if (n.leaf) { n._tw = n._w; return n._tw; }
+    var s = 0;
+    for (var i = 0; i < n.children.length; i++) { s += measure(n.children[i]); if (i) s += hgap; }
+    n._tw = Math.max(s, n._w);
+    return n._tw;
+  })(root);
+  (function place(n, x, d){
+    n._d = d;
+    if (n.leaf) { n._x = x + (n._tw - n._w) / 2; return; }
+    var total = 0, i;
+    for (i = 0; i < n.children.length; i++) { total += n.children[i]._tw; if (i) total += hgap; }
+    var cx = x + (n._tw - total) / 2;
+    for (i = 0; i < n.children.length; i++) { place(n.children[i], cx, d + 1); cx += n.children[i]._tw + hgap; }
+    var f = n.children[0], l = n.children[n.children.length - 1];
+    n._x = (f._x + f._w / 2 + l._x + l._w / 2) / 2 - n._w / 2;
+  })(root, 0, 0);
+
+  var maxd = 0, all = [];
+  (function w(n){ all.push(n); if (n._d > maxd) maxd = n._d; if (!n.leaf) n.children.forEach(w); })(root);
+
+  var W = Math.ceil(root._tw) + 20, H = 12 + maxd * vgap + bh + 12;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  sizeSVG(svg, W);
+
+  var edges = '', boxes = '';
+  all.forEach(function(n){
+    var nx = n._x + 10, ny = 12 + n._d * vgap;
+    n._px = nx; n._py = ny;
+  });
+  all.forEach(function(n){
+    if (n.leaf) return;
+    for (var i = 0; i < n.children.length; i++) {
+      var c = n.children[i];
+      edges += lineSVG(n._px + pad + i * cw, n._py + bh, c._px + c._w / 2, 12 + c._d * vgap);
+    }
+  });
+  all.forEach(function(n){
+    boxes += boxSVG(n._px, n._py, n.keys, cw, bh, n.leaf, opts.hl && opts.hl(n));
+  });
+  svg.innerHTML = edges + boxes;
+}
+
+function renderRB(svg, T){
+  if (!svg) return;
+  _paints(svg, function(){ renderRB(svg, T); });
+  var items = [], i = 0, maxd = 0;
+  (function walk(n, d){
+    if (n === T.NIL) return;
+    walk(n.left, d + 1);
+    n._x = i++; n._d = d; if (d > maxd) maxd = d;
+    items.push(n);
+    walk(n.right, d + 1);
+  })(T.root, 0);
+  var cols = items.length, cw = cols > 24 ? 28 : 38, r = cols > 24 ? 11 : 14, ch = 52, m = 20;
+  var W = cols * cw + m * 2, H = (maxd + 1) * ch + m;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  sizeSVG(svg, W);
+  function px(n){ return m + n._x * cw + cw / 2; }
+  function py(n){ return m + n._d * ch; }
+  var e = '', c = '';
+  items.forEach(function(n){
+    ['left','right'].forEach(function(s){
+      if (n[s] !== T.NIL) e += lineSVG(px(n), py(n), px(n[s]), py(n[s]));
+    });
+  });
+  items.forEach(function(n){
+    var red = n.colour === 'R';
+    var f = red ? C_RED : C_BLACK, edge = red ? C_RED_EDGE : C_BLACK_EDGE;
+    c += '<circle cx="' + px(n) + '" cy="' + py(n) + '" r="' + r + '" fill="' + f +
+         '" stroke="' + edge + '" stroke-width="1.4"/>' +
+         '<text x="' + px(n) + '" y="' + (py(n) + 4) + '" text-anchor="middle" fill="' + C_ON_NODE + '" font-family="JetBrains Mono, monospace" font-size="' +
+         (r > 12 ? 11 : 9) + '">' + n.key + '</text>';
+  });
+  svg.innerHTML = e + c;
+}
+
+function drawBMini(id, spec){
+  var svg = document.getElementById(id);
+  if (!svg) return;
+  _paints(svg, function(){ drawBMini(id, spec); });
+  svg.setAttribute('viewBox', '0 0 ' + spec.w + ' ' + spec.h);
+  var cw = spec.cw || 30, bh = 26, pad = 3, map = {};
+  spec.nodes.forEach(function(n){ n._w = Math.max(n.keys.length, 1) * cw + pad * 2; map[n.id] = n; });
+  var s = '';
+  (spec.edges || []).forEach(function(e){
+    var a = map[e[0]], b = map[e[2]];
+    s += lineSVG(a.x + pad + e[1] * cw, a.y + bh, b.x + b._w / 2, b.y);
+  });
+  spec.nodes.forEach(function(n){ s += boxSVG(n.x, n.y, n.keys, cw, bh, !!n.leaf, !!n.hl); });
+  svg.innerHTML = s;
+}
+
+/* ---------------- slide 1: hero ---------------- */
+(function(){
+  var svg = document.getElementById('heroTree'), cap = document.getElementById('heroCap');
+  var keys = [], i;
+  for (i = 1; i <= 20; i++) keys.push(i * 5);
+  var B = makeBT(3), R = makeRB();
+  keys.forEach(function(k){ B.insert(k, true); R.insert(k); });
+  renderB(svg, B);
+  cap.textContent = keys.length + ' keys, t = 3, ' + (B.height() + 1) +
+    ' levels — the same keys in a red-black tree need ' + R.height();
+})();
+
+/* ---------------- slide 4: fanout table ---------------- */
+(function(){
+  var tb = document.getElementById('fanTable');
+  if (!tb) return;
+  [1e6, 1e9, 1e12].forEach(function(n){
+    function lv(b){ return Math.ceil(Math.log(n) / Math.log(b)); }
+    tb.insertAdjacentHTML('beforeend',
+      '<tr><td class="num">10' + (n === 1e6 ? '⁶' : n === 1e9 ? '⁹' : '¹²') + '</td><td class="num slow">' +
+      lv(2) + '</td><td class="num">' + lv(128) + '</td><td class="num">' + lv(256) + '</td></tr>');
+  });
+})();
+
+/* ---------------- slide 5: same keys, both structures ---------------- */
+(function(){
+  var keys = [], i;
+  for (i = 1; i <= 24; i++) keys.push(i);
+  var B = makeBT(3), R = makeRB();
+  keys.forEach(function(k){ B.insert(k, true); R.insert(k); });
+  renderB(document.getElementById('cmpB'), B);
+  renderRB(document.getElementById('cmpRB'), R);
+  document.getElementById('cmpBCap').textContent =
+    'B-tree, t = 3 — ' + (B.height() + 1) + ' levels, ' + B.stats().nodes + ' nodes';
+  document.getElementById('cmpRBCap').textContent =
+    'red-black tree — ' + R.height() + ' levels, ' + R.size + ' nodes';
+})();
+
+/* ---------------- slide 7: height table ---------------- */
+(function(){
+  var tb = document.getElementById('heightTable');
+  if (!tb) return;
+  [2, 8, 32, 128].forEach(function(t){
+    function h(n){ return Math.ceil(Math.log((n + 1) / 2) / Math.log(t)); }
+    tb.insertAdjacentHTML('beforeend',
+      '<tr><td class="num">' + t + '</td><td class="num">' + (2 * t - 1) + '</td><td class="num">' +
+      (h(1e6) + 1) + '</td><td class="num">' + (h(1e9) + 1) + '</td></tr>');
+  });
+})();
+
+/* ---------------- slide 8: measurement ---------------- */
+(function(){
+  var out = document.getElementById('mOut');
+  if (!out) return;
+  function shuffled(n){
+    var a = [], i;
+    for (i = 1; i <= n; i++) a.push(i);
+    for (i = n - 1; i > 0; i--) { var j = (Math.random() * (i + 1)) | 0, t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  document.getElementById('mRun').addEventListener('click', function(){
+    var n = Math.max(1000, Math.min(300000, parseInt(document.getElementById('mN').value, 10) || 50000));
+    var t = parseInt(document.getElementById('mT').value, 10);
+    var keys = shuffled(n);
+    var B = makeBT(t), R = makeRB();
+    var t0 = performance.now();
+    keys.forEach(function(k){ B.insert(k, true); R.insert(k); });
+    var build = performance.now() - t0;
+
+    var probes = 2000, bv = 0, rv = 0, j;
+    for (j = 0; j < probes; j++) {
+      var k = 1 + ((Math.random() * n) | 0);
+      B.search(k); bv += B.visits;
+      R.search(k); rv += R.visits;
+    }
+    bv /= probes; rv /= probes;
+    var st = B.stats();
+    function row(l, a, b, note){
+      return '<tr><td>' + l + '</td><td class="num">' + a + '</td><td class="num">' + b +
+             '</td><td class="small">' + (note || '') + '</td></tr>';
+    }
+    var h = '<table><thead><tr><th>measurement</th><th>red-black</th><th>B-tree (t = ' + t +
+            ')</th><th></th></tr></thead><tbody>';
+    h += row('levels', R.height(), B.height() + 1);
+    h += row('nodes visited per lookup', rv.toFixed(1), bv.toFixed(1), 'averaged over ' + probes + ' random probes');
+    h += row('nodes in the tree', R.size.toLocaleString(), st.nodes.toLocaleString(),
+             'a B-tree node holds up to ' + (2 * t - 1) + ' keys');
+    h += row('average node occupancy', '1 key', (100 * st.fill).toFixed(0) + '%', 'of the 2t−1 slots');
+    h += row('at 80 µs per node read', (rv * 0.08).toFixed(2) + ' ms', (bv * 0.08).toFixed(2) + ' ms',
+             'what this costs once the index leaves RAM');
+    h += row('structure still valid', 'yes', B.valid() ? 'yes' : 'NO');
+    h += '</tbody></table><p class="small">' + n.toLocaleString() + ' keys inserted in random order, built in ' +
+         build.toFixed(0) + ' ms.</p>';
+    out.innerHTML = h;
+  });
+  out.innerHTML = '<p class="small">Nothing measured yet. Commit to an answer, then press the button.</p>';
+})();
+
+/* ---------------- slide 11: split diagrams ---------------- */
+drawBMini('splitA', { w:360, h:140, cw:30, nodes:[
+  { id:'p', x:150, y:14, keys:[70] },
+  { id:'c', x:30,  y:92, keys:[10,20,40,50,60], leaf:true, hl:true },
+  { id:'r', x:260, y:92, keys:[80], leaf:true }
+], edges:[['p',0,'c'],['p',1,'r']] });
+
+drawBMini('splitB', { w:360, h:140, cw:30, nodes:[
+  { id:'p', x:120, y:14, keys:[40,70] },
+  { id:'a', x:20,  y:92, keys:[10,20], leaf:true },
+  { id:'b', x:130, y:92, keys:[50,60], leaf:true, hl:true },
+  { id:'r', x:250, y:92, keys:[80], leaf:true }
+], edges:[['p',0,'a'],['p',1,'b'],['p',2,'r']] });
+
+drawBMini('borrowA', { w:400, h:140, cw:30, nodes:[
+  { id:'p', x:160, y:14, keys:[35,70] },
+  { id:'a', x:20,  y:92, keys:[10,20,30], leaf:true },
+  { id:'b', x:150, y:92, keys:[50,60], leaf:true, hl:true },
+  { id:'c', x:270, y:92, keys:[80,90], leaf:true }
+], edges:[['p',0,'a'],['p',1,'b'],['p',2,'c']] });
+
+drawBMini('borrowB', { w:400, h:140, cw:30, nodes:[
+  { id:'p', x:160, y:14, keys:[30,70] },
+  { id:'a', x:30,  y:92, keys:[10,20], leaf:true },
+  { id:'b', x:140, y:92, keys:[35,50,60], leaf:true, hl:true },
+  { id:'c', x:280, y:92, keys:[80,90], leaf:true }
+], edges:[['p',0,'a'],['p',1,'b'],['p',2,'c']] });
+
+/* ---------------- slide 12: playground ---------------- */
+(function(){
+  var svg = document.getElementById('pgTree');
+  if (!svg) return;
+  var T = makeBT(3), nextKey = 1;
+  var stats = document.getElementById('pgStats'), input = document.getElementById('pgKey');
+  function draw(){
+    renderB(svg, T);
+    var s = T.stats();
+    stats.innerHTML = 'keys <b>' + T.size + '</b> &nbsp; levels <b>' + (T.height() + 1) +
+      '</b> &nbsp; nodes <b>' + s.nodes + '</b> &nbsp; fill <b>' + (100 * s.fill).toFixed(0) +
+      '%</b> &nbsp; splits <b>' + T.splits + '</b> &nbsp; merges <b>' + T.merges +
+      '</b> &nbsp; borrows <b>' + T.borrows + '</b> &nbsp; valid <b>' + (T.valid() ? 'yes' : 'NO') + '</b>';
+  }
+  function ins(k){ if (!isNaN(k)) { T.insert(k); draw(); } }
+  document.getElementById('pgInsert').addEventListener('click', function(){ ins(parseInt(input.value, 10)); input.value = ''; input.focus(); });
+  input.addEventListener('keydown', function(e){ if (e.key === 'Enter') { ins(parseInt(input.value, 10)); input.value = ''; } });
+  document.getElementById('pgDelete').addEventListener('click', function(){
+    var k = parseInt(input.value, 10);
+    if (!isNaN(k)) { T.remove(k); draw(); }
+    input.value = ''; input.focus();
+  });
+  document.getElementById('pgRandom').addEventListener('click', function(){ ins(1 + ((Math.random() * 99) | 0)); });
+  document.getElementById('pgSorted').addEventListener('click', function(){
+    while (T.search(nextKey)) nextKey++;
+    ins(nextKey++);
+  });
+  document.getElementById('pgClear').addEventListener('click', function(){
+    T = makeBT(parseInt(document.getElementById('pgT').value, 10)); nextKey = 1; draw();
+  });
+  document.getElementById('pgT').addEventListener('change', function(){
+    T = makeBT(parseInt(this.value, 10)); nextKey = 1; draw();
+  });
+  [10,20,5,6,12,30,7,17,3,25,40,50,18,22,45,60].forEach(function(k){ T.insert(k, true); });
+  draw();
+})();
+
+/* ---------------- boot ---------------- */
+(function(){
+  var h = parseInt((location.hash || '').replace('#', ''), 10);
+  show(isNaN(h) ? 0 : h - 1);
+})();
+
+/* ============================================================
+   theme -- auto / light / dark
+   The choice is stored under one key shared by every deck in this
+   set, so switching here switches the rest of them too.
+   ============================================================ */
+(function(){
+  var KEY = 'deck-theme';
+  var root = document.documentElement;
+  var btn = document.getElementById('theme');
+  var modes = ['auto', 'light', 'dark'];
+  var labels = { auto:'\u25D0 Auto', light:'\u2600 Light', dark:'\u263E Dark' };
+  var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  var mode = 'auto';
+  try { var v = localStorage.getItem(KEY); if (modes.indexOf(v) >= 0) mode = v; } catch (e) {}
+
+  function apply(persist){
+    if (mode === 'auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', mode);
+    if (btn) {
+      btn.textContent = labels[mode];
+      btn.setAttribute('aria-label', 'Colour theme: ' + mode + '. Click to change.');
+    }
+    if (persist) { try { localStorage.setItem(KEY, mode); } catch (e) {} }
+    /* The diagrams are SVG strings built from the old custom-property values,
+       so they are stale the moment the palette moves. Draw them again. */
+    repaintAll();
+  }
+  function cycle(){ mode = modes[(modes.indexOf(mode) + 1) % modes.length]; apply(true); }
+
+  if (btn) btn.addEventListener('click', cycle);
+  document.addEventListener('keydown', function(e){
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') return;
+    if (e.key === 't' || e.key === 'T') cycle();
+  });
+  if (mq) {
+    var onSys = function(){ if (mode === 'auto') apply(false); };
+    if (mq.addEventListener) mq.addEventListener('change', onSys);
+    else if (mq.addListener) mq.addListener(onSys);
+  }
+  apply(false);
+})();
+</script>
+</body>
+</html>

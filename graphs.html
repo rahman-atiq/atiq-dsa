@@ -1,0 +1,2395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graphs — representation, traversal, and the algorithms built on top, in C</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EFF3F5;--slide:#FFFFFF;--ink:#22303C;--dim:#5D7285;--faint:#8CA0AE;--rule:#CBD8E0;
+  --accent:#116A83;--accent-soft:#E1EEF2;--bad:#A4303F;--bad-soft:#F7EAEC;
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --pad:clamp(20px,4vw,64px);
+  /* --- surfaces and ink that used to be hardcoded further down --- */
+  color-scheme:light;
+  --slide-0:rgba(255,255,255,0);
+  --panel-bg:#FAFCFD;
+  --box-bg:#FBFDFE;
+  --btn-bg:#FFFFFF;
+  --pre-bg:#F1F5F7;
+  --pre-ink:#1E2E3A;
+  --code-ink:#0C4E61;
+  --tok-c:#7E93A2;
+  --tok-k:#0C5A73;
+  --tok-n:#8A5A00;
+  --tok-s:#1F6B3F;
+  --svg-node:#FFFFFF;
+  --svg-rule:#9FB3C0;
+  --on-fill:#FFFFFF;
+  --zero:#C3CFD8;
+  --wash:#DCE5EA;
+  --cell:#F4F8FA;
+  --bad:#A4303F;
+  --bad-soft:#F7EAEC;
+  --block:#9C6510;
+  --block-soft:#F6EEE0;
+  --done:#4A6B2F;
+  --done-soft:#EDF2E4;
+  --node-red:#C62828;
+  --node-red-edge:#C62828;
+  --node-black:#14181C;
+  --node-black-edge:#14181C;
+  --on-node:#FFFFFF;
+}
+
+/* The media query is guarded so an explicit light choice still wins,
+   and both [data-theme] blocks exist so the button wins in either
+   direction over whatever the operating system thinks. */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#12171B;
+  --slide:#1A2127;
+  --slide-0:rgba(26,33,39,0);
+  --ink:#E1E8ED;
+  --dim:#9DAFBB;
+  --faint:#778995;
+  --rule:#2E3941;
+  --accent:#5BB7D0;
+  --accent-soft:#16303A;
+  --panel-bg:#1E262D;
+  --box-bg:#171E24;
+  --btn-bg:#212A31;
+  --pre-bg:#141A20;
+  --pre-ink:#D5DEE5;
+  --code-ink:#8FD9EC;
+  --tok-c:#6F8290;
+  --tok-k:#6BC1D8;
+  --tok-n:#D6A355;
+  --tok-s:#6CBE8F;
+  --svg-node:#242E36;
+  --svg-rule:#55646F;
+  --on-fill:#0E1419;
+  --zero:#3D4A54;
+  --wash:#333F48;
+  --cell:#1E262D;
+  --bad:#E0655E;
+  --bad-soft:#382324;
+  --block:#D6A355;
+  --block-soft:#33291A;
+  --done:#93C36B;
+  --done-soft:#212A1B;
+  /* A black node on a black ground is honest and useless. In dark mode the
+     black node stays the darkest thing on the slide -- darker than the box it
+     sits in -- and earns a bright rim so you can still find its edges. */
+  --node-red:#CF3A40;
+  --node-red-edge:#F08A8E;
+  --node-black:#10151A;
+  --node-black-edge:#8FA3B2;
+  --on-node:#F2F7FA;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#12171B;
+  --slide:#1A2127;
+  --slide-0:rgba(26,33,39,0);
+  --ink:#E1E8ED;
+  --dim:#9DAFBB;
+  --faint:#778995;
+  --rule:#2E3941;
+  --accent:#5BB7D0;
+  --accent-soft:#16303A;
+  --panel-bg:#1E262D;
+  --box-bg:#171E24;
+  --btn-bg:#212A31;
+  --pre-bg:#141A20;
+  --pre-ink:#D5DEE5;
+  --code-ink:#8FD9EC;
+  --tok-c:#6F8290;
+  --tok-k:#6BC1D8;
+  --tok-n:#D6A355;
+  --tok-s:#6CBE8F;
+  --svg-node:#242E36;
+  --svg-rule:#55646F;
+  --on-fill:#0E1419;
+  --zero:#3D4A54;
+  --wash:#333F48;
+  --cell:#1E262D;
+  --bad:#E0655E;
+  --bad-soft:#382324;
+  --block:#D6A355;
+  --block-soft:#33291A;
+  --done:#93C36B;
+  --done-soft:#212A1B;
+  /* A black node on a black ground is honest and useless. In dark mode the
+     black node stays the darkest thing on the slide -- darker than the box it
+     sits in -- and earns a bright rim so you can still find its edges. */
+  --node-red:#CF3A40;
+  --node-red-edge:#F08A8E;
+  --node-black:#10151A;
+  --node-black-edge:#8FA3B2;
+  --on-node:#F2F7FA;
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --paper:#EFF3F5;
+  --slide:#FFFFFF;
+  --ink:#22303C;
+  --dim:#5D7285;
+  --faint:#8CA0AE;
+  --rule:#CBD8E0;
+  --accent:#116A83;
+  --accent-soft:#E1EEF2;
+  --bad:#A4303F;
+  --bad-soft:#F7EAEC;
+  --slide-0:rgba(255,255,255,0);
+  --panel-bg:#FAFCFD;
+  --box-bg:#FBFDFE;
+  --btn-bg:#FFFFFF;
+  --pre-bg:#F1F5F7;
+  --pre-ink:#1E2E3A;
+  --code-ink:#0C4E61;
+  --tok-c:#7E93A2;
+  --tok-k:#0C5A73;
+  --tok-n:#8A5A00;
+  --tok-s:#1F6B3F;
+  --svg-node:#FFFFFF;
+  --svg-rule:#9FB3C0;
+  --on-fill:#FFFFFF;
+  --zero:#C3CFD8;
+  --wash:#DCE5EA;
+  --cell:#F4F8FA;
+  --block:#9C6510;
+  --block-soft:#F6EEE0;
+  --done:#4A6B2F;
+  --done-soft:#EDF2E4;
+  --node-red:#C62828;
+  --node-red-edge:#C62828;
+  --node-black:#14181C;
+  --node-black-edge:#14181C;
+  --on-node:#FFFFFF;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0;z-index:50;transition:width .28s ease}
+#deck{height:100%;position:relative}
+.slide{display:none;height:100%;overflow-y:auto;overflow-x:hidden;padding:calc(var(--pad) + 14px) var(--pad) 76px;background:var(--slide);scrollbar-width:thin}
+.slide.is-active{display:block;animation:fadein .22s ease both}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.inner{max-width:1080px;margin:0 auto}
+#bar{position:fixed;left:0;right:0;bottom:0;height:56px;z-index:40;display:flex;align-items:center;gap:14px;padding:0 var(--pad);background:linear-gradient(to top,var(--slide) 62%,var(--slide-0));font-family:var(--mono);font-size:12px;color:var(--faint)}
+#bar .chapter{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bar button{font-family:var(--mono);font-size:12px;border:1px solid var(--rule);background:var(--slide);color:var(--ink);border-radius:3px;padding:6px 12px;cursor:pointer}
+#bar button:hover{border-color:var(--accent);color:var(--accent)}
+#bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
+#count{min-width:56px;text-align:right}
+#bar #theme{min-width:88px;text-align:center}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1{font-size:clamp(30px,5.4vw,52px);line-height:1.08;font-weight:700;letter-spacing:-.015em;margin:0 0 18px}
+h2{font-size:clamp(23px,3.4vw,34px);line-height:1.18;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+h3{font-size:16px;font-weight:600;margin:26px 0 8px}
+.kicker{font-family:var(--mono);font-size:12px;color:var(--accent);margin:0 0 10px}
+.sub{color:var(--dim);font-size:clamp(16px,2vw,19px);margin:0 0 26px;max-width:62ch;font-style:italic}
+p{max-width:66ch;margin:0 0 14px}
+ul,ol{max-width:66ch;padding-left:22px;margin:0 0 16px}
+li{margin-bottom:9px}
+li::marker{color:var(--faint)}
+.tight li{margin-bottom:5px}
+code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);padding:1px 5px;border-radius:3px;color:var(--code-ink)}
+.small{font-size:14px;color:var(--dim)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,3.5vw,44px);align-items:start}
+.cols.wide-left{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+@media (max-width:820px){.cols,.cols.wide-left,.cols3{grid-template-columns:1fr;gap:24px}}
+.panel{border:1px solid var(--rule);border-radius:4px;padding:18px 20px;background:var(--panel-bg)}
+.panel h3{margin-top:0}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;margin:18px 0;font-size:15.5px;max-width:66ch}
+.note p:last-child{margin-bottom:0}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:6px 0 16px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);border-bottom:1.5px solid var(--ink)}
+td:first-child{color:var(--dim)}
+tbody tr:last-child td{border-bottom:none}
+.num{font-family:var(--mono)}
+.alert{color:var(--bad);font-weight:600}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.62;background:var(--pre-bg);border-left:3px solid var(--accent);padding:14px 16px;margin:0 0 16px;border-radius:0 4px 4px 0;overflow-x:auto;color:var(--pre-ink)}
+pre code{background:none;padding:0;border-radius:0;color:inherit;font-size:inherit;font-family:inherit}
+.tok-c{color:var(--tok-c);font-style:italic}
+.tok-k{color:var(--tok-k);font-weight:500}
+.tok-n{color:var(--tok-n)}
+.tok-s{color:var(--tok-s)}
+.treebox{border:1px solid var(--rule);border-radius:4px;background:var(--box-bg);padding:10px;overflow-x:auto}
+svg.tree{display:block;height:auto;margin-inline:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:10px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.controls button,.controls select{font-family:var(--mono);font-size:12px;padding:7px 11px;border:1px solid var(--rule);background:var(--btn-bg);color:var(--ink);border-radius:3px;cursor:pointer}
+.controls button:hover{border-color:var(--accent);color:var(--accent)}
+.controls input[type=number]{font-family:var(--mono);font-size:12px;padding:7px 9px;width:86px;border:1px solid var(--rule);border-radius:3px;background:var(--btn-bg);color:var(--ink)}
+.controls input[type=text]{font-family:var(--mono);font-size:12px;padding:7px 9px;width:86px;border:1px solid var(--rule);border-radius:3px;background:var(--btn-bg);color:var(--ink)}
+.controls input[type=checkbox]{accent-color:var(--accent)}
+.controls input::placeholder{color:var(--faint)}
+.controls label{color:var(--dim)}
+.stat{font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+.stat b{color:var(--ink);font-weight:500}
+ol.props{counter-reset:p;list-style:none;padding-left:0;max-width:none}
+ol.props li{counter-increment:p;position:relative;padding-left:40px;margin-bottom:14px}
+ol.props li::before{content:counter(p);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;border:1px solid var(--rule);font-family:var(--mono);font-size:12px;color:var(--accent);display:flex;align-items:center;justify-content:center}
+@media print{.slide{display:block!important;height:auto;page-break-after:always;padding:24px}#bar,#progress{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style><style>
+.matrix{border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.matrix td,.matrix th{border:1px solid var(--rule);padding:3px 6px;text-align:center;color:var(--ink)}
+.matrix th{background:#F1F5F7;font-weight:500;color:var(--dim)}
+.matrix td.one{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.matrix td.zero{color:#C3CFD8}
+.adjlist{font-family:var(--mono);font-size:12.5px;line-height:1.9;color:var(--ink)}
+.adjlist b{color:var(--accent);font-weight:500}
+.chip{display:inline-block;font-family:var(--mono);font-size:11.5px;border:1px solid var(--rule);border-radius:3px;padding:2px 7px;margin:0 4px 4px 0;background:#fff}
+.chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+</style>
+<script>
+/* Pick the theme up before first paint: a dark-mode reader opening this deck
+   should never get a white flash on the way in. */
+(function(){try{var t=localStorage.getItem('deck-theme');
+if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+</head>
+<body>
+<div id="progress"></div>
+<main id="deck">
+
+<!-- 1 -->
+<section class="slide" data-chapter="Opening">
+ <div class="inner">
+  <div class="treebox" style="margin-bottom:26px">
+    <svg class="tree" id="heroGraph" role="img" aria-label="An undirected graph with eight vertices and eleven edges"></svg>
+    <div class="legend"><span id="heroCap">eight vertices, eleven edges, several cycles, no root</span></div>
+  </div>
+  <h1>Graphs</h1>
+  <p class="sub">Everything the tree decks assumed away: more than one parent, more than one path, and cycles. Almost nothing in the real world is a tree.</p>
+  <p class="small">A tree is a graph with two extra restrictions. Drop them and the data structure stops being about hierarchy and starts being about relationships. Arrow keys, or the buttons below, to move through the deck.</p>
+ </div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">01 — why trees are not enough</p>
+  <h2>A tree is a graph with three things forbidden</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Every tree in the previous decks quietly enforced three rules, and every one of them is wrong about the world:</p>
+    <ul>
+      <li><b>One parent per node.</b> But a file belongs to two projects, a person has two parents, a module is imported by five others.</li>
+      <li><b>No cycles.</b> But roads loop, friendships are mutual, and package A can depend on B which depends on A — which is precisely the bug you need to detect.</li>
+      <li><b>Exactly one path between any two nodes.</b> But there are many routes from Manchester to Leeds, and the interesting question is which one is shortest.</li>
+    </ul>
+    <p>Remove those restrictions and you have a graph: a set of <b>vertices</b> and a set of <b>edges</b> between them. That is the whole definition, and it is deliberately almost empty — which is why nearly every interesting computational problem can be phrased as one.</p>
+    <div class="note"><p style="margin-bottom:0">A binary search tree answers "where is this key?". A graph answers "how are these things connected, and what is the best way through?".</p></div>
+   </div>
+   <div class="panel">
+    <h3>Things that are graphs</h3>
+    <table>
+     <thead><tr><th>domain</th><th>vertex</th><th>edge</th></tr></thead>
+     <tbody>
+      <tr><td>Road network</td><td>junction</td><td>road, weighted by time</td></tr>
+      <tr><td>Build system</td><td>target</td><td>"depends on", directed</td></tr>
+      <tr><td>Social network</td><td>person</td><td>friendship or follow</td></tr>
+      <tr><td>Web</td><td>page</td><td>hyperlink, directed</td></tr>
+      <tr><td>Compiler</td><td>basic block</td><td>control flow</td></tr>
+      <tr><td>Database</td><td>table</td><td>foreign key</td></tr>
+      <tr><td>Course catalogue</td><td>module</td><td>prerequisite, directed</td></tr>
+     </tbody>
+    </table>
+    <p class="small" style="margin-bottom:0">Note the last one. "Which order can I take these modules in?" is a topological sort, and it is the same algorithm a build system uses to order compilation.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-chapter="Vocabulary">
+ <div class="inner">
+  <p class="kicker">02 — vocabulary</p>
+  <h2>The words you need, and no more</h2>
+  <div class="cols">
+   <div>
+    <table>
+     <thead><tr><th>term</th><th>meaning</th></tr></thead>
+     <tbody>
+      <tr><td>vertex (node)</td><td>a thing. |V| of them, usually written n.</td></tr>
+      <tr><td>edge</td><td>a relationship between two vertices. |E| of them, usually m.</td></tr>
+      <tr><td>directed</td><td>the edge has a direction: u → v does not imply v → u.</td></tr>
+      <tr><td>weighted</td><td>each edge carries a number — distance, cost, capacity.</td></tr>
+      <tr><td>degree</td><td>how many edges touch a vertex. Directed graphs have in-degree and out-degree separately.</td></tr>
+      <tr><td>path</td><td>a sequence of vertices each joined to the next.</td></tr>
+      <tr><td>cycle</td><td>a path that returns to where it started.</td></tr>
+      <tr><td>connected</td><td>a path exists between every pair. Otherwise the graph has several <b>components</b>.</td></tr>
+      <tr><td>DAG</td><td>directed acyclic graph. Directed, no cycles. The shape of every dependency problem.</td></tr>
+      <tr><td>dense / sparse</td><td>|E| close to |V|² versus |E| close to |V|. This decides your representation.</td></tr>
+     </tbody>
+    </table>
+   </div>
+   <div>
+    <div class="treebox"><svg class="tree" id="vocabGraph"></svg><div class="legend"><span>a directed graph with a cycle highlighted</span></div></div>
+    <div class="note" style="margin-top:16px">
+      <p>Two bounds worth memorising, because every complexity result in this deck is stated in terms of them:</p>
+      <p style="margin-bottom:0">In a simple undirected graph, <b>|E| ≤ |V|(|V|−1)/2</b>. In a directed one, <b>|E| ≤ |V|(|V|−1)</b>. So |E| is somewhere between 0 and roughly |V|², and "O(V + E)" can mean anything from linear to quadratic depending on which end you are at.</p>
+    </div>
+    <p class="small" style="margin-bottom:0">Most real graphs are sparse. Road networks have degree about 4. Social graphs have a few hundred edges per vertex out of billions of possible ones. That fact drives the next two slides.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-chapter="Representation">
+ <div class="inner">
+  <p class="kicker">03 — the first real decision</p>
+  <h2>Adjacency matrix: a V × V grid of yes or no</h2>
+  <div class="cols">
+   <div>
+    <p>Allocate a two-dimensional array and set <code>m[u][v] = 1</code> when the edge exists. For an undirected graph the matrix is symmetric; for a weighted one, store the weight instead of 1.</p>
+    <h3>What it is good at</h3>
+    <ul class="tight">
+      <li><b>"Is there an edge u→v?"</b> — one array lookup, O(1). Nothing else matches this.</li>
+      <li>Adding or removing an edge — O(1).</li>
+      <li>Simple to write, impossible to get subtly wrong.</li>
+    </ul>
+    <h3>What it is bad at</h3>
+    <ul class="tight">
+      <li><b>Space is O(V²) whatever |E| is.</b> A million vertices needs 10¹² entries — a terabyte to store a graph that might have four edges per vertex.</li>
+      <li><b>Listing a vertex's neighbours costs O(V)</b>, because you must scan the whole row including the zeros. Every traversal does this for every vertex, so BFS and DFS become O(V²).</li>
+    </ul>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>The demo graph as a matrix</h3>
+      <div id="matrixBox" style="overflow-x:auto"></div>
+      <p class="small" style="margin-bottom:0">64 cells, 22 of them set. Already 66% waste at eight vertices, and the waste grows with V.</p>
+    </div>
+    <div class="note" style="margin-top:16px"><p style="margin-bottom:0">Use a matrix when the graph is <b>dense</b>, when V is small and fixed, or when your algorithm's inner loop is "does this edge exist?" — Floyd-Warshall, for instance, wants a matrix.</p></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-chapter="Representation">
+ <div class="inner">
+  <p class="kicker">04 — the first real decision</p>
+  <h2>Adjacency list: each vertex keeps its own neighbours</h2>
+  <div class="cols">
+   <div>
+    <p>An array of V lists. <code>adj[u]</code> holds exactly the vertices u has an edge to — nothing else is stored.</p>
+    <h3>What it is good at</h3>
+    <ul class="tight">
+      <li><b>Space is O(V + E)</b>, which for a sparse graph is a rounding error next to O(V²).</li>
+      <li><b>Iterating a vertex's neighbours is O(degree)</b>, which is what every traversal actually wants. BFS and DFS become O(V + E).</li>
+    </ul>
+    <h3>What it is bad at</h3>
+    <ul class="tight">
+      <li><b>"Is there an edge u→v?"</b> costs O(degree(u)) — you have to search the list.</li>
+      <li>Removing an edge means finding it first.</li>
+      <li>Pointer chasing, so worse cache behaviour than a matrix at small V.</li>
+    </ul>
+    <div class="note"><p style="margin-bottom:0">This is the default. Unless you know your graph is dense or you need O(1) edge queries, use an adjacency list.</p></div>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>The same graph as lists</h3>
+      <div class="adjlist" id="listBox"></div>
+      <p class="small" style="margin-bottom:0">22 entries, because each undirected edge appears twice — once in each endpoint's list. That doubling is why the space bound is O(V + 2E), which we write as O(V + E).</p>
+    </div>
+    <p class="small" style="margin-top:14px;margin-bottom:0">A linked-list implementation that prepends will produce neighbours in <b>reverse</b> insertion order. That changes the order BFS and DFS visit things — not their correctness, but it will make your output differ from the textbook's, and students lose hours to that.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-chapter="Representation">
+ <div class="inner">
+  <p class="kicker">05 — choosing between them</p>
+  <h2>Density decides, and you can compute the crossover</h2>
+  <table style="margin-top:18px">
+   <thead><tr><th>operation</th><th>adjacency matrix</th><th>adjacency list</th></tr></thead>
+   <tbody>
+    <tr><td>Space</td><td class="num">O(V²)</td><td class="num">O(V + E)</td></tr>
+    <tr><td>Add edge</td><td class="num">O(1)</td><td class="num">O(1)</td></tr>
+    <tr><td>Remove edge</td><td class="num">O(1)</td><td class="num">O(degree)</td></tr>
+    <tr><td>Is u adjacent to v?</td><td class="num">O(1)</td><td class="num">O(degree)</td></tr>
+    <tr><td>Iterate neighbours of u</td><td class="num">O(V)</td><td class="num">O(degree)</td></tr>
+    <tr><td>BFS / DFS over the whole graph</td><td class="num">O(V²)</td><td class="num">O(V + E)</td></tr>
+   </tbody>
+  </table>
+  <div class="cols" style="margin-top:6px">
+   <div>
+    <div class="controls">
+      <label class="stat">V =</label><input type="number" id="cV" value="100000" min="4" max="10000000">
+      <label class="stat">avg degree =</label><input type="number" id="cD" value="6" min="1" max="1000">
+      <button id="cRun">Compare</button>
+    </div>
+    <div id="cOut" class="small"></div>
+   </div>
+   <div class="panel">
+    <h3>The rule of thumb</h3>
+    <p>The matrix wins on space only when <b>E is within a constant factor of V²</b> — that is, when the graph is genuinely dense. In practice that almost never happens above a few thousand vertices.</p>
+    <p style="margin-bottom:0">A matrix on a graph with 10⁵ vertices and average degree 6 wastes about 99.99% of its memory, and slows every traversal down by four orders of magnitude. Try the numbers.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-chapter="Traversal">
+ <div class="inner">
+  <p class="kicker">06 — the central idea</p>
+  <h2>BFS and DFS are the same algorithm with a different container</h2>
+  <div class="cols">
+   <div>
+    <p>Write the generic traversal once:</p>
+<pre><code>put the start vertex in the container
+while the container is not empty:
+    take a vertex u out
+    if u is already visited: skip it
+    mark u visited
+    for each neighbour v of u:
+        if v is not visited: put v in the container</code></pre>
+    <p>Now choose the container.</p>
+    <ul>
+      <li><b>Queue</b> — first in, first out. You finish everything one step away before looking two steps away. That is <b>breadth-first search</b>.</li>
+      <li><b>Stack</b> — last in, first out. You follow one path as deep as it goes before backing up. That is <b>depth-first search</b>.</li>
+      <li><b>Priority queue</b> keyed by distance — you take the cheapest known vertex next. That is <b>Dijkstra</b>.</li>
+    </ul>
+    <div class="note"><p style="margin-bottom:0">Three of the most important graph algorithms differ only in which data structure holds the frontier. Teach this once and BFS, DFS and Dijkstra stop being three things to memorise.</p></div>
+   </div>
+   <div class="panel">
+    <h3>The two rules that stop it looping forever</h3>
+    <ol class="tight">
+      <li><b>Mark visited.</b> A graph has cycles; without a visited array the loop never terminates. This is the single difference from tree traversal, and it is the whole difference.</li>
+      <li><b>Mark on the way in, not the way out.</b> For BFS, mark a vertex when you <i>enqueue</i> it, not when you dequeue it. Otherwise the same vertex is enqueued once per incoming edge and the queue blows up.</li>
+    </ol>
+    <h3>Cost</h3>
+    <p>Each vertex enters the container at most once and each edge is examined at most twice (once from each end), so with an adjacency list both traversals are</p>
+    <div class="note"><p style="margin-bottom:0"><b>O(V + E)</b> time, <b>O(V)</b> extra space.</p></div>
+    <p class="small" style="margin-bottom:0">With a matrix, the neighbour loop costs O(V) instead of O(degree), and the whole thing degrades to O(V²).</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-chapter="Traversal">
+ <div class="inner">
+  <p class="kicker">07 — breadth-first search</p>
+  <h2>BFS explores in layers, and that gives you shortest paths for free</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Because the queue empties in the order things arrived, BFS finishes every vertex at distance 1 before touching any at distance 2. The moment you first reach a vertex, you have reached it by the fewest possible edges.</p>
+    <div class="note"><p style="margin-bottom:0">In an <b>unweighted</b> graph, BFS from s computes the shortest-path distance from s to every reachable vertex, in O(V + E). No priority queue, no Dijkstra, nothing cleverer required.</p></div>
+    <p>Keep a <code>dist[]</code> array instead of a separate <code>visited[]</code>: initialise it to −1, and "not yet visited" is just "distance is still −1". One array does both jobs.</p>
+    <p>Keep a <code>parent[]</code> array as well and you can reconstruct the actual route, not merely its length, by walking backwards from the destination.</p>
+    <h3>What BFS gives you</h3>
+    <ul class="tight">
+      <li>Shortest path in an unweighted graph.</li>
+      <li>Connected components — run it from every unvisited vertex and count the runs.</li>
+      <li>Bipartite testing — two-colour by layer parity; an edge inside a layer means not bipartite.</li>
+      <li>The "six degrees of separation" family of problems, verbatim.</li>
+    </ul>
+   </div>
+   <div class="panel">
+    <h3>Watch out for</h3>
+    <p><b>Weighted graphs.</b> BFS counts edges, not weights. On a weighted graph it will confidently return the route with fewest hops, which may be far from the cheapest. That is what Dijkstra is for.</p>
+    <p><b>Disconnected graphs.</b> One BFS only reaches one component. If the task is "visit everything", wrap it in a loop over all vertices.</p>
+    <p style="margin-bottom:0"><b>Queue sizing.</b> With mark-on-enqueue, each vertex enters at most once, so an array of V is exactly enough and you never need a dynamic structure.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-chapter="Traversal">
+ <div class="inner">
+  <p class="kicker">08 — depth-first search</p>
+  <h2>DFS goes as deep as it can, and the order it backs out is the useful part</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>DFS is usually written recursively, because the call stack already is the stack:</p>
+    <ul class="tight">
+      <li>Mark u visited.</li>
+      <li>For each unvisited neighbour, recurse.</li>
+      <li>Return.</li>
+    </ul>
+    <p>The subtlety is that DFS has <b>two</b> natural moments to do work: when you first arrive at a vertex, and when you finish with it. A surprising number of algorithms depend on the second one.</p>
+    <h3>Edge classification</h3>
+    <p>Colour each vertex white (untouched), grey (entered, not finished) or black (finished). Then for an edge u→v:</p>
+    <ul class="tight">
+      <li><b>v is white</b> — a tree edge, part of the DFS forest.</li>
+      <li><b>v is grey</b> — a <b>back edge</b>. You have found an ancestor, which means you have found a <b>cycle</b>.</li>
+      <li><b>v is black</b> — a forward or cross edge; harmless.</li>
+    </ul>
+    <div class="note"><p style="margin-bottom:0">"Grey means cycle" is the entire directed cycle-detection algorithm, and it falls out of DFS at no extra cost.</p></div>
+   </div>
+   <div class="panel">
+    <h3>Recursive or iterative?</h3>
+    <p>Recursive is shorter and clearer. It also overflows the stack on a graph with a long path — a million-vertex chain will crash. If the graph is large or adversarial, write the iterative version.</p>
+    <p><b>They are not identical.</b> The naive iterative version pushes all neighbours then pops the last one, so it visits neighbours in reverse order compared with the recursive version. Both are valid depth-first traversals; only one matches the textbook's printed output.</p>
+    <p style="margin-bottom:0">Also note the iterative stack can hold the same vertex several times before it is visited, so size it by <b>E</b>, not V.</p>
+    <h3>What DFS gives you</h3>
+    <ul class="tight">
+      <li>Cycle detection, directed and undirected.</li>
+      <li>Topological sort, by reversed finish order.</li>
+      <li>Connected components, and strongly connected components via Tarjan or Kosaraju.</li>
+      <li>Bridges and articulation points.</li>
+      <li>Maze and puzzle solving, backtracking search.</li>
+    </ul>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-chapter="Traversal">
+ <div class="inner">
+  <p class="kicker">09 — watch them run</p>
+  <h2>Same graph, same start, different container</h2>
+  <div class="controls">
+    <button id="tBfs">BFS</button>
+    <button id="tDfs">DFS</button>
+    <label class="stat">from</label>
+    <select id="tStart"></select>
+    <button id="tStep">Step</button>
+    <button id="tAll">Run to end</button>
+    <button id="tReset">Reset</button>
+  </div>
+  <div class="treebox"><svg class="tree" id="tGraph" role="img" aria-label="Traversal visualiser"></svg></div>
+  <div class="stat" id="tState" style="margin-top:12px"></div>
+  <div class="cols" style="margin-top:16px">
+    <div class="panel">
+      <h3>What to watch</h3>
+      <ul class="tight">
+        <li>The container line. BFS takes from the front, DFS from the back — that is the only difference in the code.</li>
+        <li>BFS distances increase monotonically in visit order. DFS distances jump around.</li>
+        <li>Both visit every vertex exactly once and produce a spanning tree of the component — different trees, same vertices.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Predict before you step</h3>
+      <p style="margin-bottom:0">Pick a start vertex and write down the full visit order for both before pressing anything. Getting BFS right is easy; getting DFS right requires you to know which neighbour the implementation takes first, which is exactly the detail people skip.</p>
+    </div>
+  </div>
+ </div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-chapter="Applications">
+ <div class="inner">
+  <p class="kicker">10 — what traversal buys you</p>
+  <h2>Four problems that are one traversal with bookkeeping</h2>
+  <div class="cols">
+   <div class="panel">
+    <h3>Connected components</h3>
+    <p>Loop over every vertex. If it is unvisited, run a traversal from it and stamp everything reached with the same component id. Increment the id and continue.</p>
+    <p style="margin-bottom:0">The number of traversals you started is the number of components. <b>O(V + E)</b> total — the loop does not make it quadratic, because each vertex is visited once across all runs.</p>
+   </div>
+   <div class="panel">
+    <h3>Cycle detection</h3>
+    <p><b>Directed</b> — DFS with colours. An edge to a grey vertex is a back edge, and a back edge is a cycle.</p>
+    <p style="margin-bottom:0"><b>Undirected</b> — DFS tracking each vertex's parent. An edge to a visited vertex that is <i>not</i> your parent is a cycle. Forgetting the parent check means every single edge reports a false cycle.</p>
+   </div>
+  </div>
+  <div class="cols" style="margin-top:18px">
+   <div class="panel">
+    <h3>Bipartite testing (two-colouring)</h3>
+    <p>BFS from each unvisited vertex, colouring each layer alternately. If you ever find an edge joining two vertices of the same colour, the graph is not bipartite.</p>
+    <p style="margin-bottom:0">Equivalently: a graph is bipartite exactly when it contains no odd-length cycle. Scheduling conflicts and matching problems reduce to this.</p>
+   </div>
+   <div class="panel">
+    <h3>Shortest path, unweighted</h3>
+    <p>BFS, recording <code>dist</code> and <code>parent</code>. Walk the parent chain backwards from the target to recover the route.</p>
+    <p style="margin-bottom:0">If every edge has the same weight, reaching for Dijkstra here is a mistake — it is slower and adds a heap you do not need.</p>
+   </div>
+  </div>
+  <div class="note" style="margin-top:20px"><p style="margin-bottom:0">The pattern is worth naming out loud for a student: none of these is a new algorithm. Each is "run a traversal, and record one extra thing while you do it."</p></div>
+ </div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-chapter="Applications">
+ <div class="inner">
+  <p class="kicker">11 — ordering a dependency graph</p>
+  <h2>Topological sort: which order can I do these in?</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Given a DAG, produce an ordering of the vertices such that every edge points forwards. Build systems, course prerequisites, spreadsheet recalculation, task schedulers and package managers are all this one problem.</p>
+    <h3>Kahn's algorithm — repeatedly take what is ready</h3>
+    <ol class="tight">
+      <li>Compute the in-degree of every vertex.</li>
+      <li>Put every vertex with in-degree 0 into a queue — these have no unmet prerequisites.</li>
+      <li>Take one out, append it to the output, and decrement the in-degree of each of its successors. Any that reach 0 join the queue.</li>
+      <li>If the output contains fewer than V vertices, the graph has a <b>cycle</b> and no ordering exists.</li>
+    </ol>
+    <div class="note"><p style="margin-bottom:0">Step 4 is free cycle detection, and it is more useful than a yes/no: the vertices missing from the output are exactly the ones tangled in the cycle, which is what you want to print in the error message.</p></div>
+    <h3>The DFS alternative</h3>
+    <p>Run DFS and push each vertex onto a list <b>when it finishes</b>. Reverse the list. It works because a vertex can only finish after everything it depends on has finished — but it gives you no natural place to report which vertices formed the cycle.</p>
+   </div>
+   <div>
+    <div class="treebox"><svg class="tree" id="dagGraph"></svg><div class="legend"><span id="dagCap">a small DAG of module prerequisites</span></div></div>
+    <div class="controls"><button id="dagRun">Topologically sort it</button></div>
+    <div id="dagOut" class="small"></div>
+    <p class="small" style="margin-bottom:0">Topological order is usually <b>not unique</b>. Any vertex with in-degree 0 is a legal next choice, so a graph with several roots has several valid answers. If your test compares against one expected string, the test is wrong — validate the property instead: for every edge u→v, position(u) &lt; position(v).</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-chapter="Applications">
+ <div class="inner">
+  <p class="kicker">12 — weights change everything</p>
+  <h2>Shortest paths: pick the right algorithm, not the famous one</h2>
+  <table style="margin-top:18px">
+   <thead><tr><th>situation</th><th>algorithm</th><th>cost</th><th>why</th></tr></thead>
+   <tbody>
+    <tr><td>Unweighted</td><td>BFS</td><td class="num">O(V + E)</td><td>layers already are distances</td></tr>
+    <tr><td>Non-negative weights, one source</td><td>Dijkstra</td><td class="num">O((V + E) log V)</td><td>always expand the cheapest known vertex next</td></tr>
+    <tr><td>Negative weights allowed</td><td>Bellman-Ford</td><td class="num">O(V · E)</td><td>relax every edge V−1 times; also detects negative cycles</td></tr>
+    <tr><td>All pairs, dense graph</td><td>Floyd-Warshall</td><td class="num">O(V³)</td><td>three nested loops over a matrix</td></tr>
+    <tr><td>DAG, any weights</td><td>topological order, then relax</td><td class="num">O(V + E)</td><td>no cycles means one pass in order suffices</td></tr>
+   </tbody>
+  </table>
+  <div class="cols" style="margin-top:6px">
+   <div>
+    <h3>Why Dijkstra breaks on negative edges</h3>
+    <p>Dijkstra's correctness rests on one assumption: once you pull a vertex out of the priority queue, its distance is final, because every other route to it must go through something already more expensive.</p>
+    <p>A negative edge destroys that. A longer-looking route can suddenly become cheaper later, and Dijkstra has already committed and moved on.</p>
+    <div class="note bad"><p style="margin-bottom:0">Dijkstra on a graph with a negative edge does not crash or loop — it returns a confidently wrong answer. That is a far worse failure mode, and it is why "are the weights non-negative?" is the first question to ask.</p></div>
+   </div>
+   <div class="panel">
+    <h3>Where negative weights actually come from</h3>
+    <ul class="tight">
+      <li>Currency arbitrage — a negative cycle <b>is</b> the profit opportunity you are searching for.</li>
+      <li>Net cost models where some steps earn a rebate.</li>
+      <li>Reductions from other problems that map "gain" to a negative edge.</li>
+    </ul>
+    <p class="small">If none of these applies, your weights are non-negative and Dijkstra is correct.</p>
+    <h3>Beyond the syllabus, worth knowing the names</h3>
+    <p style="margin-bottom:0">Minimum spanning tree (Kruskal with union-find, Prim with a heap), strongly connected components (Tarjan, Kosaraju), A* for pathfinding with a heuristic, and Dinic’s algorithm for flow. Maximum flow itself is covered later in this deck. All of them sit on top of what is here.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- SP1 -->
+<section class="slide" data-chapter="Shortest paths">
+ <div class="inner">
+  <p class="kicker">13 — dijkstra</p>
+  <h2>Dijkstra: always expand the cheapest vertex you know about</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Every vertex carries a <b>tentative distance</b> — the best route found so far. All start at infinity except the source, which starts at 0.</p>
+    <p>Then repeat: take the unsettled vertex with the smallest tentative distance, declare it <b>settled</b>, and <b>relax</b> each of its outgoing edges.</p>
+<pre><code>relax(u, v, w):
+    if dist[u] + w &lt; dist[v]:
+        dist[v]   = dist[u] + w
+        parent[v] = u</code></pre>
+    <p>Relaxation is the only thing that ever changes a distance, and it appears verbatim in Bellman-Ford and Floyd-Warshall too. The algorithms differ entirely in the <b>order</b> they relax edges.</p>
+    <h3>The invariant that makes it correct</h3>
+    <div class="note"><p style="margin-bottom:0">When a vertex is settled, its distance is <b>final</b>. Any other route to it would have to leave the settled set through some unsettled vertex, and that vertex already has a distance at least as large — so the route cannot be shorter.</p></div>
+    <p>Read that argument again and notice where it uses <b>non-negative weights</b>. It is the only place, and removing the assumption breaks everything.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>The cost depends entirely on the queue</h3>
+     <table>
+      <thead><tr><th>"take the cheapest" implemented as</th><th>total</th><th>use when</th></tr></thead>
+      <tbody>
+       <tr><td>linear scan of an array</td><td class="num">O(V²)</td><td>dense graphs, small V, or when you want short code</td></tr>
+       <tr><td>binary heap</td><td class="num">O((V+E) log V)</td><td>the default; sparse graphs</td></tr>
+       <tr><td>Fibonacci heap</td><td class="num">O(E + V log V)</td><td>theory; the constants rarely pay off in practice</td></tr>
+      </tbody>
+     </table>
+     <h3>The practical detail nobody mentions</h3>
+     <p>A binary heap has no efficient "decrease-key". Real implementations do not bother: they <b>push a duplicate</b> with the better distance and skip stale entries on pop.</p>
+<pre><code>Item it = pop();
+if (it.d &gt; dist[it.v]) continue;   /* stale */</code></pre>
+     <p style="margin-bottom:0">The heap can now hold up to E entries instead of V, which is why the bound is written O((V+E) log V). Size the array accordingly or you will overflow it on a dense graph.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- SP2 -->
+<section class="slide" data-chapter="Shortest paths">
+ <div class="inner">
+  <p class="kicker">14 — watch it run</p>
+  <h2>Dijkstra, one settled vertex at a time</h2>
+  <div class="controls">
+    <button id="djStep">Step</button>
+    <button id="djAll">Run to end</button>
+    <button id="djReset">Reset</button>
+  </div>
+  <div class="treebox"><svg class="tree" id="djGraph" role="img" aria-label="Dijkstra visualiser on a weighted directed graph"></svg>
+    <div class="legend"><span>edge labels are weights; the number beside each vertex is its tentative distance</span></div>
+  </div>
+  <div class="stat" id="djState" style="margin-top:12px"></div>
+  <div class="cols" style="margin-top:16px">
+    <div class="panel">
+      <h3>Watch for this specifically</h3>
+      <p style="margin-bottom:0">A reaches a tentative distance of 4 directly from S, and is then <b>improved to 3</b> via B — even though B looked like the longer way round at first glance. A vertex's distance can fall any number of times before it settles. It just cannot fall afterwards.</p>
+    </div>
+    <div class="panel">
+      <h3>Predict before you step</h3>
+      <p style="margin-bottom:0">Write down the order the six vertices will settle in, and the final distance to T. Then check. If you got the order right but the distance wrong, you relaxed an edge you should not have.</p>
+    </div>
+  </div>
+ </div>
+</section>
+
+<!-- SP3 -->
+<section class="slide" data-chapter="Shortest paths">
+ <div class="inner">
+  <p class="kicker">15 — negative weights</p>
+  <h2>Bellman-Ford: stop being clever about the order</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Dijkstra's speed comes from knowing which edge to relax next. If negative weights make that knowledge unreliable, give it up entirely and relax <b>every edge, repeatedly</b>.</p>
+    <div class="note"><p style="margin-bottom:0">Do V − 1 passes. In each pass, relax all E edges in any order.</p></div>
+    <h3>Why V − 1 passes is exactly enough</h3>
+    <p>A shortest path in a graph with no negative cycle is <b>simple</b> — it never repeats a vertex — so it has at most V − 1 edges.</p>
+    <p>Now the induction: after pass 1, every shortest path using one edge is correct. After pass 2, every one using two edges is correct, because its final edge is relaxed from a vertex whose distance was already settled by pass 1. After pass k, all paths of k edges are right. So V − 1 passes finish the job.</p>
+    <h3>Negative cycle detection comes free</h3>
+    <p>Run one more pass. If any distance still improves, there is no shortest path at all — you have found a cycle you could go round forever, getting cheaper each time.</p>
+   </div>
+   <div class="panel">
+    <h3>Cost</h3>
+    <p><b>O(V · E)</b>. On a sparse graph with 10⁵ vertices that is roughly 10¹¹ operations against Dijkstra's 10⁶. Use it only when you have to.</p>
+    <h3>The early exit that matters in practice</h3>
+    <p>If a whole pass changes nothing, no later pass can change anything either — return immediately. On most real graphs this triggers after a handful of passes rather than V − 1, which turns the worst case into something usable.</p>
+    <h3>Where it is actually used</h3>
+    <ul class="tight">
+      <li><b>Routing protocols.</b> RIP is distance-vector routing, which is Bellman-Ford run in a distributed way across routers.</li>
+      <li><b>Currency arbitrage.</b> Take −log of each exchange rate; a negative cycle is a sequence of trades that returns more than you started with.</li>
+      <li><b>Difference constraints.</b> Systems of inequalities of the form x<sub>j</sub> − x<sub>i</sub> ≤ w become a graph, and Bellman-Ford either solves them or proves them infeasible.</li>
+    </ul>
+    <p class="small" style="margin-bottom:0">SPFA is a queue-based refinement that is much faster on average and still O(V·E) in the worst case. Worth knowing it exists; not worth reaching for first.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- SP4 -->
+<section class="slide" data-chapter="Shortest paths">
+ <div class="inner">
+  <p class="kicker">16 — all pairs</p>
+  <h2>Floyd-Warshall: three loops, and the outer one is the algorithm</h2>
+  <div class="cols">
+   <div>
+    <p>Sometimes you want the distance between <i>every</i> pair, not from one source. Running Dijkstra V times works and costs O(V(V+E) log V). For a dense graph there is something simpler and often faster.</p>
+    <p>Define <b>d<sub>k</sub>[i][j]</b> as the shortest route from i to j allowed to pass through only the vertices {0 … k} as intermediates. Then:</p>
+    <div class="note"><p style="margin-bottom:0">d<sub>k</sub>[i][j] = min( d<sub>k−1</sub>[i][j] , d<sub>k−1</sub>[i][k] + d<sub>k−1</sub>[k][j] )</p></div>
+    <p>Either the route does not use k at all, or it goes i → k → j. There is no third option, and that is the entire derivation.</p>
+    <p>Because each layer only reads the one below it, you can drop the k index and update the matrix in place.</p>
+<pre><code>for k in 0..n-1:            # MUST be the outer loop
+    for i in 0..n-1:
+        for j in 0..n-1:
+            d[i][j] = min(d[i][j], d[i][k] + d[k][j])</code></pre>
+   </div>
+   <div class="panel">
+    <h3>The bug everyone writes once</h3>
+    <p>Putting <code>k</code> innermost. The code compiles, runs, and returns plausible-looking numbers that are wrong, because you are no longer building up the set of permitted intermediates in order.</p>
+    <p style="margin-bottom:0">If you ever have to debug someone's Floyd-Warshall, check the loop order first. It is nearly always that.</p>
+    <h3>Cost and character</h3>
+    <ul class="tight">
+      <li><b>O(V³)</b> time, <b>O(V²)</b> space, with a tiny constant factor — it is three tight loops over a contiguous array and the cache loves it.</li>
+      <li>Handles negative edges. <b>d[i][i] &lt; 0</b> afterwards means vertex i sits on a negative cycle.</li>
+      <li>Practical up to roughly V = 1000. Beyond that, V³ stops being a small number.</li>
+    </ul>
+    <h3>Use INF carefully</h3>
+    <p style="margin-bottom:0">Initialise unreachable pairs to <code>INT_MAX / 4</code>, not <code>INT_MAX</code>. The inner line adds two of them together, and <code>INT_MAX + INT_MAX</code> is undefined behaviour that will quietly produce a negative distance.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- MF1 -->
+<section class="slide" data-chapter="Max flow">
+ <div class="inner">
+  <p class="kicker">17 — a different question</p>
+  <h2>Maximum flow: how much can you push through the pipes?</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Shortest path asks for the best single route. Max flow asks something else entirely: using <b>all</b> the routes at once, how much can get from source to sink?</p>
+    <p>A <b>flow network</b> is a directed graph where each edge carries a <b>capacity</b> c(u,v) ≥ 0, plus two distinguished vertices: a source <b>s</b> and a sink <b>t</b>.</p>
+    <p>A <b>flow</b> assigns a number f(u,v) to each edge subject to two rules:</p>
+    <ol class="props">
+      <li><b>Capacity.</b> 0 ≤ f(u,v) ≤ c(u,v). You cannot push more through a pipe than it holds.</li>
+      <li><b>Conservation.</b> For every vertex except s and t, flow in equals flow out. Nothing accumulates and nothing appears from nowhere.</li>
+    </ol>
+    <p>The <b>value</b> of the flow is the net amount leaving s. Maximise it.</p>
+    <div class="note"><p style="margin-bottom:0">Notice there is no notion of distance here. An edge's length is irrelevant; only its capacity matters. This is why max flow is not a shortest-path problem wearing a hat — it is a genuinely different structure.</p></div>
+   </div>
+   <div class="panel">
+    <h3>Things that are max flow</h3>
+    <table>
+     <thead><tr><th>problem</th><th>capacity means</th></tr></thead>
+     <tbody>
+      <tr><td>Water, gas, electricity networks</td><td>pipe or cable throughput</td></tr>
+      <tr><td>Road traffic planning</td><td>vehicles per hour</td></tr>
+      <tr><td>Network bandwidth routing</td><td>link capacity</td></tr>
+      <tr><td>Assigning staff to shifts</td><td>1 per person, per slot</td></tr>
+      <tr><td>Airline crew scheduling</td><td>1 per crew, per leg</td></tr>
+      <tr><td>Image segmentation</td><td>pixel similarity cost</td></tr>
+      <tr><td>Finding a network's weakest link</td><td>the min cut, see three slides on</td></tr>
+     </tbody>
+    </table>
+    <p class="small" style="margin-bottom:0">The last three are the surprising ones. A great deal of the value of max flow comes from problems that do not look like plumbing at all until someone shows you the reduction.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- MF2 -->
+<section class="slide" data-chapter="Max flow">
+ <div class="inner">
+  <p class="kicker">18 — the key idea</p>
+  <h2>Greedy fails, and the fix is an edge that lets you change your mind</h2>
+  <div class="cols">
+   <div>
+    <p>The obvious algorithm: find any path from s to t with spare capacity, push as much as it takes, repeat. It is wrong, and the counterexample is small.</p>
+    <div class="treebox"><svg class="tree mini" id="mfBad"></svg><div class="legend"><span>capacities shown on each edge</span></div></div>
+    <p style="margin-top:14px">Push 1 unit along <b>S → A → B → T</b> first. Then fill <b>S → A → T</b> with 9 more and <b>S → B → T</b> with 9 more, and greedy stops at <b>19</b>. One unit of S→A and one of B→T sit stranded, unreachable because the single unit committed to the middle edge cannot be taken back. The true maximum is <b>20</b>.</p>
+    <div class="note bad"><p style="margin-bottom:0">The problem is not the path you chose. It is that having chosen it, you have no way to <b>partially undo</b> it.</p></div>
+   </div>
+   <div>
+    <h3>The residual graph</h3>
+    <p>Keep, alongside the network, a <b>residual capacity</b> for every ordered pair:</p>
+    <ul class="tight">
+      <li><b>Forward:</b> c<sub>f</sub>(u,v) = c(u,v) − f(u,v) — how much more you could push.</li>
+      <li><b>Backward:</b> c<sub>f</sub>(v,u) = f(u,v) — how much you could <b>take back</b>.</li>
+    </ul>
+    <p>That backward edge is the whole trick. Pushing flow along it does not mean sending water uphill; it means cancelling flow you previously committed on the forward edge, and rerouting it somewhere better. On the network to the left, the residual edge <b>B → A</b> lets you route S → B → A → T, which cancels the one unit on A→B and frees both stranded units at once.</p>
+    <div class="note"><p style="margin-bottom:0">An <b>augmenting path</b> is any path from s to t in the residual graph. Its <b>bottleneck</b> is the smallest residual capacity along it. Push that much, update both directions, repeat until no augmenting path exists.</p></div>
+    <h3>Why "no augmenting path" means "done"</h3>
+    <p style="margin-bottom:0">If you cannot reach t from s in the residual graph, then the set of vertices you <i>can</i> reach forms a barrier. Every edge crossing out of it is completely saturated — otherwise it would have residual capacity and you could have crossed. That barrier is a cut, and the next slides show it is a minimum one.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- MF3 -->
+<section class="slide" data-chapter="Max flow">
+ <div class="inner">
+  <p class="kicker">19 — choosing the path</p>
+  <h2>Ford-Fulkerson leaves a choice open. Edmonds-Karp closes it.</h2>
+  <div class="cols">
+   <div>
+    <p><b>Ford-Fulkerson</b> is the method: while an augmenting path exists, augment along it. It deliberately does not say <i>which</i> path, and that omission is expensive.</p>
+    <h3>What goes wrong</h3>
+    <p>Take the network on the previous slide, but with the outer capacities set to 1,000,000 and the middle edge still 1. An adversary who always hands you a path through the middle edge makes you augment by <b>one unit at a time</b> — two million iterations for a graph with four vertices.</p>
+    <div class="note bad"><p style="margin-bottom:0">Ford-Fulkerson with arbitrary path choice is <b>O(E · |f*|)</b> — proportional to the answer's magnitude, not the graph's size. With irrational capacities it can fail to terminate at all.</p></div>
+    <h3>The fix</h3>
+    <p><b>Edmonds-Karp</b> is Ford-Fulkerson with one rule added: always choose a <b>shortest</b> augmenting path, measured in number of edges. Which means: find it with BFS.</p>
+    <p>That one line makes the running time <b>O(V · E²)</b> — independent of the capacities entirely. On the two-million-iteration example above, BFS finds the two-edge paths first and finishes in two augmentations.</p>
+   </div>
+   <div class="panel">
+    <h3>Why shortest paths bound the work</h3>
+    <p>Each augmentation saturates at least one edge on the path. The distance from s to any vertex in the residual graph never decreases as the algorithm runs, and a saturated edge cannot reappear until that distance has grown by at least 2.</p>
+    <p style="margin-bottom:0">So each edge can be the bottleneck at most O(V) times, giving O(V·E) augmentations, each costing O(E) for the BFS.</p>
+    <h3>The family, in order of ambition</h3>
+    <table>
+     <thead><tr><th>algorithm</th><th>cost</th></tr></thead>
+     <tbody>
+      <tr><td>Ford-Fulkerson, any path</td><td class="num">O(E · |f*|)</td></tr>
+      <tr><td>Edmonds-Karp (BFS)</td><td class="num">O(V · E²)</td></tr>
+      <tr><td>Dinic's (level graph + blocking flow)</td><td class="num">O(V² · E)</td></tr>
+      <tr><td>Dinic's on unit capacities</td><td class="num">O(E · √E)</td></tr>
+      <tr><td>Push-relabel with heuristics</td><td class="num">O(V³) but fastest in practice</td></tr>
+     </tbody>
+    </table>
+    <p class="small" style="margin-bottom:0">Write Edmonds-Karp. It is about forty lines, it is correct, and its bound does not depend on how large your numbers are. Reach for Dinic's only when you have measured that you need it.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- MF4 -->
+<section class="slide" data-chapter="Max flow">
+ <div class="inner">
+  <p class="kicker">20 — the theorem</p>
+  <h2>Max-flow min-cut: the answer and its proof are the same object</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>An <b>s-t cut</b> is a split of the vertices into two sets, S containing the source and T containing the sink. Its <b>capacity</b> is the total capacity of the edges going from S to T — the edges you would have to sever to disconnect them.</p>
+    <p>Two observations, one easy and one not:</p>
+    <ul>
+      <li><b>Every</b> flow is at most <b>every</b> cut's capacity. Anything reaching t must cross the cut, so the cut is a ceiling. This direction is obvious once stated.</li>
+      <li>The <b>maximum</b> flow exactly equals the <b>minimum</b> cut. That is the theorem, and it is not obvious at all.</li>
+    </ul>
+    <div class="note"><p style="margin-bottom:0"><b>max flow = min cut.</b> When the two meet, each one certifies the other: you cannot push more, and here is the bottleneck that proves it.</p></div>
+    <h3>You already computed the cut</h3>
+    <p>When Edmonds-Karp stops, run one final BFS on the residual graph from s. Let <b>S</b> be everything it reaches. Every original edge from S to T must be saturated — if any had spare capacity, the BFS would have crossed it.</p>
+    <p>So the minimum cut is: <b>the original edges leaving the residual-reachable set</b>. Three extra lines of code after the main loop.</p>
+   </div>
+   <div class="panel">
+    <h3>Why the cut is often the real answer</h3>
+    <p>The flow value is a number. The cut is a <b>list of specific edges</b> — and that is usually what somebody actually wanted:</p>
+    <ul class="tight">
+      <li>"Which links do I upgrade to increase throughput?" — the ones in the min cut. Upgrading anything else changes nothing.</li>
+      <li>"Where is this network most fragile?" — the min cut is the cheapest set of failures that disconnects it.</li>
+      <li>"Which pixels are foreground?" — in image segmentation, the min cut <b>is</b> the boundary.</li>
+      <li>"Which projects do I fund?" — the S side of the min cut in the project-selection reduction.</li>
+    </ul>
+    <p class="small" style="margin-bottom:0">A student who can compute max flow but cannot extract the cut has done most of the work and stopped just before the useful part.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- MF5 -->
+<section class="slide" data-chapter="Max flow">
+ <div class="inner">
+  <p class="kicker">21 — watch it run</p>
+  <h2>Edmonds-Karp, one augmenting path at a time</h2>
+  <div class="controls">
+    <button id="mfStep">Find next augmenting path</button>
+    <button id="mfAll">Run to end</button>
+    <button id="mfCut">Show the min cut</button>
+    <button id="mfReset">Reset</button>
+  </div>
+  <div class="treebox"><svg class="tree" id="mfGraph" role="img" aria-label="Edmonds-Karp max flow visualiser"></svg>
+    <div class="legend"><span>each edge is labelled flow / capacity</span></div>
+  </div>
+  <div class="stat" id="mfState" style="margin-top:12px"></div>
+  <div class="cols" style="margin-top:16px">
+    <div class="panel">
+      <h3>What to watch</h3>
+      <ul class="tight">
+        <li>BFS finds two-edge paths before three-edge ones. That ordering is the whole of Edmonds-Karp.</li>
+        <li>Each augmentation saturates at least one edge — find it each time.</li>
+        <li>The last path uses a route that only became available because an earlier edge had spare residual capacity in the reverse direction.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Predict before you press</h3>
+      <p style="margin-bottom:0">Write down the maximum flow value, and which edges you think form the minimum cut. Most people get the flow right and the cut wrong, because the cut is usually not the set of edges leaving the source.</p>
+    </div>
+  </div>
+ </div>
+</section>
+
+<!-- MF6 -->
+<section class="slide" data-chapter="Max flow">
+ <div class="inner">
+  <p class="kicker">22 — reductions</p>
+  <h2>Problems that are secretly max flow</h2>
+  <div class="cols">
+   <div class="panel">
+    <h3>Bipartite matching</h3>
+    <p>Given applicants and jobs, and who is qualified for what, assign as many people as possible without double-booking anyone.</p>
+    <p><b>The reduction:</b> add a super-source connected to every applicant with capacity 1, a super-sink fed by every job with capacity 1, and capacity 1 on each qualification edge. Max flow equals the size of the maximum matching, and the saturated middle edges <b>are</b> the matching.</p>
+    <p style="margin-bottom:0">The capacity-1 constraint on the source edges is what enforces "one job per person" — the conservation rule does the rest.</p>
+   </div>
+   <div class="panel">
+    <h3>Edge-disjoint paths</h3>
+    <p>How many routes from s to t share no edge? Set every capacity to 1 and compute the max flow. The answer is the flow value, and decomposing the flow gives you the actual routes.</p>
+    <p style="margin-bottom:0">This is Menger's theorem, and it is how you answer "how many simultaneous link failures can this network survive?".</p>
+   </div>
+  </div>
+  <div class="cols" style="margin-top:18px">
+   <div class="panel">
+    <h3>Project selection</h3>
+    <p>Each project earns a profit and requires some equipment, each with a cost. Equipment is shared. Which subset of projects maximises net profit?</p>
+    <p style="margin-bottom:0">Source → each project with capacity = its profit; each equipment → sink with capacity = its cost; project → equipment with infinite capacity. The min cut partitions into "fund it" and "do not", and the answer is total profit minus the min cut.</p>
+   </div>
+   <div class="panel">
+    <h3>Image segmentation</h3>
+    <p>Each pixel is a vertex. Source and sink represent foreground and background; edge capacities encode how strongly each pixel resembles each, and neighbouring pixels are joined by edges that penalise splitting them apart.</p>
+    <p style="margin-bottom:0">The minimum cut is the segmentation boundary. This is the basis of GrabCut and a large amount of classical computer vision.</p>
+   </div>
+  </div>
+  <div class="note" style="margin-top:20px"><p style="margin-bottom:0">The skill worth teaching here is not the algorithm — it is <b>recognising the shape</b>. "Assign at most one of these to each of those" is almost always bipartite matching. "Partition into two groups, paying for the boundary" is almost always min cut.</p></div>
+ </div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">23 — implementation in C</p>
+  <h2>The representation</h2>
+  <div class="cols">
+   <div>
+<pre><code>#include &lt;stdlib.h&gt;
+#include &lt;limits.h&gt;
+
+#define MAXV 1024
+
+typedef struct Edge {
+    int          to;
+    int          weight;
+    struct Edge *next;
+} Edge;
+
+typedef struct {
+    int   n;            /* number of vertices  */
+    int   directed;
+    Edge *adj[MAXV];    /* adj[u] = list head  */
+} Graph;
+
+void graph_init(Graph *g, int n, int directed)
+{
+    g-&gt;n        = n;
+    g-&gt;directed = directed;
+    for (int i = 0; i &lt; n; i++)
+        g-&gt;adj[i] = NULL;
+}
+
+int graph_add_edge(Graph *g, int u, int v, int w)
+{
+    Edge *e = malloc(sizeof *e);
+    if (!e) return 0;
+    e-&gt;to = v; e-&gt;weight = w;
+    e-&gt;next = g-&gt;adj[u];
+    g-&gt;adj[u] = e;                  /* prepend */
+
+    if (!g-&gt;directed) {
+        Edge *f = malloc(sizeof *f);
+        if (!f) return 0;
+        f-&gt;to = u; f-&gt;weight = w;
+        f-&gt;next = g-&gt;adj[v];
+        g-&gt;adj[v] = f;              /* the other direction */
+    }
+    return 1;
+}</code></pre>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Read the undirected case carefully</h3>
+      <p>An undirected edge is stored as <b>two</b> directed edges. That is why |E| undirected edges cost 2|E| list nodes, and why every traversal examines each edge twice.</p>
+      <p style="margin-bottom:0">The commonest beginner bug in this file is adding only one direction and then wondering why the graph is half-connected.</p>
+    </div>
+    <div class="note">
+      <p style="margin-bottom:0">Prepending makes <code>graph_add_edge</code> O(1), at the cost of neighbours coming out in <b>reverse insertion order</b>. Correct, but your traversal output will not match a textbook that appends. If that matters, append instead and keep a tail pointer.</p>
+    </div>
+    <h3>Iterating, everywhere in this deck</h3>
+<pre><code>for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next) {
+    int v = e-&gt;to;
+    /* ... */
+}</code></pre>
+    <p class="small" style="margin-bottom:0">Every algorithm that follows uses exactly this loop. If you write a <code>graph_free</code> that walks the same lists and frees them, you have the whole memory story covered.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">24 — implementation in C</p>
+  <h2>BFS, with an explicit queue</h2>
+  <div class="cols">
+   <div>
+<pre><code>/* dist[] doubles as the visited marker:
+   -1 means not yet reached                  */
+void bfs(Graph *g, int s, int *dist, int *parent)
+{
+    int queue[MAXV], head = 0, tail = 0;
+
+    for (int i = 0; i &lt; g-&gt;n; i++) {
+        dist[i]   = -1;
+        parent[i] = -1;
+    }
+
+    dist[s] = 0;
+    queue[tail++] = s;
+
+    while (head &lt; tail) {
+        int u = queue[head++];
+
+        for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next) {
+            if (dist[e-&gt;to] == -1) {        /* first time seen */
+                dist[e-&gt;to]   = dist[u] + 1;
+                parent[e-&gt;to] = u;
+                queue[tail++] = e-&gt;to;      /* mark on ENQUEUE */
+            }
+        }
+    }
+}</code></pre>
+   </div>
+   <div>
+<pre><code>/* walk the parent chain backwards from t */
+int path_to(int *parent, int s, int t, int *out)
+{
+    int len = 0;
+    for (int v = t; v != -1; v = parent[v]) {
+        out[len++] = v;
+        if (v == s) break;
+    }
+    if (out[len - 1] != s) return 0;        /* unreachable */
+
+    for (int i = 0; i &lt; len / 2; i++) {     /* reverse */
+        int tmp = out[i];
+        out[i] = out[len - 1 - i];
+        out[len - 1 - i] = tmp;
+    }
+    return len;
+}
+
+/* visit every component, not just one */
+void bfs_all(Graph *g, int *comp)
+{
+    int dist[MAXV], parent[MAXV], c = 0;
+
+    for (int i = 0; i &lt; g-&gt;n; i++) comp[i] = -1;
+
+    for (int s = 0; s &lt; g-&gt;n; s++) {
+        if (comp[s] != -1) continue;
+        bfs(g, s, dist, parent);
+        for (int i = 0; i &lt; g-&gt;n; i++)
+            if (dist[i] != -1 &amp;&amp; comp[i] == -1) comp[i] = c;
+        c++;
+    }
+}</code></pre>
+    <div class="note"><p style="margin-bottom:0">A circular buffer is unnecessary here. With mark-on-enqueue each vertex is added exactly once, so <code>head</code> and <code>tail</code> never exceed V and a plain array is both correct and faster.</p></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">25 — implementation in C</p>
+  <h2>DFS, both ways, and cycle detection</h2>
+  <div class="cols">
+   <div>
+<pre><code>void dfs(Graph *g, int u, int *visited)
+{
+    visited[u] = 1;
+    /* pre-order work for u goes here */
+
+    for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next)
+        if (!visited[e-&gt;to])
+            dfs(g, e-&gt;to, visited);
+
+    /* post-order work for u goes here  */
+}
+
+/* iterative: stack may hold duplicates,
+   so size it by edges, not vertices    */
+void dfs_iter(Graph *g, int s, int *visited)
+{
+    int stack[MAXE], top = 0;
+    stack[top++] = s;
+
+    while (top &gt; 0) {
+        int u = stack[--top];
+        if (visited[u]) continue;
+        visited[u] = 1;
+
+        for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next)
+            if (!visited[e-&gt;to])
+                stack[top++] = e-&gt;to;
+    }
+}</code></pre>
+   </div>
+   <div>
+<pre><code>enum { WHITE, GREY, BLACK };
+
+/* directed: an edge into a GREY vertex is a
+   back edge, and a back edge is a cycle      */
+static int cyclic_from(Graph *g, int u, int *colour)
+{
+    colour[u] = GREY;
+
+    for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next) {
+        if (colour[e-&gt;to] == GREY) return 1;
+        if (colour[e-&gt;to] == WHITE &amp;&amp;
+            cyclic_from(g, e-&gt;to, colour)) return 1;
+    }
+
+    colour[u] = BLACK;
+    return 0;
+}
+
+int graph_has_cycle(Graph *g)
+{
+    int colour[MAXV];
+    for (int i = 0; i &lt; g-&gt;n; i++) colour[i] = WHITE;
+
+    for (int u = 0; u &lt; g-&gt;n; u++)
+        if (colour[u] == WHITE &amp;&amp; cyclic_from(g, u, colour))
+            return 1;
+    return 0;
+}</code></pre>
+    <p class="small" style="margin-bottom:0">For an <b>undirected</b> graph this is wrong as written — every edge looks like a back edge to your own parent. Pass the parent down and skip it: <code>if (e-&gt;to == parent) continue;</code>. Handle multi-edges separately if your graph allows them.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">26 — implementation in C</p>
+  <h2>Topological sort and Dijkstra</h2>
+  <div class="cols">
+   <div>
+<pre><code>/* Kahn. returns 1 on success, 0 if cyclic */
+int topo_sort(Graph *g, int *out)
+{
+    int indeg[MAXV] = {0};
+    int queue[MAXV], head = 0, tail = 0, count = 0;
+
+    for (int u = 0; u &lt; g-&gt;n; u++)
+        for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next)
+            indeg[e-&gt;to]++;
+
+    for (int u = 0; u &lt; g-&gt;n; u++)
+        if (indeg[u] == 0) queue[tail++] = u;
+
+    while (head &lt; tail) {
+        int u = queue[head++];
+        out[count++] = u;
+
+        for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next)
+            if (--indeg[e-&gt;to] == 0)
+                queue[tail++] = e-&gt;to;
+    }
+
+    return count == g-&gt;n;     /* short means a cycle */
+}</code></pre>
+    <div class="note"><p style="margin-bottom:0">When this returns 0, the vertices <b>not</b> in <code>out</code> are exactly those on or downstream of a cycle. Print them — "circular dependency involving A, B, C" is a far better error than "cycle detected".</p></div>
+   </div>
+   <div>
+<pre><code>/* O(V^2) Dijkstra: no heap, fine for dense
+   graphs and short enough to get right     */
+void dijkstra(Graph *g, int s, int *dist)
+{
+    int done[MAXV] = {0};
+
+    for (int i = 0; i &lt; g-&gt;n; i++) dist[i] = INT_MAX;
+    dist[s] = 0;
+
+    for (int it = 0; it &lt; g-&gt;n; it++) {
+        int u = -1;
+        for (int i = 0; i &lt; g-&gt;n; i++)          /* pick cheapest */
+            if (!done[i] &amp;&amp; dist[i] != INT_MAX &amp;&amp;
+                (u == -1 || dist[i] &lt; dist[u]))
+                u = i;
+
+        if (u == -1) break;                     /* rest unreachable */
+        done[u] = 1;
+
+        for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next)
+            if (dist[u] + e-&gt;weight &lt; dist[e-&gt;to])
+                dist[e-&gt;to] = dist[u] + e-&gt;weight;   /* relax */
+    }
+}</code></pre>
+    <p class="small">Replace the linear "pick cheapest" scan with a binary heap and this becomes O((V + E) log V). Write the O(V²) version first, get it correct, then swap the selection step — the relaxation logic does not change.</p>
+    <p class="small" style="margin-bottom:0"><code>dist[u] + e-&gt;weight</code> overflows if <code>dist[u]</code> is <code>INT_MAX</code>. The <code>dist[i] != INT_MAX</code> guard in the selection loop is what prevents it — do not delete it as redundant.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- CSP1 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">27 — implementation in C</p>
+  <h2>Dijkstra with a binary heap</h2>
+  <div class="cols">
+   <div>
+<pre><code>typedef struct { int v, d; } Item;
+
+static Item heap[MAXE + MAXV];   /* duplicates allowed */
+static int  hsize;
+
+static void hpush(int v, int d)
+{
+    int i = hsize++;
+    heap[i].v = v; heap[i].d = d;
+
+    while (i &gt; 0) {                       /* sift up */
+        int p = (i - 1) / 2;
+        if (heap[p].d &lt;= heap[i].d) break;
+        Item t = heap[p]; heap[p] = heap[i]; heap[i] = t;
+        i = p;
+    }
+}
+
+static Item hpop(void)
+{
+    Item top = heap[0];
+    heap[0] = heap[--hsize];
+
+    int i = 0;
+    for (;;) {                            /* sift down */
+        int l = 2*i + 1, r = l + 1, m = i;
+        if (l &lt; hsize &amp;&amp; heap[l].d &lt; heap[m].d) m = l;
+        if (r &lt; hsize &amp;&amp; heap[r].d &lt; heap[m].d) m = r;
+        if (m == i) break;
+        Item t = heap[m]; heap[m] = heap[i]; heap[i] = t;
+        i = m;
+    }
+    return top;
+}</code></pre>
+   </div>
+   <div>
+<pre><code>void dijkstra(Graph *g, int s, int *dist, int *parent)
+{
+    for (int i = 0; i &lt; g-&gt;n; i++) {
+        dist[i]   = INT_MAX;
+        parent[i] = -1;
+    }
+    dist[s] = 0;
+    hsize   = 0;
+    hpush(s, 0);
+
+    while (hsize &gt; 0) {
+        Item it = hpop();
+
+        if (it.d &gt; dist[it.v])
+            continue;                  /* stale duplicate */
+
+        for (Edge *e = g-&gt;adj[it.v]; e; e = e-&gt;next) {
+            long nd = (long)it.d + e-&gt;weight;
+
+            if (nd &lt; dist[e-&gt;to]) {    /* relax */
+                dist[e-&gt;to]   = (int)nd;
+                parent[e-&gt;to] = it.v;
+                hpush(e-&gt;to, dist[e-&gt;to]);
+            }
+        }
+    }
+}</code></pre>
+    <div class="note"><p style="margin-bottom:0">Three details that are all load-bearing: the <b>stale check</b> after the pop, the <b>long</b> in the addition so <code>INT_MAX</code> cannot overflow, and the heap sized by <b>E</b> rather than V because every successful relaxation pushes a duplicate.</p></div>
+    <p class="small" style="margin-bottom:0">Reuse <code>path_to()</code> from the BFS slide on <code>parent[]</code> to recover the actual route. The reconstruction is identical — only the way the parents were computed differs.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- CSP2 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">28 — implementation in C</p>
+  <h2>Bellman-Ford and Floyd-Warshall</h2>
+  <div class="cols">
+   <div>
+<pre><code>/* returns 1 on success,
+   0 if a negative cycle is reachable from s */
+int bellman_ford(Graph *g, int s, int *dist, int *parent)
+{
+    for (int i = 0; i &lt; g-&gt;n; i++) {
+        dist[i]   = INT_MAX;
+        parent[i] = -1;
+    }
+    dist[s] = 0;
+
+    for (int pass = 0; pass &lt; g-&gt;n - 1; pass++) {
+        int changed = 0;
+
+        for (int u = 0; u &lt; g-&gt;n; u++) {
+            if (dist[u] == INT_MAX) continue;
+
+            for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next) {
+                long nd = (long)dist[u] + e-&gt;weight;
+                if (nd &lt; dist[e-&gt;to]) {
+                    dist[e-&gt;to]   = (int)nd;
+                    parent[e-&gt;to] = u;
+                    changed = 1;
+                }
+            }
+        }
+        if (!changed) return 1;        /* settled early */
+    }
+
+    for (int u = 0; u &lt; g-&gt;n; u++) {   /* the Vth pass */
+        if (dist[u] == INT_MAX) continue;
+        for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next)
+            if ((long)dist[u] + e-&gt;weight &lt; dist[e-&gt;to])
+                return 0;              /* negative cycle */
+    }
+    return 1;
+}</code></pre>
+   </div>
+   <div>
+<pre><code>#define INF (INT_MAX / 4)      /* headroom for INF + INF */
+
+/* d[i][j] starts as the edge weight,
+   0 on the diagonal, INF if no edge    */
+void floyd_warshall(int n, int d[][MAXV])
+{
+    for (int k = 0; k &lt; n; k++)          /* MUST be outer */
+        for (int i = 0; i &lt; n; i++) {
+            if (d[i][k] == INF) continue;   /* prune a row */
+
+            for (int j = 0; j &lt; n; j++)
+                if (d[i][k] + d[k][j] &lt; d[i][j])
+                    d[i][j] = d[i][k] + d[k][j];
+        }
+}
+
+int has_negative_cycle(int n, int d[][MAXV])
+{
+    for (int i = 0; i &lt; n; i++)
+        if (d[i][i] &lt; 0) return 1;
+    return 0;
+}</code></pre>
+    <div class="note"><p style="margin-bottom:0">The <code>continue</code> when <code>d[i][k]</code> is INF is not just a speed-up — without it you add INF to INF on every unreachable pair, which is exactly the overflow the <code>INT_MAX / 4</code> definition is there to survive. Keep both.</p></div>
+    <h3>Choosing between the three</h3>
+    <table>
+     <thead><tr><th>you have</th><th>use</th></tr></thead>
+     <tbody>
+      <tr><td>unweighted</td><td>BFS</td></tr>
+      <tr><td>non-negative, one source</td><td>Dijkstra + heap</td></tr>
+      <tr><td>any weights, one source</td><td>Bellman-Ford</td></tr>
+      <tr><td>any weights, all pairs, V ≤ 1000</td><td>Floyd-Warshall</td></tr>
+      <tr><td>non-negative, all pairs, sparse</td><td>Dijkstra V times</td></tr>
+     </tbody>
+    </table>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- CMF1 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">29 — implementation in C</p>
+  <h2>Edmonds-Karp, in forty lines</h2>
+  <div class="cols">
+   <div>
+<pre><code>#define MAXF 128
+
+static int cap[MAXF][MAXF];   /* residual capacity  */
+static int orig[MAXF][MAXF];  /* the original graph */
+static int nf;                /* number of vertices */
+
+void flow_init(int n)
+{
+    nf = n;
+    for (int i = 0; i &lt; n; i++)
+        for (int j = 0; j &lt; n; j++)
+            cap[i][j] = orig[i][j] = 0;
+}
+
+void flow_add_edge(int u, int v, int c)
+{
+    cap[u][v]  += c;          /* += handles parallel edges */
+    orig[u][v] += c;
+}
+
+/* BFS the residual graph; fills parent[],
+   returns the bottleneck, or 0 if t is unreachable */
+static int augment(int s, int t, int *parent)
+{
+    int visited[MAXF] = {0};
+    int queue[MAXF], head = 0, tail = 0;
+
+    for (int i = 0; i &lt; nf; i++) parent[i] = -1;
+    visited[s] = 1;
+    queue[tail++] = s;
+
+    while (head &lt; tail) {
+        int u = queue[head++];
+
+        for (int v = 0; v &lt; nf; v++) {
+            if (visited[v] || cap[u][v] &lt;= 0) continue;
+
+            visited[v] = 1;
+            parent[v]  = u;
+
+            if (v == t) {                  /* shortest path found */
+                int b = INT_MAX;
+                for (int x = t; x != s; x = parent[x])
+                    if (cap[parent[x]][x] &lt; b)
+                        b = cap[parent[x]][x];
+                return b;
+            }
+            queue[tail++] = v;
+        }
+    }
+    return 0;
+}</code></pre>
+   </div>
+   <div>
+<pre><code>int max_flow(int s, int t)
+{
+    int parent[MAXF], total = 0, b;
+
+    while ((b = augment(s, t, parent)) &gt; 0) {
+        for (int v = t; v != s; v = parent[v]) {
+            int u = parent[v];
+            cap[u][v] -= b;        /* consume forward  */
+            cap[v][u] += b;        /* open the reverse */
+        }
+        total += b;
+    }
+    return total;
+}</code></pre>
+    <div class="note"><p style="margin-bottom:0">Those two lines inside the loop are the residual graph. <code>cap[v][u] += b</code> is the "change your mind" edge — everything on the concept slides reduces to that one statement.</p></div>
+    <h3>Why a matrix here, after all that</h3>
+    <p>The adjacency-list decks argued hard against matrices. Flow networks are the exception, for two reasons.</p>
+    <ul class="tight">
+      <li>Residual edges appear and disappear constantly. <code>cap[u][v]</code> is O(1) to read and update; finding and mutating a list node is not.</li>
+      <li>A reverse edge must exist for <b>every</b> forward edge, so the structure is dense in the directions that matter even when the input graph is sparse.</li>
+    </ul>
+    <p style="margin-bottom:0">For large sparse networks, the production answer is an edge array with paired indices — edge <code>i</code> and edge <code>i^1</code> are each other's reverse. Same idea, better memory. Write the matrix version first.</p>
+    <p class="small" style="margin-bottom:0">Note that <code>max_flow</code> destroys <code>cap[][]</code>, turning it into the final residual graph. That is not a side effect to clean up — the next slide needs it.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- CMF2 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">30 — implementation in C</p>
+  <h2>The min cut, and bipartite matching for free</h2>
+  <div class="cols">
+   <div>
+<pre><code>/* call AFTER max_flow. fills cut[][2] with the
+   edges crossing the cut; returns how many.     */
+int min_cut(int s, int cut[][2])
+{
+    int visited[MAXF] = {0};
+    int queue[MAXF], head = 0, tail = 0, k = 0;
+
+    visited[s] = 1;                 /* reachable in residual */
+    queue[tail++] = s;
+
+    while (head &lt; tail) {
+        int u = queue[head++];
+        for (int v = 0; v &lt; nf; v++)
+            if (!visited[v] &amp;&amp; cap[u][v] &gt; 0) {
+                visited[v] = 1;
+                queue[tail++] = v;
+            }
+    }
+
+    for (int u = 0; u &lt; nf; u++)
+        for (int v = 0; v &lt; nf; v++)
+            if (visited[u] &amp;&amp; !visited[v] &amp;&amp; orig[u][v] &gt; 0) {
+                cut[k][0] = u;
+                cut[k][1] = v;
+                k++;
+            }
+    return k;                       /* their total capacity
+                                       equals the max flow  */
+}</code></pre>
+    <p class="small" style="margin-bottom:0">This is why <code>orig[][]</code> was kept. The residual tells you which vertices are reachable; the original tells you which edges were really there. You need both, and only for these fifteen lines.</p>
+   </div>
+   <div>
+<pre><code>/* left  vertices: 0 .. L-1
+   right vertices: L .. L+R-1
+   source = L+R, sink = L+R+1          */
+int bipartite_matching(int L, int R,
+                       int qualified[][MAXF],
+                       int match[])
+{
+    int s = L + R, t = L + R + 1;
+    flow_init(L + R + 2);
+
+    for (int i = 0; i &lt; L; i++) flow_add_edge(s, i, 1);
+    for (int j = 0; j &lt; R; j++) flow_add_edge(L + j, t, 1);
+
+    for (int i = 0; i &lt; L; i++)
+        for (int j = 0; j &lt; R; j++)
+            if (qualified[i][j])
+                flow_add_edge(i, L + j, 1);
+
+    int size = max_flow(s, t);
+
+    for (int i = 0; i &lt; L; i++) {       /* read it back */
+        match[i] = -1;
+        for (int j = 0; j &lt; R; j++)
+            if (orig[i][L+j] &gt; 0 &amp;&amp; cap[i][L+j] == 0)
+                match[i] = j;           /* edge saturated */
+    }
+    return size;
+}</code></pre>
+    <div class="note"><p style="margin-bottom:0">The reduction is nine lines of graph building and one call. Recognising that a problem <b>is</b> bipartite matching is the hard part; once you have, the code is mechanical.</p></div>
+    <p class="small" style="margin-bottom:0">Reading the matching back out is the step people forget. A saturated middle edge — original capacity 1, residual capacity 0 — is an assignment that was made.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+
+<!-- 18 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">31 — prove it works</p>
+  <h2>Test the property, not the output</h2>
+  <p class="sub">Graph algorithms have many correct answers. A test that compares against one printed string will fail on a correct implementation and pass on a broken one.</p>
+  <div class="cols">
+   <div>
+<pre><code>/* a topological order is valid iff every edge
+   points forwards in it                       */
+int topo_valid(Graph *g, int *order, int count)
+{
+    int pos[MAXV];
+    if (count != g-&gt;n) return 0;
+
+    for (int i = 0; i &lt; count; i++) pos[order[i]] = i;
+
+    for (int u = 0; u &lt; g-&gt;n; u++)
+        for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next)
+            if (pos[u] &gt;= pos[e-&gt;to]) return 0;
+    return 1;
+}
+
+/* BFS distances must satisfy the triangle rule */
+int bfs_valid(Graph *g, int s, int *dist)
+{
+    if (dist[s] != 0) return 0;
+
+    for (int u = 0; u &lt; g-&gt;n; u++) {
+        if (dist[u] == -1) continue;
+        for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next) {
+            if (dist[e-&gt;to] == -1) return 0;   /* reachable */
+            if (dist[e-&gt;to] &gt; dist[u] + 1) return 0;
+        }
+    }
+    return 1;
+}</code></pre>
+   </div>
+   <div>
+<pre><code>int main(void)
+{
+    Graph g;
+    int dist[MAXV], parent[MAXV], order[MAXV];
+    srand(12345);
+
+    for (int trial = 0; trial &lt; 2000; trial++) {
+        int n = 5 + rand() % 40;
+        graph_init(&amp;g, n, 0);                 /* undirected */
+
+        for (int i = 0; i &lt; n * 2; i++) {
+            int u = rand() % n, v = rand() % n;
+            if (u != v) graph_add_edge(&amp;g, u, v, 1);
+        }
+
+        bfs(&amp;g, 0, dist, parent);
+        assert(bfs_valid(&amp;g, 0, dist));
+
+        graph_free(&amp;g);
+    }
+
+    /* DAG: build edges only from lower to higher id,
+       so a cycle is impossible by construction      */
+    for (int trial = 0; trial &lt; 2000; trial++) {
+        int n = 5 + rand() % 40;
+        graph_init(&amp;g, n, 1);
+        for (int i = 0; i &lt; n * 2; i++) {
+            int u = rand() % n, v = rand() % n;
+            if (u &lt; v) graph_add_edge(&amp;g, u, v, 1);
+        }
+        assert(!graph_has_cycle(&amp;g));
+        assert(topo_sort(&amp;g, order));
+        assert(topo_valid(&amp;g, order, g.n));
+        graph_free(&amp;g);
+    }
+    puts("ok");
+    return 0;
+}</code></pre>
+    <div class="note">
+      <p><b>Build it like this:</b></p>
+      <p style="margin-bottom:0"><code>gcc -Wall -Wextra -O2 -fsanitize=address,undefined graph.c -o graph</code></p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- CTEST -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">32 — prove these work too</p>
+  <h2>Testing shortest paths and flows</h2>
+  <p class="sub">Both answers are numbers, which makes them look easy to test and is exactly why people test them badly. Check the properties the answer must satisfy, and cross-check the algorithms against each other.</p>
+  <div class="cols">
+   <div>
+<pre><code>/* a distance array is correct iff no edge can
+   still be relaxed, and every reachable vertex
+   has a distance                                */
+int dist_valid(Graph *g, int s, int *dist)
+{
+    if (dist[s] != 0) return 0;
+
+    for (int u = 0; u &lt; g-&gt;n; u++) {
+        if (dist[u] == INT_MAX) continue;
+        for (Edge *e = g-&gt;adj[u]; e; e = e-&gt;next) {
+            if (dist[e-&gt;to] == INT_MAX) return 0;
+            if (dist[u] + e-&gt;weight &lt; dist[e-&gt;to]) return 0;
+        }
+    }
+    return 1;
+}
+
+/* and cross-check: on a non-negative graph,
+   Dijkstra and Bellman-Ford must agree exactly  */
+void cross_check(Graph *g, int s)
+{
+    int a[MAXV], b[MAXV], pa[MAXV], pb[MAXV];
+
+    dijkstra(g, s, a, pa);
+    assert(bellman_ford(g, s, b, pb));
+
+    for (int i = 0; i &lt; g-&gt;n; i++) assert(a[i] == b[i]);
+    assert(dist_valid(g, s, a));
+}</code></pre>
+   </div>
+   <div>
+<pre><code>/* a flow is valid iff it respects capacities,
+   conserves at every internal vertex, and its
+   value equals the capacity of the min cut     */
+int flow_valid(int s, int t, int total)
+{
+    int cut[MAXF * MAXF][2];
+
+    for (int u = 0; u &lt; nf; u++) {
+        if (u == s || u == t) continue;
+
+        int in = 0, out = 0;
+        for (int v = 0; v &lt; nf; v++) {
+            int f = orig[u][v] - cap[u][v];   /* flow on u-&gt;v */
+            if (f &gt; 0) out += f;
+            if (f &lt; 0) return 0;              /* over capacity */
+
+            int g = orig[v][u] - cap[v][u];
+            if (g &gt; 0) in += g;
+        }
+        if (in != out) return 0;              /* conservation */
+    }
+
+    int k = min_cut(s, cut), capsum = 0;
+    for (int i = 0; i &lt; k; i++)
+        capsum += orig[cut[i][0]][cut[i][1]];
+
+    return capsum == total;                   /* the theorem */
+}</code></pre>
+    <div class="note">
+      <p style="margin-bottom:0">The last line is the strongest test you can write for a flow implementation. Max-flow min-cut says the two numbers must be equal; if your code disagrees with the theorem, your code is wrong. Run it on a few thousand random networks.</p>
+    </div>
+    <p class="small" style="margin-bottom:0">Build everything with <code>-fsanitize=address,undefined</code>. The flow code indexes two V×V matrices in nested loops, which is precisely where an off-by-one goes unnoticed for a long time.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-chapter="Closing">
+ <div class="inner">
+  <p class="kicker">33 — where this goes</p>
+  <h2>In production, and what to learn next</h2>
+  <div class="cols">
+   <div>
+    <h3>Where you already rely on these</h3>
+    <ul class="tight">
+      <li><b>make, ninja, Gradle, npm, apt</b> — topological sort over a dependency DAG, with cycle detection as the error path.</li>
+      <li><b>Google Maps, any satnav</b> — Dijkstra or A* over a weighted road graph, heavily preprocessed.</li>
+      <li><b>Compilers</b> — control-flow graphs for optimisation, call graphs for inlining, DFS for dominator trees.</li>
+      <li><b>Spreadsheets</b> — recalculation order is a topological sort, and circular-reference detection is cycle detection.</li>
+      <li><b>Git</b> — the commit history is a DAG, and <code>git log</code> is a traversal of it.</li>
+      <li><b>Social and recommendation systems</b> — BFS for degrees of separation, random walks for ranking.</li>
+    </ul>
+    <div class="note"><p style="margin-bottom:0">The honest summary: BFS, DFS and a sensible representation cover most of what you will ever need. Everything more advanced is worth learning, but it is built on these and reduces to them more often than not.</p></div>
+   </div>
+   <div class="panel">
+    <h3>Exercises — write the prediction down first</h3>
+    <ol class="tight">
+      <li>Draw the demo graph on paper. Write out the full BFS and DFS visit orders from vertex A <b>before</b> running the visualiser, given that neighbours come out in reverse insertion order.</li>
+      <li>Implement <code>graph_init</code>, <code>graph_add_edge</code>, <code>graph_free</code>, and <code>bfs</code>. Verify with <code>bfs_valid</code> on 10³ random graphs under AddressSanitizer.</li>
+      <li>Implement both DFS versions. Find a graph where they produce different visit orders and explain exactly why.</li>
+      <li>Implement undirected cycle detection with the parent check. Then delete the parent check and find the smallest graph that now reports a false cycle.</li>
+      <li>Implement Kahn's topological sort. Make it print the vertices involved in the cycle when it fails, not just a flag.</li>
+      <li>Implement Dijkstra with the O(V²) selection. Then construct a graph with one negative edge where it returns a wrong answer, and work out which vertex it committed to too early.</li>
+      <li>Predict, then measure: for a graph with V = 5000 and average degree 6, how much memory does an adjacency matrix use versus an adjacency list? How much slower is a full BFS?</li>
+      <li>Convert the recursive DFS to iterative and run it on a path graph of 10⁶ vertices. Confirm that the recursive version crashes and the iterative one does not.</li>
+      <li>Implement heap-based Dijkstra. Cross-check it against Bellman-Ford on 10³ random non-negative graphs — every distance must match exactly.</li>
+      <li>Delete the stale-entry check (<code>if (it.d &gt; dist[it.v]) continue;</code>) from your heap Dijkstra. It still returns correct answers. Work out what it actually costs you, and measure it.</li>
+      <li>Build a graph with one negative edge where Dijkstra returns a wrong answer. Then run Bellman-Ford on it and confirm the correct distance.</li>
+      <li>Implement Floyd-Warshall. Move the <code>k</code> loop innermost, find a graph where the answer changes, and explain exactly which shortest path it now misses.</li>
+      <li>Implement Edmonds-Karp. Verify on 10³ random networks that the max flow equals the min cut capacity — if they ever disagree, the bug is yours, not the theorem's.</li>
+      <li>Predict, then measure: on the 10-10-1-10-10 network from the residual slide, how many augmenting paths does Edmonds-Karp use? Now set the outer capacities to 10⁶ and predict again.</li>
+      <li>Reduce bipartite matching to max flow and solve a 20×20 instance. Then verify the answer independently with a brute-force search on a 6×6 instance.</li>
+      <li>Take the min cut of a small network and increase the capacity of <b>one</b> edge not in the cut. Confirm the max flow does not change. Then increase one that is in the cut.</li>
+    </ol>
+   </div>
+  </div>
+ </div>
+</section>
+
+</main>
+
+<nav id="bar">
+  <span id="count">1 / 34</span>
+  <button id="prev" aria-label="Previous slide">Back</button>
+  <button id="next" aria-label="Next slide">Next</button>
+  <span class="chapter" id="chapter"></span>
+  <button id="theme" title="Colour theme — auto, light, dark (T)">◐ Auto</button>
+</nav>
+
+<script>
+"use strict";
+/* ---------- deck ---------- */
+var slides=Array.prototype.slice.call(document.querySelectorAll('.slide')),idx=0;
+var elProg=document.getElementById('progress'),elCount=document.getElementById('count'),
+    elChap=document.getElementById('chapter'),btnPrev=document.getElementById('prev'),btnNext=document.getElementById('next');
+function show(i){
+  idx=Math.max(0,Math.min(slides.length-1,i));
+  slides.forEach(function(s,k){s.classList.toggle('is-active',k===idx);});
+  slides[idx].scrollTop=0;
+  elProg.style.width=((idx+1)/slides.length*100)+'%';
+  elCount.textContent=(idx+1)+' / '+slides.length;
+  elChap.textContent=slides[idx].dataset.chapter||'';
+  btnPrev.disabled=idx===0;btnNext.disabled=idx===slides.length-1;
+  if(location.hash!=='#'+(idx+1)) history.replaceState(null,'','#'+(idx+1));
+}
+btnPrev.addEventListener('click',function(){show(idx-1);});
+btnNext.addEventListener('click',function(){show(idx+1);});
+document.addEventListener('keydown',function(e){
+  var t=e.target.tagName; if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA') return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'){show(idx+1);e.preventDefault();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){show(idx-1);e.preventDefault();}
+  else if(e.key==='Home') show(0); else if(e.key==='End') show(slides.length-1);
+});
+(function(){var x0=null,y0=null,d=document.getElementById('deck');
+ d.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;y0=e.touches[0].clientY;},{passive:true});
+ d.addEventListener('touchend',function(e){if(x0===null)return;
+   var dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;
+   if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.8) show(idx+(dx<0?1:-1));x0=null;},{passive:true});})();
+
+/* ---------- highlighting ---------- */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function highlight(src){
+  var re=/(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|(#\s*\w+)|("(?:[^"\\]|\\.)*")|\b(if|else|while|for|return|struct|typedef|enum|int|char|long|void|static|const|sizeof|NULL|break|continue|assert|puts|calloc|malloc|free|srand|rand|main)\b|\b(\d+)\b/g;
+  var out='',last=0,m;
+  while((m=re.exec(src))!==null){
+    out+=esc(src.slice(last,m.index));
+    if(m[1]) out+='<span class="tok-c">'+esc(m[1])+'</span>';
+    else if(m[2]) out+='<span class="tok-k">'+esc(m[2])+'</span>';
+    else if(m[3]) out+='<span class="tok-s">'+esc(m[3])+'</span>';
+    else if(m[4]) out+='<span class="tok-k">'+esc(m[4])+'</span>';
+    else out+='<span class="tok-n">'+esc(m[5])+'</span>';
+    last=re.lastIndex;
+  }
+  return out+esc(src.slice(last));
+}
+Array.prototype.forEach.call(document.querySelectorAll('pre code'),function(el){el.innerHTML=highlight(el.textContent);});
+
+/* ---------- graph ---------- */
+function makeGraph(labels,pos,edgeList,directed){
+  var n=labels.length;
+  var G={n:n,labels:labels,pos:pos,directed:!!directed,adj:[],edges:edgeList.slice()};
+  for(var i=0;i<n;i++) G.adj.push([]);
+  edgeList.forEach(function(e){
+    G.adj[e[0]].unshift(e[1]);            /* prepend, like the C */
+    if(!directed) G.adj[e[1]].unshift(e[0]);
+  });
+  return G;
+}
+
+/* Colours live in the CSS custom properties so the theme switch can move
+   them. These diagrams are SVG *strings*, not styled elements, so nothing
+   already on screen updates by itself: each render records how to repeat
+   itself and repaintAll() replays the lot once the palette has changed. */
+var C_INK,C_RULE,C_FAINT,C_ACCENT,C_SOFT,C_BAD,C_NODE,C_BOX,C_WASH,C_ON;
+
+function readTokens(){
+  var cs=getComputedStyle(document.documentElement);
+  function t(n,fb){ var v=(cs.getPropertyValue(n)||'').trim(); return v||fb; }
+  C_INK   = t('--ink','#22303C');
+  C_RULE  = t('--svg-rule','#9FB3C0');
+  C_FAINT = t('--faint','#8CA0AE');
+  C_ACCENT= t('--accent','#116A83');
+  C_SOFT  = t('--accent-soft','#E1EEF2');
+  C_BAD   = t('--bad','#A4303F');
+  C_NODE  = t('--svg-node','#FFFFFF');
+  C_BOX   = t('--box-bg','#FBFDFE');
+  C_WASH  = t('--wash','#DCE5EA');
+  C_ON    = t('--on-fill','#FFFFFF');   /* text sitting on an accent/bad fill */
+}
+readTokens();
+
+var _painters=[];
+function _paints(el,fn){
+  for(var i=0;i<_painters.length;i++){ if(_painters[i][0]===el){ _painters[i][1]=fn; return; } }
+  _painters.push([el,fn]);
+}
+function repaintAll(){
+  readTokens();
+  for(var i=0;i<_painters.length;i++) _painters[i][1]();
+}
+
+function sizeSVG(svg,W){
+  var d=W<620?Math.min(W*1.5,720):W;
+  var narrow=(window.innerWidth||1024)<760;
+  svg.style.width=d+'px';
+  svg.style.maxWidth=(narrow||d>1100)?'none':'100%';
+}
+
+function renderGraph(svg,G,opts){
+  opts=opts||{};
+  if(!svg) return;
+  _paints(svg,function(){ renderGraph(svg,G,opts); });
+  var r=19,maxx=0,maxy=0;
+  G.pos.forEach(function(p){ if(p[0]>maxx)maxx=p[0]; if(p[1]>maxy)maxy=p[1]; });
+  var W=maxx+r+26,H=maxy+r+26;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); sizeSVG(svg,W);
+  var e='',c='';
+  G.edges.forEach(function(ed,ei){
+    var a=G.pos[ed[0]],b=G.pos[ed[1]];
+    var key=ed[0]+'-'+ed[1],key2=ed[1]+'-'+ed[0];
+    var cls=opts.edgeCls?opts.edgeCls(ei,ed):null;
+    var hi=(cls==='hi')||(opts.treeEdges&&(opts.treeEdges.has(key)||opts.treeEdges.has(key2)));
+    var col=hi?C_ACCENT:(cls==='sat'?C_BAD:C_RULE);
+    var wdt=hi?3:(cls==='sat'?2.4:1.6);
+    var dx=b[0]-a[0],dy=b[1]-a[1],L=Math.sqrt(dx*dx+dy*dy)||1;
+    var ux=dx/L,uy=dy/L;
+    var x1=a[0]+ux*r,y1=a[1]+uy*r,x2=b[0]-ux*r,y2=b[1]-uy*r;
+    e+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+col+'" stroke-width="'+wdt+'"/>';
+    if(G.directed){
+      var px=-uy,py=ux,sz=5;
+      e+='<path d="M '+x2+' '+y2+' L '+(x2-ux*10+px*sz)+' '+(y2-uy*10+py*sz)+
+         ' L '+(x2-ux*10-px*sz)+' '+(y2-uy*10-py*sz)+' Z" fill="'+col+'"/>';
+    }
+    if(opts.edgeLabel){
+      var lab=opts.edgeLabel(ei,ed);
+      if(lab!==null&&lab!==undefined){
+        var mx=(x1+x2)/2-uy*13, my=(y1+y2)/2+ux*13;
+        var lw=String(lab).length*6.6+8;
+        e+='<rect x="'+(mx-lw/2)+'" y="'+(my-9)+'" width="'+lw+'" height="15" rx="2" fill="'+C_BOX+'" stroke="'+
+           (hi?C_ACCENT:C_WASH)+'" stroke-width="1"/>'+
+           '<text x="'+mx+'" y="'+(my+2.5)+'" text-anchor="middle" fill="'+(hi?C_ACCENT:C_INK)+
+           '" font-family="JetBrains Mono, monospace" font-size="10">'+lab+'</text>';
+      }
+    }
+  });
+  for(var i=0;i<G.n;i++){
+    var st=opts.state?opts.state[i]:'u';
+    var fill=C_NODE,stroke=C_INK,txt=C_INK,sw=1.5;
+    if(st==='f'){fill=C_SOFT;stroke=C_ACCENT;txt=C_ACCENT;}
+    else if(st==='v'){fill=C_ACCENT;stroke=C_ACCENT;txt=C_ON;}
+    else if(st==='c'){fill=C_BAD;stroke=C_BAD;txt=C_ON;sw=2.5;}
+    c+='<circle cx="'+G.pos[i][0]+'" cy="'+G.pos[i][1]+'" r="'+r+'" fill="'+fill+
+       '" stroke="'+stroke+'" stroke-width="'+sw+'"/>'+
+       '<text x="'+G.pos[i][0]+'" y="'+(G.pos[i][1]+4)+'" text-anchor="middle" fill="'+txt+
+       '" font-family="JetBrains Mono, monospace" font-size="'+(G.labels[i].length>1?10:12)+'" font-weight="500">'+
+       G.labels[i]+'</text>';
+    if(opts.badge&&opts.badge[i]!==undefined&&opts.badge[i]!==null)
+      c+='<text x="'+(G.pos[i][0]+r+3)+'" y="'+(G.pos[i][1]-r+2)+'" fill="'+C_ACCENT+
+         '" font-family="JetBrains Mono, monospace" font-size="10">'+opts.badge[i]+'</text>';
+  }
+  svg.innerHTML=e+c;
+}
+
+/* ---------- the demo graph ---------- */
+var DEMO=makeGraph(
+  ['A','B','C','D','E','F','G','H'],
+  [[80,55],[230,40],[380,60],[520,50],[110,190],[265,175],[420,190],[290,290]],
+  [[0,1],[0,4],[1,2],[1,5],[2,3],[2,6],[3,6],[4,5],[5,6],[5,7],[6,7]],
+  false);
+
+renderGraph(document.getElementById('heroGraph'),DEMO,{});
+
+/* ---------- slide 3: directed example ---------- */
+(function(){
+  var G=makeGraph(['P','Q','R','S','T'],
+    [[70,50],[230,40],[350,140],[220,230],[70,180]],
+    [[0,1],[1,2],[2,3],[3,0],[3,4],[4,0]],true);
+  renderGraph(document.getElementById('vocabGraph'),G,
+    {treeEdges:new Set(['0-1','1-2','2-3','3-0'])});
+})();
+
+/* ---------- slides 4-5: representations ---------- */
+(function(){
+  var mb=document.getElementById('matrixBox'), lb=document.getElementById('listBox');
+  if(mb){
+    var h='<table class="matrix"><thead><tr><th></th>';
+    DEMO.labels.forEach(function(l){h+='<th>'+l+'</th>';});
+    h+='</tr></thead><tbody>';
+    for(var u=0;u<DEMO.n;u++){
+      h+='<tr><th>'+DEMO.labels[u]+'</th>';
+      for(var v=0;v<DEMO.n;v++){
+        var on=DEMO.adj[u].indexOf(v)>=0;
+        h+='<td class="'+(on?'one':'zero')+'">'+(on?1:0)+'</td>';
+      }
+      h+='</tr>';
+    }
+    mb.innerHTML=h+'</tbody></table>';
+  }
+  if(lb){
+    var s='';
+    for(var i=0;i<DEMO.n;i++)
+      s+='<div><b>'+DEMO.labels[i]+'</b> &nbsp;&rarr;&nbsp; '+
+         DEMO.adj[i].map(function(v){return DEMO.labels[v];}).join(' , ')+'</div>';
+    lb.innerHTML=s;
+  }
+})();
+
+/* ---------- slide 6: density calculator ---------- */
+(function(){
+  var out=document.getElementById('cOut'); if(!out) return;
+  function fmt(b){
+    if(b>=1e9) return (b/1e9).toFixed(1)+' GB';
+    if(b>=1e6) return (b/1e6).toFixed(1)+' MB';
+    if(b>=1e3) return (b/1e3).toFixed(1)+' KB';
+    return b+' B';
+  }
+  function run(){
+    var V=Math.max(4,Math.min(1e7,parseInt(document.getElementById('cV').value,10)||1000));
+    var d=Math.max(1,Math.min(1000,parseInt(document.getElementById('cD').value,10)||6));
+    var E=Math.round(V*d/2);
+    var mat=V*V*4, lst=V*8+2*E*16;
+    var matOps=V*V, lstOps=V+2*E;
+    out.innerHTML='<table><thead><tr><th></th><th>matrix</th><th>list</th><th>ratio</th></tr></thead><tbody>'+
+      '<tr><td>edges</td><td class="num" colspan="2">'+E.toLocaleString()+' of '+
+         Math.round(V*(V-1)/2).toLocaleString()+' possible</td><td class="num">'+
+         (100*E/(V*(V-1)/2)).toPrecision(2)+'% dense</td></tr>'+
+      '<tr><td>memory</td><td class="num">'+fmt(mat)+'</td><td class="num">'+fmt(lst)+
+         '</td><td class="num">'+Math.round(mat/lst).toLocaleString()+'&times;</td></tr>'+
+      '<tr><td>work for a full traversal</td><td class="num">'+matOps.toLocaleString()+
+         '</td><td class="num">'+lstOps.toLocaleString()+'</td><td class="num">'+
+         Math.round(matOps/lstOps).toLocaleString()+'&times;</td></tr>'+
+      '</tbody></table>';
+  }
+  document.getElementById('cRun').addEventListener('click',run);
+  run();
+})();
+
+/* ---------- slide 10: traversal visualiser ---------- */
+(function(){
+  var svg=document.getElementById('tGraph'); if(!svg) return;
+  var sel=document.getElementById('tStart'), stateEl=document.getElementById('tState');
+  DEMO.labels.forEach(function(l,i){
+    var o=document.createElement('option'); o.value=i; o.textContent=l; sel.appendChild(o);
+  });
+  var mode='bfs', steps=[], cur=0;
+
+  function build(){
+    var s=parseInt(sel.value,10)||0;
+    steps=[];
+    var visited=new Array(DEMO.n).fill(false), order=[], cont=[], tree=new Set(), dist=new Array(DEMO.n).fill(null);
+    function snap(current){
+      var st=[];
+      for(var i=0;i<DEMO.n;i++) st.push(visited[i]?'v':(cont.indexOf(i)>=0?'f':'u'));
+      if(current!==null&&current!==undefined) st[current]='c';
+      steps.push({state:st,cont:cont.slice(),order:order.slice(),tree:new Set(tree),
+                  dist:dist.slice(),current:current});
+    }
+    if(mode==='bfs'){
+      visited[s]=true; dist[s]=0; cont.push(s); snap(null);
+      while(cont.length){
+        var u=cont.shift(); order.push(u);
+        DEMO.adj[u].forEach(function(v){
+          if(!visited[v]){ visited[v]=true; dist[v]=dist[u]+1; tree.add(u+'-'+v); cont.push(v); }
+        });
+        snap(u);
+      }
+    } else {
+      cont.push(s); dist[s]=0; snap(null);
+      while(cont.length){
+        var u2=cont.pop();
+        if(visited[u2]){ continue; }
+        visited[u2]=true; order.push(u2);
+        DEMO.adj[u2].forEach(function(v){
+          if(!visited[v]){ if(dist[v]===null) dist[v]=dist[u2]+1; tree.add(u2+'-'+v); cont.push(v); }
+        });
+        snap(u2);
+      }
+    }
+    cur=0; draw();
+  }
+  function draw(){
+    var st=steps[cur];
+    renderGraph(svg,DEMO,{state:st.state,treeEdges:st.tree,
+      badge: mode==='bfs' ? st.dist.map(function(d){return d===null?null:d;}) : null});
+    var contName=mode==='bfs'?'queue (front first)':'stack (top last)';
+    stateEl.innerHTML=
+      '<div>'+(mode==='bfs'?'BFS':'DFS')+' &nbsp; step <b>'+cur+'</b> of <b>'+(steps.length-1)+'</b></div>'+
+      '<div style="margin-top:6px">'+contName+': '+
+        (st.cont.length?st.cont.map(function(v){return '<span class="chip on">'+DEMO.labels[v]+'</span>';}).join(''):'<i>empty</i>')+'</div>'+
+      '<div style="margin-top:4px">visited in order: '+
+        (st.order.length?st.order.map(function(v){return '<span class="chip">'+DEMO.labels[v]+'</span>';}).join(''):'<i>none yet</i>')+'</div>'+
+      (mode==='bfs'?'<div style="margin-top:4px">the number beside each vertex is its distance from the start</div>':'');
+  }
+  document.getElementById('tBfs').addEventListener('click',function(){mode='bfs';build();});
+  document.getElementById('tDfs').addEventListener('click',function(){mode='dfs';build();});
+  document.getElementById('tStep').addEventListener('click',function(){ if(cur<steps.length-1){cur++;draw();} });
+  document.getElementById('tAll').addEventListener('click',function(){ cur=steps.length-1; draw(); });
+  document.getElementById('tReset').addEventListener('click',build);
+  sel.addEventListener('change',build);
+  build();
+})();
+
+/* ---------- slide 12: DAG and topological sort ---------- */
+(function(){
+  var svg=document.getElementById('dagGraph'); if(!svg) return;
+  var G=makeGraph(['C','DM','DS','AL','DB','OS','ML'],
+    [[60,55],[60,205],[205,130],[350,70],[350,205],[205,265],[490,140]],
+    [[0,2],[1,2],[2,3],[2,4],[0,5],[3,6],[1,6],[4,6]],true);
+  renderGraph(svg,G,{});
+  document.getElementById('dagCap').textContent=
+    'C and DM feed DS; DS feeds AL and DB; ML needs AL, DM and DB';
+  document.getElementById('dagRun').addEventListener('click',function(){
+    var indeg=new Array(G.n).fill(0),i,q=[],out=[];
+    for(i=0;i<G.n;i++) G.adj[i].forEach(function(v){indeg[v]++;});
+    for(i=0;i<G.n;i++) if(indeg[i]===0) q.push(i);
+    while(q.length){
+      var u=q.shift(); out.push(u);
+      G.adj[u].forEach(function(v){ if(--indeg[v]===0) q.push(v); });
+    }
+    var ok=out.length===G.n;
+    var pos=[]; out.forEach(function(v,k){pos[v]=k;});
+    var valid=ok&&G.edges.every(function(e){return pos[e[0]]<pos[e[1]];});
+    document.getElementById('dagOut').innerHTML=
+      (ok?('<div style="margin-bottom:6px">'+out.map(function(v){return '<span class="chip on">'+G.labels[v]+'</span>';}).join('')+'</div>'+
+           '<div>every edge points forwards: <b>'+(valid?'yes':'NO')+'</b>. This is one of several valid orders.</div>')
+         :'<div class="alert">cycle detected — no ordering exists</div>');
+  });
+})();
+
+
+/* ================= weighted helpers ================= */
+function wadj(G){
+  var a=[],i;
+  for(i=0;i<G.n;i++) a.push([]);
+  G.edges.forEach(function(e){
+    a[e[0]].push([e[1],e[2]]);
+    if(!G.directed) a[e[1]].push([e[0],e[2]]);
+  });
+  return a;
+}
+function dtxt(d){ return d===Infinity ? '\u221e' : String(d); }
+
+/* ================= Dijkstra visualiser ================= */
+(function(){
+  var svg=document.getElementById('djGraph'); if(!svg) return;
+  var G=makeGraph(['S','A','B','C','D','T'],
+    [[60,150],[200,55],[200,245],[350,55],[350,245],[490,150]],
+    [[0,1,4],[0,2,2],[2,1,1],[1,3,5],[2,4,8],[3,5,3],[3,4,2],[4,5,6]],
+    true);
+  var W=wadj(G), steps=[], cur=0;
+  var stateEl=document.getElementById('djState');
+
+  function build(){
+    var n=G.n, dist=new Array(n).fill(Infinity), settled=new Array(n).fill(false), order=[];
+    steps=[];
+    dist[0]=0;
+    steps.push({dist:dist.slice(),settled:settled.slice(),order:[],cur:null,relaxed:[],
+                msg:'S starts at 0, everything else at infinity.'});
+    for(;;){
+      var u=-1,i;
+      for(i=0;i<n;i++) if(!settled[i]&&dist[i]<Infinity&&(u===-1||dist[i]<dist[u])) u=i;
+      if(u===-1) break;
+      settled[u]=true; order.push(u);
+      var rel=[];
+      W[u].forEach(function(p){
+        if(dist[u]+p[1]<dist[p[0]]){
+          var old=dist[p[0]];
+          dist[p[0]]=dist[u]+p[1];
+          rel.push(G.labels[p[0]]+': '+dtxt(old)+' \u2192 '+dist[p[0]]);
+        }
+      });
+      steps.push({dist:dist.slice(),settled:settled.slice(),order:order.slice(),cur:u,relaxed:rel,
+        msg:'settled <b>'+G.labels[u]+'</b> at distance <b>'+dist[u]+'</b>'+
+            (rel.length?', improved '+rel.join(', '):', nothing improved')});
+    }
+    cur=0; draw();
+  }
+  function draw(){
+    var st=steps[cur];
+    renderGraph(svg,G,{
+      state:st.dist.map(function(d,i){
+        if(st.cur===i) return 'c';
+        if(st.settled[i]) return 'v';
+        return d<Infinity?'f':'u';
+      }),
+      badge:st.dist.map(dtxt),
+      edgeLabel:function(ei,ed){ return String(ed[2]); }
+    });
+    var settledList=st.order.map(function(i){ return G.labels[i]; });
+    stateEl.innerHTML=
+      '<div>step <b>'+cur+'</b> of <b>'+(steps.length-1)+'</b> &nbsp; '+st.msg+'</div>'+
+      '<div style="margin-top:6px">settled, in order: '+
+        (settledList.length?settledList.map(function(l){return '<span class="chip on">'+l+'</span>';}).join(''):'<i>none yet</i>')+'</div>'+
+      '<div style="margin-top:4px">distances: '+
+        G.labels.map(function(l,i){return '<span class="chip">'+l+' = '+dtxt(st.dist[i])+'</span>';}).join('')+'</div>';
+  }
+  document.getElementById('djStep').addEventListener('click',function(){ if(cur<steps.length-1){cur++;draw();} });
+  document.getElementById('djAll').addEventListener('click',function(){ cur=steps.length-1; draw(); });
+  document.getElementById('djReset').addEventListener('click',build);
+  build();
+})();
+
+/* ================= max flow ================= */
+function makeFlow(G){
+  var n=G.n, cap=[], orig=[], i, j;
+  for(i=0;i<n;i++){ cap.push(new Array(n).fill(0)); orig.push(new Array(n).fill(0)); }
+  G.edges.forEach(function(e){ cap[e[0]][e[1]]+=e[2]; orig[e[0]][e[1]]+=e[2]; });
+  return {n:n,cap:cap,orig:orig};
+}
+function ekRun(F,s,t){
+  var steps=[], total=0, n=F.n;
+  function copy(m){ return m.map(function(r){return r.slice();}); }
+  steps.push({cap:copy(F.cap),path:null,b:0,total:0,cut:null,
+              msg:'nothing pushed yet'});
+  for(;;){
+    var parent=new Array(n).fill(-1), vis=new Array(n).fill(false), q=[s], b=0;
+    vis[s]=true;
+    outer:
+    while(q.length){
+      var u=q.shift();
+      for(var v=0;v<n;v++){
+        if(vis[v]||F.cap[u][v]<=0) continue;
+        vis[v]=true; parent[v]=u;
+        if(v===t){ b=Infinity;
+          for(var x=t;x!==s;x=parent[x]) b=Math.min(b,F.cap[parent[x]][x]);
+          break outer; }
+        q.push(v);
+      }
+    }
+    if(!b) break;
+    var path=[];
+    for(var y=t;y!==s;y=parent[y]) path.unshift(y);
+    path.unshift(s);
+    for(var k=path.length-1;k>0;k--){ F.cap[path[k-1]][path[k]]-=b; F.cap[path[k]][path[k-1]]+=b; }
+    total+=b;
+    steps.push({cap:copy(F.cap),path:path.slice(),b:b,total:total,cut:null,
+                msg:'pushed <b>'+b+'</b> along the path, total now <b>'+total+'</b>'});
+  }
+  /* min cut from the final residual */
+  var vis2=new Array(n).fill(false), q2=[s]; vis2[s]=true;
+  while(q2.length){ var u2=q2.shift();
+    for(var v2=0;v2<n;v2++) if(!vis2[v2]&&F.cap[u2][v2]>0){vis2[v2]=true;q2.push(v2);} }
+  var cut=[], capsum=0;
+  for(var a=0;a<n;a++) for(var c=0;c<n;c++)
+    if(vis2[a]&&!vis2[c]&&F.orig[a][c]>0){ cut.push([a,c]); capsum+=F.orig[a][c]; }
+  return {steps:steps,total:total,cut:cut,cutCap:capsum,side:vis2};
+}
+
+(function(){
+  var svg=document.getElementById('mfGraph'); if(!svg) return;
+  var G=makeGraph(['S','A','B','C','D','T'],
+    [[60,150],[200,55],[200,245],[350,55],[350,245],[490,150]],
+    [[0,1,10],[0,2,10],[1,3,4],[1,4,8],[2,4,9],[4,3,6],[3,5,10],[4,5,10]],
+    true);
+  var res=null, cur=0, showCut=false;
+  var stateEl=document.getElementById('mfState');
+
+  function build(){
+    res=ekRun(makeFlow(G),0,5);
+    cur=0; showCut=false; draw();
+  }
+  function draw(){
+    var st=res.steps[cur];
+    var onPath=new Set();
+    if(st.path) for(var i=1;i<st.path.length;i++) onPath.add(st.path[i-1]+'>'+st.path[i]);
+    var cutSet=new Set();
+    if(showCut) res.cut.forEach(function(c){ cutSet.add(c[0]+'>'+c[1]); });
+    renderGraph(svg,G,{
+      state: G.labels.map(function(_,i){
+        if(showCut) return res.side[i]?'v':'u';
+        if(st.path&&st.path.indexOf(i)>=0) return 'c';
+        return 'u';
+      }),
+      edgeCls:function(ei,ed){
+        var k=ed[0]+'>'+ed[1];
+        if(showCut) return cutSet.has(k)?'sat':null;
+        if(onPath.has(k)) return 'hi';
+        return (st.cap[ed[0]][ed[1]]===0)?'sat':null;
+      },
+      edgeLabel:function(ei,ed){
+        return (ed[2]-st.cap[ed[0]][ed[1]])+'/'+ed[2];
+      }
+    });
+    var html='<div>augmentation <b>'+cur+'</b> of <b>'+(res.steps.length-1)+'</b> &nbsp; '+st.msg+'</div>';
+    if(st.path) html+='<div style="margin-top:6px">path: '+
+      st.path.map(function(v){return '<span class="chip on">'+G.labels[v]+'</span>';}).join('')+
+      ' &nbsp; bottleneck <b>'+st.b+'</b></div>';
+    if(showCut){
+      html+='<div style="margin-top:6px">minimum cut: '+
+        res.cut.map(function(c){return '<span class="chip on">'+G.labels[c[0]]+'\u2192'+G.labels[c[1]]+
+          ' ('+G.orig[c[0]][c[1]]+')</span>';}).join('')+'</div>'+
+        '<div style="margin-top:4px">cut capacity <b>'+res.cutCap+'</b>, max flow <b>'+res.total+
+        '</b> &mdash; the theorem holds. Filled vertices are the source side.</div>';
+    }
+    stateEl.innerHTML=html;
+  }
+  G.orig=makeFlow(G).orig;
+  document.getElementById('mfStep').addEventListener('click',function(){ showCut=false; if(cur<res.steps.length-1){cur++;} draw(); });
+  document.getElementById('mfAll').addEventListener('click',function(){ showCut=false; cur=res.steps.length-1; draw(); });
+  document.getElementById('mfCut').addEventListener('click',function(){ cur=res.steps.length-1; showCut=true; draw(); });
+  document.getElementById('mfReset').addEventListener('click',build);
+  build();
+})();
+
+/* ================= the greedy counterexample ================= */
+(function(){
+  var svg=document.getElementById('mfBad'); if(!svg) return;
+  var G=makeGraph(['S','A','B','T'],
+    [[55,95],[190,40],[190,150],[325,95]],
+    [[0,1,10],[0,2,10],[1,2,1],[1,3,10],[2,3,10]],true);
+  renderGraph(svg,G,{edgeLabel:function(ei,ed){return String(ed[2]);}});
+})();
+
+/* ---------- boot ---------- */
+(function(){var h=parseInt((location.hash||'').replace('#',''),10);show(isNaN(h)?0:h-1);})();
+
+/* ============================================================
+   theme -- auto / light / dark
+   The choice is stored under one key shared by every deck in this
+   set, so switching here switches the rest of them too.
+   ============================================================ */
+(function(){
+  var KEY = 'deck-theme';
+  var root = document.documentElement;
+  var btn = document.getElementById('theme');
+  var modes = ['auto', 'light', 'dark'];
+  var labels = { auto:'\u25D0 Auto', light:'\u2600 Light', dark:'\u263E Dark' };
+  var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  var mode = 'auto';
+  try { var v = localStorage.getItem(KEY); if (modes.indexOf(v) >= 0) mode = v; } catch (e) {}
+
+  function apply(persist){
+    if (mode === 'auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', mode);
+    if (btn) {
+      btn.textContent = labels[mode];
+      btn.setAttribute('aria-label', 'Colour theme: ' + mode + '. Click to change.');
+    }
+    if (persist) { try { localStorage.setItem(KEY, mode); } catch (e) {} }
+    /* The diagrams are SVG strings built from the old custom-property values,
+       so they are stale the moment the palette moves. Draw them again. */
+    repaintAll();
+  }
+  function cycle(){ mode = modes[(modes.indexOf(mode) + 1) % modes.length]; apply(true); }
+
+  if (btn) btn.addEventListener('click', cycle);
+  document.addEventListener('keydown', function(e){
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') return;
+    if (e.key === 't' || e.key === 'T') cycle();
+  });
+  if (mq) {
+    var onSys = function(){ if (mode === 'auto') apply(false); };
+    if (mq.addEventListener) mq.addEventListener('change', onSys);
+    else if (mq.addListener) mq.addListener(onSys);
+  }
+  apply(false);
+})();
+</script>
+</body>
+</html>

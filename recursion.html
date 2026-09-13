@@ -1,0 +1,2298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recursion — the call stack as a data structure, and how to use it in C</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EFF3F5;--slide:#FFFFFF;--ink:#22303C;--dim:#5D7285;--faint:#8CA0AE;--rule:#CBD8E0;
+  --accent:#116A83;--accent-soft:#E1EEF2;--bad:#A4303F;--bad-soft:#F7EAEC;
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --pad:clamp(20px,4vw,64px);
+  /* Surfaces, code colours and SVG fills are tokens too, so the dark block
+     below can move them. Nothing that carries a colour may be hardcoded in a
+     rule or in a JS renderer -- see references/visual-system.md. */
+  color-scheme:light;
+  --slide-0:rgba(255,255,255,0);
+  --panel-bg:#FAFCFD;
+  --box-bg:#FBFDFE;
+  --btn-bg:#FFFFFF;
+  --pre-bg:#F1F5F7;
+  --pre-ink:#1E2E3A;
+  --code-ink:#0C4E61;
+  --tok-c:#7E93A2;
+  --tok-k:#0C5A73;
+  --tok-n:#8A5A00;
+  --tok-s:#1F6B3F;
+  --svg-node:#FFFFFF;
+  --svg-rule:#9FB3C0;
+  --on-fill:#FFFFFF;
+  --zero:#C3CFD8;
+  --wash:#DCE5EA;
+  --cell:#F4F8FA;
+  --block:#9C6510;
+  --block-soft:#F6EEE0;
+  /* Only for decks where node colour is data. The -edge tokens are equal to
+     the fill in light mode, so they draw no rim; in dark they become a
+     contrasting ring, which is the only way a black node stays findable. */
+  --node-red:#C62828;
+  --node-red-edge:#C62828;
+  --node-black:#14181C;
+  --node-black-edge:#14181C;
+  --on-node:#FFFFFF;
+}
+
+/* The media query is guarded so an explicit light choice still wins, and both
+   [data-theme] blocks exist so the button wins in either direction over
+   whatever the operating system prefers. Keep the three lists in sync. */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#12171B;--slide:#1A2127;--slide-0:rgba(26,33,39,0);
+  --ink:#E1E8ED;--dim:#9DAFBB;--faint:#778995;--rule:#2E3941;
+  --accent:#5BB7D0;--accent-soft:#16303A;--bad:#E0655E;--bad-soft:#382324;
+  --panel-bg:#1E262D;--box-bg:#171E24;--btn-bg:#212A31;
+  --pre-bg:#141A20;--pre-ink:#D5DEE5;--code-ink:#8FD9EC;
+  --tok-c:#6F8290;--tok-k:#6BC1D8;--tok-n:#D6A355;--tok-s:#6CBE8F;
+  --svg-node:#242E36;--svg-rule:#55646F;--on-fill:#0E1419;
+  --zero:#3D4A54;--wash:#333F48;--cell:#1E262D;
+  --block:#D6A355;--block-soft:#33291A;
+  --node-red:#CF3A40;--node-red-edge:#F08A8E;
+  --node-black:#10151A;--node-black-edge:#8FA3B2;--on-node:#F2F7FA;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#12171B;--slide:#1A2127;--slide-0:rgba(26,33,39,0);
+  --ink:#E1E8ED;--dim:#9DAFBB;--faint:#778995;--rule:#2E3941;
+  --accent:#5BB7D0;--accent-soft:#16303A;--bad:#E0655E;--bad-soft:#382324;
+  --panel-bg:#1E262D;--box-bg:#171E24;--btn-bg:#212A31;
+  --pre-bg:#141A20;--pre-ink:#D5DEE5;--code-ink:#8FD9EC;
+  --tok-c:#6F8290;--tok-k:#6BC1D8;--tok-n:#D6A355;--tok-s:#6CBE8F;
+  --svg-node:#242E36;--svg-rule:#55646F;--on-fill:#0E1419;
+  --zero:#3D4A54;--wash:#333F48;--cell:#1E262D;
+  --block:#D6A355;--block-soft:#33291A;
+  --node-red:#CF3A40;--node-red-edge:#F08A8E;
+  --node-black:#10151A;--node-black-edge:#8FA3B2;--on-node:#F2F7FA;
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --paper:#EFF3F5;--slide:#FFFFFF;--slide-0:rgba(255,255,255,0);
+  --ink:#22303C;--dim:#5D7285;--faint:#8CA0AE;--rule:#CBD8E0;
+  --accent:#116A83;--accent-soft:#E1EEF2;--bad:#A4303F;--bad-soft:#F7EAEC;
+  --panel-bg:#FAFCFD;--box-bg:#FBFDFE;--btn-bg:#FFFFFF;
+  --pre-bg:#F1F5F7;--pre-ink:#1E2E3A;--code-ink:#0C4E61;
+  --tok-c:#7E93A2;--tok-k:#0C5A73;--tok-n:#8A5A00;--tok-s:#1F6B3F;
+  --svg-node:#FFFFFF;--svg-rule:#9FB3C0;--on-fill:#FFFFFF;
+  --zero:#C3CFD8;--wash:#DCE5EA;--cell:#F4F8FA;
+  --block:#9C6510;--block-soft:#F6EEE0;
+  --node-red:#C62828;--node-red-edge:#C62828;
+  --node-black:#14181C;--node-black-edge:#14181C;--on-node:#FFFFFF;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0;z-index:50;transition:width .28s ease}
+#deck{height:100%;position:relative}
+.slide{display:none;height:100%;overflow-y:auto;overflow-x:hidden;padding:calc(var(--pad) + 14px) var(--pad) 76px;background:var(--slide);scrollbar-width:thin}
+.slide.is-active{display:block;animation:fadein .22s ease both}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.inner{max-width:1080px;margin:0 auto}
+#bar{position:fixed;left:0;right:0;bottom:0;height:56px;z-index:40;display:flex;align-items:center;gap:14px;padding:0 var(--pad);background:linear-gradient(to top,var(--slide) 62%,var(--slide-0));font-family:var(--mono);font-size:12px;color:var(--faint)}
+#bar .chapter{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bar button{font-family:var(--mono);font-size:12px;border:1px solid var(--rule);background:var(--slide);color:var(--ink);border-radius:3px;padding:6px 12px;cursor:pointer}
+#bar button:hover{border-color:var(--accent);color:var(--accent)}
+#bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
+#count{min-width:56px;text-align:right}
+#bar #theme{min-width:88px;text-align:center}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1{font-size:clamp(30px,5.4vw,52px);line-height:1.08;font-weight:700;letter-spacing:-.015em;margin:0 0 18px}
+h2{font-size:clamp(23px,3.4vw,34px);line-height:1.18;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+h3{font-size:16px;font-weight:600;margin:26px 0 8px}
+.kicker{font-family:var(--mono);font-size:12px;color:var(--accent);margin:0 0 10px}
+.sub{color:var(--dim);font-size:clamp(16px,2vw,19px);margin:0 0 26px;max-width:62ch;font-style:italic}
+p{max-width:66ch;margin:0 0 14px}
+ul,ol{max-width:66ch;padding-left:22px;margin:0 0 16px}
+li{margin-bottom:9px}
+li::marker{color:var(--faint)}
+.tight li{margin-bottom:5px}
+code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);padding:1px 5px;border-radius:3px;color:var(--code-ink)}
+.small{font-size:14px;color:var(--dim)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,3.5vw,44px);align-items:start}
+.cols.wide-left{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+@media (max-width:820px){.cols,.cols.wide-left,.cols3{grid-template-columns:1fr;gap:24px}}
+.panel{border:1px solid var(--rule);border-radius:4px;padding:18px 20px;background:var(--panel-bg)}
+.panel h3{margin-top:0}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;margin:18px 0;font-size:15.5px;max-width:66ch}
+.note p:last-child{margin-bottom:0}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:6px 0 16px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);border-bottom:1.5px solid var(--ink)}
+td:first-child{color:var(--dim)}
+tbody tr:last-child td{border-bottom:none}
+.num{font-family:var(--mono)}
+.alert{color:var(--bad);font-weight:600}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.62;background:var(--pre-bg);border-left:3px solid var(--accent);padding:14px 16px;margin:0 0 16px;border-radius:0 4px 4px 0;overflow-x:auto;color:var(--pre-ink)}
+pre code{background:none;padding:0;border-radius:0;color:inherit;font-size:inherit;font-family:inherit}
+/* JetBrains Mono ligates -> into an arrow and != into a not-equals. Charming
+   in an editor, wrong in a deck teaching C syntax to people who have to type
+   the characters. Turn them off everywhere code is shown. */
+pre,pre code,code{font-variant-ligatures:none;font-feature-settings:"liga" 0,"clig" 0,"calt" 0}
+.tok-c{color:var(--tok-c);font-style:italic}
+.tok-k{color:var(--tok-k);font-weight:500}
+.tok-n{color:var(--tok-n)}
+.tok-s{color:var(--tok-s)}
+.treebox{border:1px solid var(--rule);border-radius:4px;background:var(--box-bg);padding:10px;overflow-x:auto}
+svg.tree{display:block;height:auto;margin-inline:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:10px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.controls button,.controls select{font-family:var(--mono);font-size:12px;padding:7px 11px;border:1px solid var(--rule);background:var(--btn-bg);color:var(--ink);border-radius:3px;cursor:pointer}
+.controls button:hover{border-color:var(--accent);color:var(--accent)}
+.controls input[type=number],.controls input[type=text]{font-family:var(--mono);font-size:12px;padding:7px 9px;width:86px;border:1px solid var(--rule);border-radius:3px;background:var(--btn-bg);color:var(--ink)}
+.controls input[type=checkbox]{accent-color:var(--accent)}
+.controls input::placeholder{color:var(--faint)}
+.controls label{color:var(--dim)}
+.stat{font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+.stat b{color:var(--ink);font-weight:500}
+ol.props{counter-reset:p;list-style:none;padding-left:0;max-width:none}
+ol.props li{counter-increment:p;position:relative;padding-left:40px;margin-bottom:14px}
+ol.props li::before{content:counter(p);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;border:1px solid var(--rule);font-family:var(--mono);font-size:12px;color:var(--accent);display:flex;align-items:center;justify-content:center}
+@media print{
+  /* Always print the light palette, whatever is on screen. */
+  :root{color-scheme:light;--paper:#FFFFFF;--slide:#FFFFFF;--ink:#22303C;--dim:#5D7285;
+    --faint:#8CA0AE;--rule:#CBD8E0;--accent:#116A83;--accent-soft:#E1EEF2;
+    --bad:#A4303F;--bad-soft:#F7EAEC;--panel-bg:#FAFCFD;--box-bg:#FBFDFE;--btn-bg:#FFFFFF;
+    --pre-bg:#F1F5F7;--pre-ink:#1E2E3A;--code-ink:#0C4E61;--tok-c:#7E93A2;--tok-k:#0C5A73;
+    --tok-n:#8A5A00;--tok-s:#1F6B3F;--svg-node:#FFFFFF;--svg-rule:#9FB3C0;--on-fill:#FFFFFF;
+    --zero:#C3CFD8;--wash:#DCE5EA;--cell:#F4F8FA;--block:#9C6510;--block-soft:#F6EEE0;
+    --node-red:#C62828;--node-red-edge:#C62828;--node-black:#14181C;
+    --node-black-edge:#14181C;--on-node:#FFFFFF;}
+  .slide{display:block!important;height:auto;page-break-after:always;padding:24px}
+  #bar,#progress{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style><style>
+/* extras used by some decks — delete what you do not need */
+.matrix{border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.matrix td,.matrix th{border:1px solid var(--rule);padding:3px 6px;text-align:center;color:var(--ink)}
+.matrix th{background:var(--pre-bg);font-weight:500;color:var(--dim)}
+.matrix td.one{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.matrix td.zero{color:var(--zero)}
+.chip{display:inline-block;font-family:var(--mono);font-size:11.5px;border:1px solid var(--rule);border-radius:3px;padding:2px 7px;margin:0 4px 4px 0;background:var(--btn-bg);color:var(--ink)}
+.chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+</style>
+<script>
+/* Apply the stored theme before first paint, so a dark-mode reader never gets
+   a white flash on the way in. localStorage can be unavailable (file://, some
+   sandboxes) -- the try/catch means the deck simply starts in Auto there. */
+(function(){try{var t=localStorage.getItem('deck-theme');
+if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+</head>
+<body>
+<div id="progress"></div>
+<main id="deck">
+
+<!-- ============ SLIDES GO HERE ============
+     Append each slide with:  cat >> deck.html << 'CHUNK'  ... CHUNK
+     Number each slide with a marker comment so you can splice later.
+     (Never write a literal comment-close sequence inside a comment - it
+      terminates the comment early and the rest leaks onto the page.)
+     Structural vocabulary available:
+       .inner            page column wrapper (always the first child of .slide)
+       .kicker           small mono line above the heading: "04 — the idea"
+       .sub              italic standfirst under an h2
+       .cols             two equal columns   .cols.wide-left / .wide-right  (60/40)
+       .cols3            three columns
+       .panel            bordered box for secondary material
+       .note             accent-bordered callout for the one idea that matters
+       .note.bad         red variant, for failure modes and traps
+       .treebox          container for an SVG visual, with .legend beneath
+       .controls         row of buttons/inputs for a live demo
+       .stat             mono status line under a demo
+       ol.props          numbered circles, for a list that really is a numbered set
+       table             comparison tables; .num for figures, .alert for the bad cell
+       pre > code        C listings — escape &lt; &gt; &amp; by hand
+============================================ -->
+
+
+<!-- 1 -->
+<section class="slide" data-chapter="Opening">
+ <div class="inner">
+  <div class="treebox" style="margin-bottom:26px">
+    <svg class="tree" id="heroTree" role="img" aria-label="The recursion tree of Tower of Hanoi with four disks, with one root-to-leaf path highlighted to show the live call stack"></svg>
+    <div class="legend"><span id="heroCap"></span></div>
+  </div>
+  <h1>Recursion</h1>
+  <p class="sub">A function that calls itself is not a trick. It is you borrowing the one stack the machine already maintains, and letting the compiler write the pushes and pops.</p>
+  <p class="small">The highlighted path is the call stack at one instant. Everything else in that tree has either already returned or has not been born yet — which is why the tree is your running time and the path is your memory. Arrow keys, or the buttons below, to move through the deck.</p>
+ </div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">01 — the problem</p>
+  <h2>Write me a loop nest whose depth is an input</h2>
+  <p class="sub">The eight queens puzzle, with the eight replaced by a number read from stdin.</p>
+  <div class="cols wide-left">
+   <div>
+    <p>Place eight queens on a chessboard so that none attacks another. Eight is small, so brute force is honest work: try every square for queen one, every square for queen two, and so on.</p>
+    <p>In a language with loops and nothing else, that reads:</p>
+<pre><code>for (int a = 0; a &lt; 64; a++)
+ for (int b = a+1; b &lt; 64; b++)
+  for (int c = b+1; c &lt; 64; c++)
+   for (int d = c+1; d &lt; 64; d++)
+    for (int e = d+1; e &lt; 64; e++)
+     for (int f = e+1; f &lt; 64; f++)
+      for (int g = f+1; g &lt; 64; g++)
+       for (int h = g+1; h &lt; 64; h++)
+        if (legal(a,b,c,d,e,f,g,h)) report();</code></pre>
+    <p>Eight nested loops, one per queen. It compiles. It even works. Now change the first line of <code>main</code> to <code>scanf("%d", &amp;n)</code> and place <em>n</em> queens.</p>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>What just broke</h3>
+      <p class="small">You cannot write <em>n</em> nested loops. The loop nest is fixed when you compile; <em>n</em> arrives when you run. There is no <code>for</code> that generates more <code>for</code>s.</p>
+      <p class="small">This is not a stylistic complaint. It is a structural one: <b>the depth of the search is data</b>, and the only tool you have is a construct whose depth is source code.</p>
+    </div>
+    <div class="note bad">
+      <p>And the brute force above is not merely rigid, it is unaffordable. Choosing 8 squares from 64 is 4,426,165,368 placements. Testing them all at a nanosecond apiece is four and a half seconds for <em>n</em> = 8, and the universe's age for <em>n</em> = 20.</p>
+    </div>
+    <div class="treebox">
+      <svg class="tree" id="p1Board" role="img" aria-label="An 8 by 8 board with one legal arrangement of eight queens"></svg>
+      <div class="legend"><span id="p1Cap"></span></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">02 — what does not fix it</p>
+  <h2>Four repairs, all attacking the wrong thing</h2>
+  <p>Before reaching for recursion, people reach for these. Each is worth understanding, because each fails in an instructive direction.</p>
+  <div class="cols">
+   <div>
+    <div class="panel">
+      <h3>A <code>while</code> loop and a <code>goto</code></h3>
+      <p class="small">You can flatten any nest into one loop with a program counter and a jump. What you have then written is a state machine, by hand, whose states are "which queen am I placing". It works, and nobody — including you next month — can read it.</p>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>An array of loop counters</h3>
+      <p class="small"><code>int idx[n]</code>, advance <code>idx[r]</code>, carry into <code>idx[r-1]</code> when it overflows. This is closer than it looks, and it is a real technique. But notice what you are now maintaining: a stack of positions, a depth pointer, and an unwinding rule. You have not avoided the stack. You have rebuilt it, in application code, without a type checker.</p>
+    </div>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Generate the source</h3>
+      <p class="small">Write a program that emits <em>n</em> nested loops and compile it. Genuinely done in production for fixed small <em>n</em> in hot numeric kernels. Useless when <em>n</em> is a runtime value, which was the entire problem.</p>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>A faster inner loop</h3>
+      <p class="small">SIMD the legality test. Cache the diagonals. Rewrite it in assembly. You will make 4.4 billion placements into 400 million placements and the <em>n</em> = 20 case is still not finishing.</p>
+    </div>
+    <div class="note">
+      <p>Three of these attack the constant factor. The fourth attacks readability. The problem is neither: <b>the shape of the computation is not known until it runs</b>, and the tool has to be able to grow to fit it.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-chapter="The reframe">
+ <div class="inner">
+  <p class="kicker">03 — the reframe</p>
+  <h2>You are already carrying a stack. Use that one.</h2>
+  <p class="sub">Every function call your program has ever made pushed a record onto it and popped it on return. It is there whether you use it or not.</p>
+  <div class="cols wide-left">
+   <div>
+    <p>The "array of loop counters" idea failed for a revealing reason: it reinvented a stack. So stop reinventing it and ask the better question.</p>
+    <div class="note">
+      <p><b>What if the bookkeeping were the algorithm?</b> If a function can call itself, then "place queen <em>r</em>, then solve the rest" becomes one line, the depth of the nest becomes the depth of the call chain, and the unwinding — the part everybody gets wrong by hand — becomes <code>return</code>.</p>
+    </div>
+    <p>That is all recursion is. Not elegance, not mathematics: <b>a stack whose push and pop instructions are written by the compiler, from a description of one level.</b></p>
+    <p>You describe a single step and where the next step begins. The machine supplies the ladder.</p>
+    <h3>What you get, and what you are billed</h3>
+    <p>The bargain has exactly two sides, and knowing both is the difference between using recursion and being surprised by it:</p>
+    <ul class="tight">
+      <li><b>You get</b> automatic state save and restore at every level, correct by construction.</li>
+      <li><b>You pay</b> one activation record per level alive, out of a fixed-size region you did not allocate and cannot grow.</li>
+    </ul>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>The whole puzzle, recursively</h3>
+<pre><code>void solve(int r) {
+  if (r == n) { report(); return; }
+  for (int c = 0; c &lt; n; c++)
+    if (safe(r, c)) {
+      col[r] = c;     /* choose  */
+      solve(r + 1);   /* explore */
+      col[r] = -1;    /* un-choose */
+    }
+}</code></pre>
+      <p class="small">Eight lines, and <em>n</em> is now a variable. The loop nest of the previous slide is in there — it is the chain of <code>solve</code> frames, built at runtime, one per row.</p>
+    </div>
+    <div class="note bad">
+      <p>The three-line body is the easy half. The reason this deck has twenty more slides is that the second bullet on the left — <em>a fixed-size region you cannot grow</em> — is where recursion actually kills programs.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-chapter="The mechanism">
+ <div class="inner">
+  <p class="kicker">04 — the mechanism</p>
+  <h2>A call is a push, a return is a pop</h2>
+  <p class="sub">Step through <code>fact(4)</code> and watch the only data structure involved.</p>
+  <div class="cols wide-left">
+   <div>
+    <div class="treebox">
+      <svg class="tree" id="frmSvg" role="img" aria-label="The call stack during a recursive factorial, drawn as stacked activation records"></svg>
+      <div class="legend"><span>▸ live frame</span><span>▸ suspended, waiting on a callee</span><span>▸ returned</span></div>
+    </div>
+    <div class="controls">
+      <button id="frmBack">◂ Back</button>
+      <button id="frmFwd">Forward ▸</button>
+      <button id="frmReset">Reset</button>
+      <label>n <input type="number" id="frmN" value="4" min="1" max="7"></label>
+    </div>
+    <p class="stat" id="frmStat"></p>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>What is in one activation record</h3>
+      <ul class="tight small">
+        <li>the <b>return address</b> — where to resume in the caller</li>
+        <li>the caller's <b>saved frame pointer</b>, so the chain can be walked back</li>
+        <li>any <b>callee-saved registers</b> this function clobbers</li>
+        <li>the <b>parameters</b> that did not fit in registers</li>
+        <li>the <b>local variables</b> whose address is taken or which outlive a register</li>
+        <li><b>padding</b>, because the ABI wants the stack pointer 16-byte aligned</li>
+      </ul>
+      <p class="small">On x86-64 a frame for a function this small is typically 32 or 48 bytes. Take the address of a 4 KB local array and it is 4 KB plus that.</p>
+    </div>
+    <div class="note">
+      <p>Notice what the stepper shows and the source does not: at the moment <code>fact(1)</code> runs, four frames are alive. Three of them are doing nothing but holding a number and an address, waiting to be resumed. <b>That waiting is the memory cost of recursion.</b></p>
+    </div>
+    <div class="note bad">
+      <p>The frame is not yours. You did not <code>malloc</code> it, you cannot <code>free</code> it early, and when you run out there is no <code>NULL</code> to check — the process dies on a guard page. Recursion is the one place in C where you allocate memory by accident.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-chapter="The mechanism">
+ <div class="inner">
+  <p class="kicker">05 — the rules and the bill</p>
+  <h2>Two rules make it correct. Two numbers make it affordable.</h2>
+  <div class="cols">
+   <div>
+    <h3>The rules</h3>
+    <ol class="props">
+      <li><b>A base case that returns without calling.</b> At least one input for which the function does no recursive work at all.</li>
+      <li><b>Every recursive call moves strictly toward it.</b> Not "usually", not "on the inputs I tested" — there must be a quantity that decreases on every call and cannot decrease forever.</li>
+    </ol>
+    <p>That decreasing quantity is the whole proof. For <code>fact(n)</code> it is <em>n</em>. For a tree walk it is the height of the subtree. For <code>solve(r)</code> it is <em>n − r</em>. If you cannot name it, you have not written a recursion, you have written a loop with no exit and extra steps.</p>
+    <div class="note bad">
+      <p>The classic violation is subtle: <code>gcd(a, b)</code> written as <code>gcd(b, a % b)</code> recurses on a shrinking value and terminates. Written as <code>gcd(b, a - b)</code> it also shrinks — until <code>a == b</code>, when it stops shrinking and runs until the stack is gone.</p>
+    </div>
+   </div>
+   <div>
+    <h3>The bill</h3>
+    <p>Draw the tree of calls. It answers both cost questions at once, and it is the single most useful habit in this subject:</p>
+    <table>
+      <thead><tr><th>quantity</th><th>read off the recursion tree</th></tr></thead>
+      <tbody>
+        <tr><td>running time</td><td class="num">number of <b>nodes</b> × work per node</td></tr>
+        <tr><td>stack memory</td><td class="num"><b>depth</b> × bytes per frame</td></tr>
+      </tbody>
+    </table>
+    <p>These are wildly independent, and that is the point most courses skip.</p>
+    <ul class="tight">
+      <li><code>fact(n)</code> — a path. <em>n</em> nodes, depth <em>n</em>. Cheap in time, linear in stack.</li>
+      <li><code>hanoi(n)</code> — a full binary tree. 2<sup>n+1</sup>−1 nodes, depth <em>n</em>+1. Ruinous in time, trivial in stack.</li>
+      <li>binary search — a path of length log <em>n</em>. Cheap in both.</li>
+    </ul>
+    <div class="note">
+      <p>"Recursion is slow" and "recursion uses a lot of memory" are different claims about different dimensions of the same picture, and a given recursion is usually guilty of at most one of them.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-chapter="The mechanism">
+ <div class="inner">
+  <p class="kicker">06 — the recursion tree</p>
+  <h2>The tree is the running time. One path down it is the stack.</h2>
+  <p class="sub">Same picture, two readings. Change the shape and see what each reading does.</p>
+  <div class="controls">
+    <button id="rtFact">fact(n) — one child</button>
+    <button id="rtHanoi">hanoi(n) — two children</button>
+    <button id="rtFib">fib(n) — two children, uneven</button>
+    <label>n <input type="number" id="rtN" value="5" min="1" max="9"></label>
+    <button id="rtPath">Highlight a stack</button>
+  </div>
+  <div class="treebox">
+    <svg class="tree" id="rtSvg" role="img" aria-label="The recursion tree for the selected function, with one root-to-leaf path highlighted as the call stack"></svg>
+    <div class="legend"><span id="rtCap"></span></div>
+  </div>
+  <div class="cols" style="margin-top:18px">
+   <div>
+    <p class="stat" id="rtStat"></p>
+    <div class="note">
+      <p><code>fib</code> is the one to stare at. Its tree has two children per node like <code>hanoi</code>, but the subtrees are <em>the same subproblems over and over</em> — <code>fib(3)</code> appears five times in <code>fib(7)</code>. Nothing about the call stack notices or cares.</p>
+    </div>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Things to try</h3>
+      <ul class="tight small">
+        <li>Set <code>fact</code> to <em>n</em> = 9 and read the depth. Now <code>hanoi</code> at <em>n</em> = 6: nodes explode, depth barely moves.</li>
+        <li>Predict the node count of <code>hanoi(6)</code> before you press. It is exactly 2<sup>7</sup> − 1.</li>
+        <li>Count how many times <code>fib(2)</code> appears in <code>fib(7)</code>. That count is the argument for memoisation, and it is the only argument you need.</li>
+      </ul>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-chapter="Recursion vs iteration">
+ <div class="inner">
+  <p class="kicker">07 — recursion vs iteration</p>
+  <h2>They are not rivals. They are the same machine, differently addressed.</h2>
+  <p>Anything you can write recursively you can write iteratively and vice versa — the proof is that the compiler does the translation in one direction and an explicit stack does it in the other. So the choice is never about power. It is about which of these you would rather maintain.</p>
+  <table>
+    <thead><tr><th></th><th>recursion</th><th>iteration</th></tr></thead>
+    <tbody>
+      <tr><td>state between steps</td><td>kept in frames, saved and restored for free</td><td>kept in variables you declare and reset yourself</td></tr>
+      <tr><td>where the memory comes from</td><td class="alert">the stack — fixed size, no failure return</td><td>the frame you are already in, or the heap, which reports failure</td></tr>
+      <tr><td>cost per step</td><td>a call, a return, and a frame set-up</td><td>a compare and a jump</td></tr>
+      <tr><td>shape of problem it fits</td><td>branching, tree-shaped, depth not known until runtime</td><td>linear, one thing after another</td></tr>
+      <tr><td>what a bug looks like</td><td>a crash with no line number, at a depth you never tested</td><td>an off-by-one you can print</td></tr>
+      <tr><td>reading the code</td><td>one level, stated once</td><td>every level, interleaved with the bookkeeping</td></tr>
+    </tbody>
+  </table>
+  <div class="cols">
+   <div>
+    <div class="note">
+      <p><b>Pick recursion when the data is tree-shaped</b> — parsers, directory walks, expression evaluation, divide and conquer, anything backtracking. The structure of the code then matches the structure of the data, and that is worth a great deal.</p>
+    </div>
+   </div>
+   <div>
+    <div class="note bad">
+      <p><b>Pick iteration when the recursion is linear and the depth is data.</b> Walking a linked list recursively is elegant, correct, and one long list away from a segfault. The depth is the length of the list, and the length of the list is whatever your input says it is.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-chapter="Recursion vs iteration">
+ <div class="inner">
+  <p class="kicker">08 — tail recursion</p>
+  <h2>Tail position is a precise thing, and almost nothing is in it</h2>
+  <p class="sub">A call is in tail position if its result is the caller's result — with nothing left to do afterwards.</p>
+  <div class="cols">
+   <div>
+    <p>"Nothing left to do" is not a mood. It means no arithmetic, no assignment, no destructor, no cleanup — the return value of the callee travels straight out. When that holds, the caller's frame is dead the instant the call is made, so a compiler may reuse it instead of pushing a new one. The recursion runs in constant stack.</p>
+    <h3>Not tail recursive</h3>
+<pre><code>long fact(int n) {
+  if (n &lt;= 1) return 1;
+  return n * fact(n - 1);
+}</code></pre>
+    <p class="small">After <code>fact(n-1)</code> returns there is still a multiply to do, and the thing it multiplies by — <code>n</code> — lives in this frame. The frame must survive. Depth <em>n</em>.</p>
+    <h3>Tail recursive</h3>
+<pre><code>long fact_go(int n, long acc) {
+  if (n &lt;= 1) return acc;
+  return fact_go(n - 1, acc * n);   /* nothing after */
+}
+long fact(int n) { return fact_go(n, 1); }</code></pre>
+    <p class="small">The multiply moved <em>into the argument</em>, so it happens before the call, not after. Now the frame has no future.</p>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>The transformation, as a recipe</h3>
+      <ol class="tight small">
+        <li>Find the work that happens <em>after</em> the recursive call.</li>
+        <li>Add a parameter — the accumulator — that carries that work forward instead.</li>
+        <li>The base case returns the accumulator rather than a constant.</li>
+        <li>Wrap it, so callers keep the original signature.</li>
+      </ol>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>And then it is a loop, mechanically</h3>
+<pre><code>long fact(int n) {
+  long acc = 1;
+  while (n &gt; 1) { acc *= n; n--; }
+  return acc;
+}</code></pre>
+      <p class="small">Reassign the parameters, jump to the top. That substitution is exactly what tail-call elimination performs, and seeing it written out is the point: a tail-recursive function <em>is</em> a loop that has not been spelled that way yet.</p>
+    </div>
+    <div class="note bad">
+      <p>Watch for the impostor: <code>return (void) helper(x), 0;</code> and <code>return f(x) + 0;</code> are not tail calls. Neither is a call in a function with a local whose address escaped — the frame has to stay alive to keep that pointer valid.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-chapter="Recursion vs iteration">
+ <div class="inner">
+  <p class="kicker">09 — the limit is real</p>
+  <h2>C does not promise to eliminate your tail call</h2>
+  <p class="sub">Scheme guarantees it in the language standard. C says nothing at all.</p>
+  <div class="cols wide-left">
+   <div>
+    <p>Write the tail-recursive version, compile it at <code>-O2</code>, and gcc and clang will very likely turn it into a loop. Compile the same file at <code>-O0</code> for a debugger session and they will not. Your function now consumes a frame per level in the build you are debugging and not in the build you shipped, which is a memorable way to find out that your test inputs were small.</p>
+    <div class="note bad">
+      <p>So: <b>never rely on tail-call elimination for correctness in C.</b> If a recursion's depth is bounded by input size and the input is attacker-supplied, convert it to a loop yourself. Do not file the optimiser as a safety property.</p>
+    </div>
+    <p>Check what you actually got — the tail call becomes a <code>jmp</code>, the real call stays a <code>call</code>:</p>
+<pre><code>gcc -O2 -S -o - fact.c | grep -E 'call|jmp'</code></pre>
+    <h3>How much room is there</h3>
+    <table>
+      <thead><tr><th>where</th><th>default stack</th></tr></thead>
+      <tbody>
+        <tr><td>Linux, main thread</td><td class="num">8 MB (<code>ulimit -s</code>)</td></tr>
+        <tr><td>macOS, main thread</td><td class="num">8 MB</td></tr>
+        <tr><td>Windows, main thread</td><td class="num">1 MB</td></tr>
+        <tr><td>pthreads, per thread</td><td class="num">512 KB – 8 MB</td></tr>
+        <tr><td>embedded / RTOS task</td><td class="num alert">often 4 – 64 KB</td></tr>
+      </tbody>
+    </table>
+    <p class="small">At a 48-byte frame, 8 MB is roughly 175,000 levels. At 4 KB of locals per frame it is about 2,000. The frame size is yours to control and it moves the limit by two orders of magnitude.</p>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Find the edge, live</h3>
+      <p class="small">Both buttons recurse until the engine refuses, then binary-search for the exact depth that survived. The engine picks the frame layout, so read the <b>ratio</b> rather than the absolute levels — that is the part which transfers to C.</p>
+      <div class="controls">
+        <button id="dpSmall">Small frame</button>
+        <button id="dpFat">Fat frame (32 live locals)</button>
+      </div>
+      <p class="stat" id="dpOut">not run yet</p>
+    </div>
+    <div class="note">
+      <p>The ratio between those two numbers is the lesson. Same algorithm, same depth of logic, a few dozen locals declared inside the function — and the depth you can survive collapses. <b>Locals in a recursive function are multiplied by the depth.</b></p>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>In C, the failure has no manners</h3>
+      <p class="small">There is no <code>ENOMEM</code>, no return value to test. The stack pointer walks into a guard page and the kernel sends <code>SIGSEGV</code>. In a build without frame pointers the backtrace is often 10,000 identical lines or nothing at all.</p>
+      <p class="small">Catch it in testing instead: <code>gcc -fsanitize=address</code> reports <code>stack-overflow</code> with the recursing function named, which is the difference between a five-minute fix and an afternoon.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-chapter="Measurement">
+ <div class="inner">
+  <p class="kicker">10 — measurement</p>
+  <h2>Predict first, then press</h2>
+  <p class="sub">Real implementations, counted exactly. The call counts are not estimates — every routine increments a counter on entry.</p>
+  <div class="controls">
+    <label>n <input type="number" id="mN" value="24" min="1" max="34"></label>
+    <button id="mFact">factorial / sum: recursive vs tail vs loop</button>
+    <button id="mFib">fibonacci: naive vs memoised vs loop</button>
+    <button id="mHanoi">hanoi: calls vs moves vs depth</button>
+  </div>
+  <div id="mOut" class="panel"><p class="small">Nothing measured yet. Write your predictions down first — the fibonacci row is the one that surprises people, and it is more fun if you have committed.</p></div>
+  <div class="cols" style="margin-top:18px">
+   <div>
+    <div class="panel">
+      <h3>Questions worth asking before you press</h3>
+      <ul class="tight small">
+        <li>Recursive and iterative factorial: which does <em>fewer</em> multiplications? (Count them. The answer is neither.)</li>
+        <li>Naive <code>fib(30)</code> — order of magnitude of the call count?</li>
+        <li>Memoised <code>fib(30)</code> makes how many calls? Is it closer to 30, 300, or 3,000?</li>
+        <li><code>hanoi(20)</code>: how deep does the stack get? Most people guess far too high.</li>
+      </ul>
+    </div>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>How to read it honestly</h3>
+      <ul class="tight small">
+        <li><b>Calls and ops are exact</b> and will reproduce on any machine. Compare those.</li>
+        <li><b>Milliseconds are not.</b> They include JIT warm-up and garbage collection, and the same code in C has a different constant. Use them for orders of magnitude, never for "23% faster".</li>
+        <li><b>Max depth is the memory number.</b> It is what would decide whether the C version survives.</li>
+        <li>The memoised row does more work per call than the naive row — a map lookup versus an addition. If you want the fair comparison, look at the call count and then ask what each call costs.</li>
+      </ul>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-chapter="Tower of Hanoi">
+ <div class="inner">
+  <p class="kicker">11 — tower of hanoi</p>
+  <h2>The problem that is easier to solve than to state</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Three pegs. <em>n</em> disks of distinct sizes stacked on peg A, largest at the bottom. Move the stack to peg C. One disk at a time, taken from the top of a peg, and <b>never a larger disk onto a smaller one</b>.</p>
+    <p>Attack it head-on and you get nowhere: which disk moves first? For <em>n</em> = 5 the answer is not obvious and the sequence is 31 moves long. So do not attack it head-on. Ask instead what has to be true <em>just before</em> the last big move.</p>
+    <div class="note">
+      <p>The biggest disk has to get from A to C. For that, peg C must be empty and the other <em>n</em>−1 disks must be out of the way — which means all of them are stacked on B. <b>So the hard part of the problem is a smaller copy of the problem.</b></p>
+    </div>
+    <p>That single observation is the whole solution, and it writes itself:</p>
+<pre><code>void hanoi(int n, char from, char to, char via) {
+  if (n == 0) return;
+  hanoi(n - 1, from, via, to);        /* clear the way   */
+  printf("disk %d: %c -&gt; %c\n", n, from, to);
+  hanoi(n - 1, via, to, from);        /* rebuild on top  */
+}</code></pre>
+    <p>Note what the two recursive calls differ in: only which peg plays which <em>role</em>. The pegs are not named A, B and C in the body — they are <em>source</em>, <em>destination</em> and <em>spare</em>, and the spare of one call is the destination of the next. Getting that permutation right is the only thing to get right.</p>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Why 2<sup>n</sup> − 1, and why you cannot do better</h3>
+      <p class="small">Let <em>M(n)</em> be the moves needed. The recursion gives <em>M(n) = 2M(n−1) + 1</em> with <em>M(0) = 0</em>, so <em>M(n) = 2<sup>n</sup> − 1</em>.</p>
+      <p class="small">And it is optimal, by the same argument run as a lower bound: at some point the largest disk must move, and at that moment every other disk is on the one spare peg. Getting them there costs at least <em>M(n−1)</em>, and clearing them off afterwards costs at least <em>M(n−1)</em> again. No strategy escapes it.</p>
+    </div>
+    <div class="note bad">
+      <p>So the algorithm is exponential and <em>that is not a flaw in the algorithm</em>. The output itself has 2<sup>n</sup> − 1 lines. The 64-disk temple version takes 2<sup>64</sup>−1 moves — about 585 billion years at one move a second.</p>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>The two costs, separately</h3>
+      <table>
+        <thead><tr><th>n</th><th>moves</th><th>frames</th></tr></thead>
+        <tbody>
+          <tr><td class="num">10</td><td class="num">1,023</td><td class="num">11</td></tr>
+          <tr><td class="num">20</td><td class="num">1,048,575</td><td class="num">21</td></tr>
+          <tr><td class="num">40</td><td class="num">1.1 × 10<sup>12</sup></td><td class="num">41</td></tr>
+          <tr><td class="num">64</td><td class="num alert">1.8 × 10<sup>19</sup></td><td class="num">65</td></tr>
+        </tbody>
+      </table>
+      <p class="small">The stack is never the problem here. The clock is. This is the exact opposite of the linked-list case on the previous slides, and it is why "is recursion expensive" is not a question with one answer.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-chapter="Tower of Hanoi">
+ <div class="inner">
+  <p class="kicker">12 — hanoi, stepped</p>
+  <h2>Watch the pegs and the stack at the same time</h2>
+  <p class="sub">The pegs below are replayed from the move list the recursion actually emitted, and the chips underneath are its live frames at that moment. Neither is a mock-up.</p>
+  <div class="treebox">
+    <svg class="tree" id="hnSvg" role="img" aria-label="Three pegs with disks, showing the current state of the Tower of Hanoi"></svg>
+    <div class="legend"><span id="hnCap"></span></div>
+  </div>
+  <div class="controls">
+    <button id="hnBack">◂ Back</button>
+    <button id="hnFwd">Forward ▸</button>
+    <button id="hnAuto">Play</button>
+    <button id="hnReset">Reset</button>
+    <label>disks <input type="number" id="hnN" value="4" min="1" max="7"></label>
+  </div>
+  <div class="cols" style="margin-top:6px">
+   <div>
+    <p class="stat" id="hnStat"></p>
+    <div id="hnFrames" style="margin-top:10px"></div>
+    <p class="small">The chips are the live <code>hanoi</code> frames, outermost first. Each shows the disk count and the source and destination for that level.</p>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Things to try</h3>
+      <ul class="tight small">
+        <li>Step to the middle move with 4 disks. That move is disk 4, A → C, and it happens exactly once. Every move before it is setup; every move after it is cleanup.</li>
+        <li>Watch the frame chips: the number of chips never exceeds <em>n</em>, no matter how many moves have gone by.</li>
+        <li>Set <em>n</em> = 3 and read off the move sequence for disk 1. It moves on every other step, always in the same cyclic direction. That regularity is the basis of the iterative solution — and finding it took people centuries longer than finding the recursion.</li>
+      </ul>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-chapter="Backtracking">
+ <div class="inner">
+  <p class="kicker">13 — backtracking</p>
+  <h2>Choose, explore, un-choose</h2>
+  <p class="sub">Hanoi's recursion always succeeds. Backtracking is what you do when a choice can turn out to be wrong.</p>
+  <div class="cols">
+   <div>
+    <p>A backtracking search walks a tree of partial solutions. At each node you extend the partial solution one step in every way that is still legal, recurse, and then <b>undo the extension before trying the next one</b>. The undo is what makes the sibling branches independent.</p>
+<pre><code>void search(State *s, int depth) {
+  if (complete(s)) { report(s); return; }
+  for (each candidate c at this depth) {
+    if (!legal(s, c)) continue;     /* prune */
+    apply(s, c);                    /* choose */
+    search(s, depth + 1);           /* explore */
+    undo(s, c);                     /* un-choose */
+  }
+}</code></pre>
+    <div class="note">
+      <p>Every backtracking program you will ever write is this. Sudoku, maze solving, graph colouring, the knapsack, regular expression matching, type inference, a SAT solver's core loop — all of them are <code>apply</code>, <code>search</code>, <code>undo</code> with different definitions of <code>legal</code>.</p>
+    </div>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>The two places it goes wrong</h3>
+      <p class="small"><b>A missing undo.</b> The most common bug in the whole family. It does not crash — it quietly leaks state from one branch into its sibling, and you get some right answers and some wrong ones. Write <code>apply</code> and <code>undo</code> as a pair, adjacent in the file, and make <code>undo</code> exactly invert <code>apply</code>.</p>
+      <p class="small"><b>Pruning too late.</b> Testing legality only at the leaves turns the search back into brute force. Test the moment a choice is made — the earlier a branch dies, the more of the tree dies with it, and the saving is multiplicative.</p>
+    </div>
+    <div class="note bad">
+      <p>The trap that hides: if <code>apply</code> allocates or mutates something <code>undo</code> does not exactly reverse — a counter incremented twice, a flag set but not cleared on the early-return path — the search still terminates and still prints answers. It just prints the wrong ones. Nothing catches this except a property test on the results.</p>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>Why an explicit stack is so much worse here</h3>
+      <p class="small">To do this with your own stack you must push not just "where am I" but "what do I have to undo when I come back", and pop it in the right order on every exit path. That bookkeeping is the recursion, badly. Here, <code>undo(s, c)</code> sits on the line after the call and runs on the way out. This is recursion earning its keep.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-chapter="Backtracking">
+ <div class="inner">
+  <p class="kicker">14 — eight queens</p>
+  <h2>Three observations, and the search space collapses by six orders of magnitude</h2>
+  <p class="sub">None of them is clever. Each one just refuses to generate something that could never work.</p>
+  <div class="cols wide-left">
+   <div>
+    <table>
+      <thead><tr><th>what you generate</th><th>complete placements tested</th></tr></thead>
+      <tbody>
+        <tr><td>every set of 8 squares out of 64</td><td class="num alert">4,426,165,368</td></tr>
+        <tr><td>one queen per row, any column<br><span class="small">two queens in a row always attack</span></td><td class="num">16,777,216 &nbsp;<span class="small">= 8<sup>8</sup></span></td></tr>
+        <tr><td>one per row, no repeated column<br><span class="small">so the placement is a permutation</span></td><td class="num">40,320 &nbsp;<span class="small">= 8!</span></td></tr>
+      </tbody>
+    </table>
+    <p>The third row is already a factor of 110,000 better than the first, and we have not written a search yet — only stopped generating placements that are illegal by inspection. That is the first half of backtracking: <b>encode the constraints into the shape of the search, not into a test at the end.</b></p>
+    <div class="note">
+      <p>The remaining constraint — the diagonals — cannot be folded into the representation the way rows and columns were. Two queens share a diagonal when |<em>r</em><sub>1</sub> − <em>r</em><sub>2</sub>| = |<em>c</em><sub>1</sub> − <em>c</em><sub>2</sub>|. That is the test that has to run during the search, and where it runs decides everything.</p>
+    </div>
+    <p>Test it only on finished permutations and you check 40,320 of them. Test it the moment you place each queen, and a conflict at row 2 kills every arrangement of rows 3 through 8 beneath it — thousands of placements never generated, from one comparison.</p>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>The representation is the first design decision</h3>
+<pre><code>int col[N];   /* col[r] = column of the queen in row r */</code></pre>
+      <p class="small">One array of <em>n</em> ints. It cannot represent two queens in a row, so that whole class of illegal states is unreachable — not rejected, <em>unrepresentable</em>.</p>
+      <p class="small">Contrast with <code>int board[N][N]</code>, which can represent every illegal position there is and makes you test for all of them. Picking the type that cannot hold a wrong answer is most of the work.</p>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>The safety test, in full</h3>
+<pre><code>int safe(int r, int c) {
+  for (int i = 0; i &lt; r; i++) {
+    if (col[i] == c) return 0;              /* same column   */
+    if (abs(col[i] - c) == r - i) return 0; /* same diagonal */
+  }
+  return 1;
+}</code></pre>
+      <p class="small">Only rows above <em>r</em> are checked, because rows below have nothing in them yet. <code>r - i</code> is positive, so no <code>abs</code> is needed on that side.</p>
+    </div>
+    <div class="note bad">
+      <p>This is O(<em>r</em>) per test. The next slide measures what it buys; slide 20 shows how to make it O(1) with three occupancy arrays, which is the version you would actually ship.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-chapter="Backtracking">
+ <div class="inner">
+  <p class="kicker">15 — the queens visualiser</p>
+  <h2>Watch it choose, fail, and un-choose</h2>
+  <div class="cols">
+   <div>
+    <div class="treebox">
+      <svg class="tree" id="qSvg" role="img" aria-label="A chessboard showing the current partial placement of queens during a backtracking search"></svg>
+      <div class="legend"><span>▸ placed</span><span>▸ rejected — attacked</span><span>▸ being undone</span></div>
+    </div>
+    <div class="controls">
+      <button id="qBack">◂ Back</button>
+      <button id="qFwd">Forward ▸</button>
+      <button id="qAuto">Play</button>
+      <button id="qJump">▸▸ next solution</button>
+      <button id="qReset">Reset</button>
+      <label>n <input type="number" id="qN" value="6" min="4" max="8"></label>
+    </div>
+    <p class="stat" id="qStat"></p>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>What each step is</h3>
+      <ul class="tight small">
+        <li><b>place</b> — a legal square was found for this row; recurse into the next row.</li>
+        <li><b>reject</b> — the square is attacked from above. The branch is never entered. This is the prune, and it is where all the savings are.</li>
+        <li><b>undo</b> — every option in the row below has been exhausted. Lift the queen and try the next column here.</li>
+        <li><b>solution</b> — the last row was filled.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <p>Keep an eye on the <em>rejects per place</em> ratio in the status line. Most of what this algorithm does is refuse to explore. The queens it places are the small minority of its work, and the ones it keeps are smaller still.</p>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>Things to try</h3>
+      <ul class="tight small">
+        <li>Run <em>n</em> = 4 to completion. There are exactly 2 solutions and they are mirror images.</li>
+        <li>Set <em>n</em> = 6 and press <b>next solution</b> four times, then once more. It reports 4 and stops — <em>n</em> = 6 is a local minimum in a sequence that is otherwise climbing.</li>
+        <li>Watch row 0. The search will never find a solution with the first queen at the far edge for <em>n</em> = 6, and it spends a good fraction of its total effort proving that.</li>
+      </ul>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-chapter="Measurement">
+ <div class="inner">
+  <p class="kicker">16 — pruning, measured</p>
+  <h2>The recursion is not the algorithm. The pruning is.</h2>
+  <p class="sub">Same recursive structure, same answers, one difference: where the legality test runs.</p>
+  <div class="controls">
+    <label>n <input type="number" id="pN" value="8" min="4" max="12"></label>
+    <button id="pRun">Run both</button>
+    <span class="small">unpruned is only executed up to n = 8; above that it is the exact closed form</span>
+  </div>
+  <div id="pOut" class="panel"><p class="small">Predict the ratio at n = 8 before you press. Most people are three orders of magnitude low.</p></div>
+  <div class="cols" style="margin-top:18px">
+   <div>
+    <div class="panel">
+      <h3>Where the closed form comes from</h3>
+      <p class="small">The unpruned search generates every one of the <em>n</em> columns at every one of the <em>n</em> rows, so the tree is a complete <em>n</em>-ary tree of depth <em>n</em>, and it visits</p>
+      <p class="small" style="font-family:var(--mono)">1 + n + n² + … + n<sup>n</sup> = (n<sup>n+1</sup> − 1)/(n − 1)</p>
+      <p class="small">nodes. At <em>n</em> = 10 that is 11,111,111,111 — a number you should never generate to confirm, which is why the deck checks the formula against the executed count for <em>n</em> ≤ 8 and then trusts the arithmetic.</p>
+    </div>
+   </div>
+   <div>
+    <div class="note">
+      <p>Read the ratio column, not the times. The times are a JavaScript engine on your laptop and mean little. The node counts are exact, reproducible, and identical to what the C on slide 21 will do — they are a property of the algorithm, not of the machine.</p>
+    </div>
+    <div class="note bad">
+      <p>Both columns are exponential. Pruning buys an enormous constant and a much smaller base, and it does not buy polynomial time — <em>n</em>-queens solution counting has no known polynomial algorithm. At <em>n</em> = 30 the pruned search is still hopeless. Backtracking makes intractable problems <em>reachable at useful sizes</em>; it does not make them tractable.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 18 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">17 — design decisions</p>
+  <h2>Three choices to make before you type a recursive function</h2>
+  <div class="cols3">
+   <div>
+    <div class="panel">
+      <h3>1 · Where does the state live</h3>
+      <p class="small">Three options, in increasing order of how much you will like yourself later:</p>
+      <ul class="tight small">
+        <li><b>File-scope globals.</b> Zero per-frame cost, no threading, no reentrancy, and untestable in isolation. Fine for a one-file exercise, wrong for anything else.</li>
+        <li><b>Pass everything as parameters.</b> Pure and testable, and every parameter is copied into every frame at every level.</li>
+        <li><b>One pointer to a state struct.</b> Eight bytes per frame, reentrant, testable. This is the answer almost always.</li>
+      </ul>
+      <p class="small">The rule underneath: <b>anything that does not change across levels should be pointed at, not copied.</b></p>
+    </div>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>2 · How big is the frame</h3>
+      <p class="small">You multiply it by the maximum depth. A <code>char buf[256]</code> declared for convenience inside a function that recurses 5,000 deep is 1.2 MB of stack that no profiler will attribute to you.</p>
+      <ul class="tight small">
+        <li>Hoist big locals out, or make them <code>static</code> if there is genuinely one at a time.</li>
+        <li>Keep the parameter list short — every argument beyond the register-passed few is stack.</li>
+        <li>Beware <code>struct</code> parameters passed <b>by value</b>. A 64-byte struct as a parameter is 64 bytes per level.</li>
+      </ul>
+    </div>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>3 · What bounds the depth</h3>
+      <p class="small">Answer this in writing before you ship. Every recursion falls into one of three cases:</p>
+      <ul class="tight small">
+        <li><b>Bounded by a constant</b> — a fixed-arity expression tree, <code>hanoi(n)</code> for <em>n</em> ≤ 64. Safe.</li>
+        <li><b>Bounded by log of the input</b> — balanced trees, binary search, merge sort's split. Safe at any realistic size.</li>
+        <li><b>Bounded by the input itself</b> — list walks, unbalanced trees, JSON nesting depth from the network. <span class="alert">Not safe.</span> Either convert to iteration or enforce an explicit depth limit and return an error.</li>
+      </ul>
+      <p class="small">A parser that recurses once per <code>[</code> and reads from a socket is a denial-of-service bug with a syntax highlighter.</p>
+    </div>
+   </div>
+  </div>
+  <div class="note">
+    <p>Write the depth bound in a comment above the function. If you cannot state it, you do not yet know whether the code is correct — the base case tells you it terminates, but only the bound tells you it terminates <em>before the stack does</em>.</p>
+  </div>
+ </div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">18 — the small ones in C</p>
+  <h2>Three recursions, and the loops they turn into</h2>
+  <div class="cols">
+   <div>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+/* ---- not tail recursive: work remains after the call ----
+   depth: n frames. For n = 20 this is fine; the type
+   overflows long before the stack does. */
+long fact(int n) {
+  if (n &lt;= 1) return 1;          /* base case   */
+  return n * fact(n - 1);        /* multiply AFTER the call */
+}
+
+/* ---- tail recursive: the accumulator carries the work ----
+   at -O2 gcc turns this into a loop and the depth is 1.
+   At -O0 it is still n frames. Do not depend on it. */
+static long fact_go(int n, long acc) {
+  if (n &lt;= 1) return acc;
+  return fact_go(n - 1, acc * n);   /* nothing after */
+}
+long fact_tail(int n) { return fact_go(n, 1); }
+
+/* ---- and the loop it provably is ---- */
+long fact_loop(int n) {
+  long acc = 1;
+  while (n &gt; 1) { acc *= n; n--; }
+  return acc;
+}</code></pre>
+    <div class="note">
+      <p>All three return identical values for every <em>n</em> in range — which is a test you should write, not a claim you should believe. The differences are entirely in the stack column.</p>
+    </div>
+   </div>
+   <div>
+<pre><code>/* ---- naive fibonacci: the tree that eats itself ----
+   calls(n) = 2*fib(n+1) - 1. For n = 30 that is
+   2,692,537 calls to compute 31 distinct values. */
+long fib(int n) {
+  if (n &lt; 2) return n;
+  return fib(n - 1) + fib(n - 2);
+}
+
+/* ---- memoised: same recursion, one line of memory ----
+   the table turns the tree back into a path.
+   memo[] must be sized n+1 and cleared to -1. */
+long fib_memo(int n, long *memo) {
+  if (n &lt; 2) return n;
+  if (memo[n] &gt;= 0) return memo[n];
+  return memo[n] = fib_memo(n-1, memo) + fib_memo(n-2, memo);
+}
+
+/* ---- iterative: two variables, no stack at all ---- */
+long fib_loop(int n) {
+  if (n &lt; 2) return n;
+  long a = 0, b = 1;
+  for (int i = 2; i &lt;= n; i++) { long c = a + b; a = b; b = c; }
+  return b;
+}</code></pre>
+    <div class="note bad">
+      <p>The memoised version is still recursive and still uses <em>n</em> frames of stack. Memoisation fixes the <b>time</b> axis of the recursion tree and does nothing whatever to the <b>depth</b> axis. If you needed the depth fixed, you needed the loop.</p>
+    </div>
+    <p class="small">Note <code>memo[n] = ...</code> as the return expression: assignment in C yields the value assigned, so the store and the return are one statement. Idiomatic here, and the reason the function reads as one rule rather than three.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 20 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">19 — hanoi in C</p>
+  <h2>Four lines, and the forty lines you did not have to write</h2>
+  <div class="cols">
+   <div>
+    <h3>The recursion</h3>
+<pre><code>/* depth bound: n frames, and n is the disk count,
+   which is bounded by the width of a long. Safe. */
+static long hanoi_moves;
+
+void hanoi(int n, char from, char to, char via, FILE *out) {
+  if (n == 0) return;
+  hanoi(n - 1, from, via, to, out);
+  hanoi_moves++;
+  if (out) fprintf(out, "%d %c %c\n", n, from, to);
+  hanoi(n - 1, via, to, from, out);
+}</code></pre>
+    <p class="small">Read the argument order of the two calls against each other. In the first, the destination is the spare; in the second, the source is the spare. That swap is the entire algorithm, and it is the only line worth checking twice.</p>
+    <div class="note">
+      <p>The base case is <code>n == 0</code>, not <code>n == 1</code>. Both work, but <code>n == 0</code> means the function is total — it is correct for every non-negative input with no special case at the bottom. Prefer the base case that removes work rather than adds it.</p>
+    </div>
+   </div>
+   <div>
+    <h3>The same thing, with the stack in your hands</h3>
+<pre><code>typedef struct { int n; char a, c, b; int stage; } Frame;
+
+void hanoi_iter(int n, FILE *out) {
+  Frame st[65];  int top = 0;              /* n &lt;= 64 */
+  st[top++] = (Frame){ n, 'A', 'C', 'B', 0 };
+  while (top &gt; 0) {
+    Frame *f = &amp;st[top - 1];
+    if (f-&gt;n == 0) { top--; continue; }
+    if (f-&gt;stage == 0) {                   /* before first call */
+      f-&gt;stage = 1;
+      st[top++] = (Frame){ f-&gt;n-1, f-&gt;a, f-&gt;b, f-&gt;c, 0 };
+    } else if (f-&gt;stage == 1) {            /* between the calls */
+      if (out) fprintf(out, "%d %c %c\n", f-&gt;n, f-&gt;a, f-&gt;c);
+      f-&gt;stage = 2;
+      st[top++] = (Frame){ f-&gt;n-1, f-&gt;b, f-&gt;c, f-&gt;a, 0 };
+    } else top--;                          /* after second call */
+  }
+}</code></pre>
+    <div class="note bad">
+      <p>Look at <code>stage</code>. It exists because the function has <b>three resumption points</b> and an explicit stack has to record which one you are returning to. That field is the return address, hand-rolled. This is precisely the work the compiler does for you, and it is why "just use a loop and a stack" is advice with a price on it.</p>
+    </div>
+    <p class="small">Both versions emit byte-identical output for <em>n</em> = 1 to 12 — verified, not assumed. If you write the iterative one yourself, diff it against the recursive one; that is the only test that catches a swapped peg.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">20 — n-queens in C</p>
+  <h2>The safety test, in O(1), with the un-choose as its mirror</h2>
+  <div class="cols">
+   <div>
+<pre><code>#define MAXN 16
+
+typedef struct {
+  int  n, col[MAXN];
+  char colUsed[MAXN];     /* is column c taken?          */
+  char d1[2 * MAXN];      /* diagonal r + c     (↘ to ↗) */
+  char d2[2 * MAXN];      /* diagonal r - c + n (↗ to ↘) */
+  long solutions, nodes;
+} QState;
+
+static void q_search(QState *q, int r) {
+  q-&gt;nodes++;
+  if (r == q-&gt;n) { q-&gt;solutions++; return; }
+
+  for (int c = 0; c &lt; q-&gt;n; c++) {
+    int a = r + c, b = r - c + q-&gt;n;
+    if (q-&gt;colUsed[c] || q-&gt;d1[a] || q-&gt;d2[b]) continue;
+
+    q-&gt;col[r] = c;                                  /* choose    */
+    q-&gt;colUsed[c] = q-&gt;d1[a] = q-&gt;d2[b] = 1;
+
+    q_search(q, r + 1);                             /* explore   */
+
+    q-&gt;colUsed[c] = q-&gt;d1[a] = q-&gt;d2[b] = 0;        /* un-choose */
+    q-&gt;col[r] = -1;
+  }
+}
+
+long queens(int n, long *nodes) {
+  QState q; memset(&amp;q, 0, sizeof q); q.n = n;
+  for (int i = 0; i &lt; n; i++) q.col[i] = -1;
+  q_search(&amp;q, 0);
+  if (nodes) *nodes = q.nodes;
+  return q.solutions;
+}</code></pre>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Why two diagonal arrays, and why the <code>+ n</code></h3>
+      <p class="small">Squares on the same ↗ diagonal share <em>r</em> + <em>c</em>, which runs 0 … 2<em>n</em>−2. Squares on the same ↘ diagonal share <em>r</em> − <em>c</em>, which runs −(<em>n</em>−1) … <em>n</em>−1 — <b>and negative indices are undefined behaviour</b>. Adding <em>n</em> shifts it into 1 … 2<em>n</em>−1, which is why the arrays are <code>2 * MAXN</code> and not <code>MAXN</code>.</p>
+      <p class="small">This is the single most common bug in the fast version, and ASan catches it instantly. Run the sanitised build once and you never debug it.</p>
+    </div>
+    <div class="note">
+      <p>The choose line and the un-choose line are literal mirrors, three assignments each, in the same order. Write them together, and never let an early <code>return</code>, <code>break</code> or <code>goto</code> appear between them — that is how the undo gets skipped and the search starts leaking state into its siblings.</p>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h3>What this buys over the O(<em>r</em>) scan</h3>
+      <p class="small">The obvious <code>safe()</code> from slide 15 walks every row above <em>r</em>. That is O(<em>n</em>) per candidate and O(<em>n</em>²) per node. The occupancy arrays make it three array reads.</p>
+      <p class="small">It does <b>not</b> change which nodes are visited — both versions visit exactly 2,057 nodes at <em>n</em> = 8. That equality is worth asserting in a test, because a fast prune that accidentally prunes <em>more</em> is a wrong answer wearing a performance win.</p>
+    </div>
+    <div class="note bad">
+      <p><code>MAXN 16</code> is not decoration. <em>n</em> = 16 already takes minutes; <em>n</em> = 20 is days. A fixed bound you can state beats a <code>malloc</code> you cannot afford to use.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 22 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">21 — testing it</p>
+  <h2>Test the property, not the printout</h2>
+  <p class="sub">Hanoi has one correct move sequence; n-queens has 92 correct answers at <em>n</em> = 8 and no natural order. Neither is testable by comparing to a golden file you typed by hand.</p>
+  <div class="cols">
+   <div>
+    <h3>Replay the moves on real pegs</h3>
+<pre><code>/* Does not care WHICH moves were produced. Checks only
+   that every one of them was legal and the tower arrived. */
+int hanoi_check(const char *path, int n) {
+  int peg[3][32], h[3] = {0, 0, 0};
+  for (int d = n; d &gt;= 1; d--) peg[0][h[0]++] = d;
+
+  FILE *f = fopen(path, "r"); if (!f) return 0;
+  int disk; char s, t; int steps = 0;
+  while (fscanf(f, " %d %c %c", &amp;disk, &amp;s, &amp;t) == 3) {
+    int si = s - 'A', ti = t - 'A';
+    if (si &lt; 0 || si &gt; 2 || ti &lt; 0 || ti &gt; 2) return 0;
+    if (h[si] == 0) return 0;                  /* empty source  */
+    if (peg[si][h[si]-1] != disk) return 0;    /* buried disk   */
+    if (h[ti] &gt; 0 &amp;&amp; peg[ti][h[ti]-1] &lt; disk)
+        return 0;                              /* large on small */
+    peg[ti][h[ti]++] = peg[si][--h[si]];
+    steps++;
+  }
+  fclose(f);
+  if (h[2] != n) return 0;                     /* all arrived   */
+  for (int i = 1; i &lt; n; i++)
+    if (peg[2][i-1] &lt; peg[2][i]) return 0;     /* in order      */
+  return steps == (1 &lt;&lt; n) - 1;                /* and optimal   */
+}</code></pre>
+    <div class="note">
+      <p>Five independent properties, each one a rule of the puzzle stated directly in code. A solver that produces a different but equally valid sequence still passes — which is exactly what you want from a test, and exactly what a golden-output diff cannot give you.</p>
+    </div>
+   </div>
+   <div>
+    <h3>The whole harness</h3>
+<pre><code>int main(void) {
+  int ok = 1;
+
+  /* three factorials, three fibonaccis, must agree */
+  for (int n = 0; n &lt;= 20; n++)
+    if (fact(n) != fact_tail(n) || fact(n) != fact_loop(n)) ok = 0;
+
+  /* hanoi: legal, optimal, and the explicit-stack version
+     must emit byte-identical output to the recursive one */
+  for (int n = 1; n &lt;= 12; n++) {
+    write_recursive(n, "/tmp/_h1.txt");
+    write_iterative(n, "/tmp/_h2.txt");
+    if (!hanoi_check("/tmp/_h1.txt", n)) ok = 0;
+    if (!hanoi_check("/tmp/_h2.txt", n)) ok = 0;
+    if (!files_equal("/tmp/_h1.txt", "/tmp/_h2.txt")) ok = 0;
+  }
+
+  /* queens against the known sequence, OEIS A000170 */
+  const long known[] = {0,1,0,0,2,10,4,40,92,352,724,2680,14200};
+  for (int n = 1; n &lt;= 12; n++)
+    if (queens(n, NULL) != known[n]) ok = 0;
+
+  /* and the fast prune must visit the SAME nodes as the slow one */
+  for (int n = 4; n &lt;= 10; n++) {
+    long fn = 0, sn = 0;
+    long fs = queens(n, &amp;fn), ss = queens_slow(n, &amp;sn);
+    if (fs != ss || fn != sn) ok = 0;
+  }
+
+  puts(ok ? "ALL PROPERTY TESTS PASSED" : "FAILURES");
+  return !ok;
+}</code></pre>
+    <div class="note bad">
+      <p>Build it this way every time, and especially the first time:</p>
+<pre><code>gcc -std=c11 -Wall -Wextra -O2 \
+    -fsanitize=address,undefined recursion.c -o recursion</code></pre>
+      <p>ASan is the only tool that gives a recursion a civilised death. Without it a stack overflow is a bare <code>SIGSEGV</code>; with it you get <code>stack-overflow</code> and the name of the offending function. The diagonal-index bug from the previous slide is caught by the same flag.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 23 -->
+<section class="slide" data-chapter="Closing">
+ <div class="inner">
+  <p class="kicker">22 — where it wins, where it loses</p>
+  <h2>Use it for trees. Be suspicious of it for lists.</h2>
+  <div class="cols3">
+   <div>
+    <div class="panel">
+      <h3>Where recursion is the right answer</h3>
+      <ul class="tight small">
+        <li><b>Parsers.</b> Recursive descent is the default way to parse a programming language, because grammars are trees and the code ends up shaped like the grammar.</li>
+        <li><b>Filesystem and tree walks.</b> Depth is bounded by path depth.</li>
+        <li><b>Divide and conquer.</b> Merge sort, quicksort, FFT, Karatsuba. Depth is log <em>n</em>.</li>
+        <li><b>Backtracking search.</b> Sudoku, SAT solvers, constraint solvers, regex engines, type inference.</li>
+        <li><b>Anything on an algebraic data type</b> — expression evaluation, tree rewriting, interpreters.</li>
+      </ul>
+    </div>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Where it loses</h3>
+      <ul class="tight small">
+        <li><b>Linear recursion over user-sized data.</b> A recursive linked-list length is a crash with extra steps. Use a loop.</li>
+        <li><b>Unbalanced trees from untrusted input.</b> A BST built from sorted keys is a list; a recursive walk on it dies. <span class="alert">Deeply nested JSON has been a real CVE in more than one parser.</span></li>
+        <li><b>Tight numeric kernels.</b> Call overhead per element is real when the body is three instructions.</li>
+        <li><b>Embedded and kernel code.</b> 4 KB stacks; many style guides ban recursion outright, and they are right to.</li>
+        <li><b>Overlapping subproblems.</b> Not recursion's fault, but plain recursion will happily recompute <code>fib(3)</code> five times and never mention it.</li>
+      </ul>
+    </div>
+   </div>
+   <div>
+    <div class="panel">
+      <h3>Reach for instead</h3>
+      <ul class="tight small">
+        <li><b>A loop</b> — for linear recursion, always.</li>
+        <li><b>An explicit stack</b> — when the depth is data-driven and unbounded. It fails with a testable <code>NULL</code>, not a signal.</li>
+        <li><b>A depth cap and an error return</b> — the minimum defence for any parser reading from a network.</li>
+        <li><b>Memoisation or a DP table</b> — when the recursion tree repeats itself.</li>
+        <li><b>An accumulator, then a loop</b> — when you want tail recursion's shape without depending on the optimiser.</li>
+      </ul>
+    </div>
+   </div>
+  </div>
+  <h3>Exercises — predict first, then instrument</h3>
+  <ol class="tight">
+    <li>Before running anything: how many calls does <code>fib(20)</code> make? Now instrument it and check. The exact rule is calls(<em>n</em>) = 2·fib(<em>n</em>+1) − 1 — derive it from the recursion tree rather than fitting it to data.</li>
+    <li>Write <code>sum_to(n)</code> recursively and call it with <em>n</em> = 1,000,000. Predict what happens, then find the <b>smallest</b> <em>n</em> that crashes on your machine. Now add <code>char pad[1024]</code> as an unused local and find the smallest crashing <em>n</em> again. Explain the ratio between the two numbers.</li>
+    <li>Compile <code>fact_tail</code> at <code>-O0</code> and <code>-O2</code> and diff <code>gcc -S</code> output. Find the <code>call</code> that became a <code>jmp</code>. Then add <code>printf("%d", n)</code> after the recursive call and confirm the <code>jmp</code> goes away — you moved the call out of tail position.</li>
+    <li>Delete the un-choose line from <code>q_search</code> and run the harness. Predict first: does it report too many solutions, too few, or crash? Then explain the number it actually gives.</li>
+    <li>Make the diagonal bug real: change <code>d2[r - c + n]</code> to <code>d2[r - c]</code> and run under ASan. Find the smallest <em>n</em> that trips it, and say why <em>n</em> = 1 does not.</li>
+    <li>Instrument <code>hanoi</code> to record the maximum depth reached. Predict it for <em>n</em> = 20 before you run it, then explain to someone else why it is not 1,048,575.</li>
+    <li>Write <code>hanoi_iter</code> from scratch without looking at slide 19, then diff its output against the recursive version for <em>n</em> = 1 … 12. Count how many attempts it takes. That count is the honest price of "just use a loop".</li>
+  </ol>
+ </div>
+</section>
+
+
+
+</main>
+
+<nav id="bar">
+  <span id="count">1 / 23</span>
+  <button id="prev" aria-label="Previous slide">Back</button>
+  <button id="next" aria-label="Next slide">Next</button>
+  <span class="chapter" id="chapter"></span>
+  <button id="theme" title="Colour theme — auto, light, dark (T)">◐ Auto</button>
+</nav>
+
+<script>
+"use strict";
+/* ==================================================================
+   DECK CHROME — navigation, progress, keyboard, touch, deep links.
+   Nothing here needs changing.
+   ================================================================== */
+var slides=Array.prototype.slice.call(document.querySelectorAll('.slide')),idx=0;
+var elProg=document.getElementById('progress'),elCount=document.getElementById('count'),
+    elChap=document.getElementById('chapter'),btnPrev=document.getElementById('prev'),btnNext=document.getElementById('next');
+function show(i){
+  idx=Math.max(0,Math.min(slides.length-1,i));
+  slides.forEach(function(s,k){s.classList.toggle('is-active',k===idx);});
+  slides[idx].scrollTop=0;
+  elProg.style.width=((idx+1)/slides.length*100)+'%';
+  elCount.textContent=(idx+1)+' / '+slides.length;
+  elChap.textContent=slides[idx].dataset.chapter||'';
+  btnPrev.disabled=idx===0;btnNext.disabled=idx===slides.length-1;
+  if(location.hash!=='#'+(idx+1)) history.replaceState(null,'','#'+(idx+1));
+}
+btnPrev.addEventListener('click',function(){show(idx-1);});
+btnNext.addEventListener('click',function(){show(idx+1);});
+document.addEventListener('keydown',function(e){
+  var t=e.target.tagName; if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA') return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'){show(idx+1);e.preventDefault();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){show(idx-1);e.preventDefault();}
+  else if(e.key==='Home') show(0); else if(e.key==='End') show(slides.length-1);
+});
+(function(){var x0=null,y0=null,d=document.getElementById('deck');
+ d.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;y0=e.touches[0].clientY;},{passive:true});
+ d.addEventListener('touchend',function(e){if(x0===null)return;
+   var dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;
+   if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.8) show(idx+(dx<0?1:-1));x0=null;},{passive:true});})();
+
+/* ==================================================================
+   C SYNTAX HIGHLIGHTING for <pre><code> blocks. Nothing to change.
+   ================================================================== */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function highlight(src){
+  var re=/(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|(#\s*\w+)|("(?:[^"\\]|\\.)*")|\b(if|else|while|for|return|struct|typedef|enum|int|char|long|void|static|const|sizeof|NULL|break|continue|assert|puts|calloc|malloc|free|srand|rand|main)\b|\b(\d+)\b/g;
+  var out='',last=0,m;
+  while((m=re.exec(src))!==null){
+    out+=esc(src.slice(last,m.index));
+    if(m[1]) out+='<span class="tok-c">'+esc(m[1])+'</span>';
+    else if(m[2]) out+='<span class="tok-k">'+esc(m[2])+'</span>';
+    else if(m[3]) out+='<span class="tok-s">'+esc(m[3])+'</span>';
+    else if(m[4]) out+='<span class="tok-k">'+esc(m[4])+'</span>';
+    else out+='<span class="tok-n">'+esc(m[5])+'</span>';
+    last=re.lastIndex;
+  }
+  return out+esc(src.slice(last));
+}
+Array.prototype.forEach.call(document.querySelectorAll('pre code'),function(el){el.innerHTML=highlight(el.textContent);});
+
+/* ==================================================================
+   DRAWING PRIMITIVES
+   Colours: keep any colour that carries meaning in the subject
+   (node colour, saturation, violation) reserved for that meaning.
+   ================================================================== */
+/* Colours are READ FROM THE CSS CUSTOM PROPERTIES, never hardcoded here, so
+   the theme switch can move them. But these diagrams are SVG *strings*, not
+   styled elements: nothing already drawn updates itself when the palette
+   changes. So every renderer registers how to repeat itself, and repaintAll()
+   replays the lot. Any renderer you add must call _paints() the same way, or
+   it will freeze in whichever theme it was first drawn in. */
+var C_INK,C_RULE,C_FAINT,C_ACCENT,C_SOFT,C_BAD,C_CELL,
+    C_NODE,C_BOX,C_WASH,C_ON,C_BLOCK,C_BLOCKSOFT,
+    C_RED,C_RED_EDGE,C_BLACK,C_BLACK_EDGE,C_ON_NODE,C_DIMC,C_BADSOFT;
+
+function readTokens(){
+  var cs=getComputedStyle(document.documentElement);
+  function t(n,fb){ var v=(cs.getPropertyValue(n)||'').trim(); return v||fb; }
+  C_INK       = t('--ink','#22303C');
+  C_RULE      = t('--svg-rule','#9FB3C0');
+  C_FAINT     = t('--faint','#8CA0AE');
+  C_ACCENT    = t('--accent','#116A83');
+  C_SOFT      = t('--accent-soft','#E1EEF2');
+  C_BAD       = t('--bad','#A4303F');
+  C_CELL      = t('--cell','#F4F8FA');
+  C_NODE      = t('--svg-node','#FFFFFF');   /* default node fill; also the
+                                                "no fill given" sentinel */
+  C_BOX       = t('--box-bg','#FBFDFE');
+  C_WASH      = t('--wash','#DCE5EA');
+  C_ON        = t('--on-fill','#FFFFFF');    /* text on an accent/bad fill */
+  C_BLOCK     = t('--block','#9C6510');
+  C_BLOCKSOFT = t('--block-soft','#F6EEE0');
+  /* only meaningful in decks where node colour is data */
+  C_RED       = t('--node-red','#C62828');
+  C_RED_EDGE  = t('--node-red-edge',C_RED);
+  C_BLACK     = t('--node-black','#14181C');
+  C_BLACK_EDGE= t('--node-black-edge',C_BLACK);
+  C_ON_NODE   = t('--on-node','#FFFFFF');
+  C_DIMC      = t('--dim','#5D7285');        /* secondary text inside an SVG */
+  C_BADSOFT   = t('--bad-soft','#F7EAEC');   /* rejected-square wash          */
+}
+readTokens();
+
+var _painters=[];
+/* Remember how to redraw one SVG element. Keyed by element, so a demo that
+   renders repeatedly only ever holds its most recent call. */
+function _paints(el,fn){
+  for(var i=0;i<_painters.length;i++){ if(_painters[i][0]===el){ _painters[i][1]=fn; return; } }
+  _painters.push([el,fn]);
+}
+function repaintAll(){
+  readTokens();
+  for(var i=0;i<_painters.length;i++) _painters[i][1]();
+}
+
+/* Sizes an SVG so small diagrams are not blown up to full width and
+   large ones scroll on mobile instead of shrinking to illegibility. */
+function sizeSVG(svg,W){
+  var d=W<620?Math.min(W*1.6,720):W;
+  var narrow=(window.innerWidth||1024)<760;
+  svg.style.width=d+'px';
+  svg.style.maxWidth=(narrow||d>1100)?'none':'100%';
+}
+function lineSVG(x1,y1,x2,y2,em){
+  return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+(em?C_ACCENT:C_RULE)+
+         '" stroke-width="'+(em?2.4:1.4)+'"/>';
+}
+function circSVG(x,y,r,label,sub,subCol,fill,txt){
+  var s='<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+(fill||C_NODE)+'" stroke="'+
+        (fill&&fill!==C_NODE?fill:C_INK)+'" stroke-width="1.4"/>'+
+        '<text x="'+x+'" y="'+(y+4)+'" text-anchor="middle" fill="'+(txt||C_INK)+
+        '" font-family="JetBrains Mono, monospace" font-size="'+(r>13?12:10)+'">'+label+'</text>';
+  if(sub!==undefined&&sub!==null)
+    s+='<text x="'+(x+r+3)+'" y="'+(y-r+2)+'" fill="'+(subCol||C_ACCENT)+
+       '" font-family="JetBrains Mono, monospace" font-size="10">'+sub+'</text>';
+  return s;
+}
+/* triangle placeholder for "some subtree" in schematic diagrams */
+function triSVG(x,y,w,hh,label){
+  return '<path d="M '+x+' '+y+' L '+(x-w)+' '+(y+hh)+' L '+(x+w)+' '+(y+hh)+' Z" fill="'+C_CELL+
+         '" stroke="'+C_RULE+'" stroke-width="1.2"/>'+
+         '<text x="'+x+'" y="'+(y+hh-6)+'" text-anchor="middle" fill="'+C_FAINT+
+         '" font-family="JetBrains Mono, monospace" font-size="11">'+label+'</text>';
+}
+/* box of key cells, for B-tree style nodes */
+function boxSVG(x,y,keys,cw,bh,alt,hl){
+  var w=Math.max(keys.length,1)*cw+6;
+  var fill=hl?C_BLOCKSOFT:(alt?C_CELL:C_NODE), stroke=hl?C_BLOCK:C_RULE;
+  var s='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+bh+'" rx="2" fill="'+fill+
+        '" stroke="'+stroke+'" stroke-width="'+(hl?2:1.2)+'"/>';
+  for(var i=0;i<keys.length;i++){
+    if(i) s+='<line x1="'+(x+3+i*cw)+'" y1="'+(y+3)+'" x2="'+(x+3+i*cw)+'" y2="'+(y+bh-3)+
+             '" stroke="'+C_RULE+'" stroke-width="0.8"/>';
+    s+='<text x="'+(x+3+i*cw+cw/2)+'" y="'+(y+bh/2+4)+'" text-anchor="middle" fill="'+C_INK+
+       '" font-family="JetBrains Mono, monospace" font-size="11">'+keys[i]+'</text>';
+  }
+  return s;
+}
+
+/* ------------------------------------------------------------------
+   renderBinaryTree(svg, T, opts)
+   T needs { root } with .left/.right/.key; empty child is null (or set
+   T.NIL and pass opts.nil for a sentinel implementation).
+   opts.badge(n)  -> string beside the node (height, balance factor, distance)
+   opts.fill(n)   -> fill colour, for structures where node colour is data
+   opts.mark      -> a node to ring in the accent colour
+   ------------------------------------------------------------------ */
+function renderBinaryTree(svg,T,opts){
+  opts=opts||{};
+  if(!svg) return;
+  _paints(svg,function(){ renderBinaryTree(svg,T,opts); });
+  var NIL=T.NIL||null;
+  if(T.root===NIL||!T.root){
+    svg.setAttribute('viewBox','0 0 400 70'); sizeSVG(svg,400);
+    svg.innerHTML='<text x="200" y="42" text-anchor="middle" fill="'+C_FAINT+
+      '" font-family="JetBrains Mono, monospace" font-size="13">empty</text>';
+    return;
+  }
+  var items=[],i=0,maxd=0;
+  (function walk(n,d){ if(n===NIL||!n) return; walk(n.left,d+1);
+    n._x=i++;n._d=d; if(d>maxd)maxd=d; items.push(n); walk(n.right,d+1); })(T.root,0);
+  var cols=items.length,cw=cols>24?28:(cols>14?36:44),r=cols>24?11:14,ch=maxd>8?32:54,m=24;
+  var W=cols*cw+m*2,H=(maxd+1)*ch+m+6;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); sizeSVG(svg,W);
+  function px(n){return m+n._x*cw+cw/2;} function py(n){return m+n._d*ch;}
+  var e='',c='';
+  items.forEach(function(n){
+    if(n.left&&n.left!==NIL) e+=lineSVG(px(n),py(n),px(n.left),py(n.left));
+    if(n.right&&n.right!==NIL) e+=lineSVG(px(n),py(n),px(n.right),py(n.right));
+  });
+  items.forEach(function(n){
+    var fill=opts.fill?opts.fill(n):C_NODE;
+    var txt=(fill&&fill!==C_NODE)?C_ON:C_INK;
+    var bd=opts.badge?opts.badge(n):null;
+    c+=circSVG(px(n),py(n),r,n.key,bd,opts.badgeCol?opts.badgeCol(n):C_ACCENT,fill,txt);
+    if(opts.mark&&n===opts.mark)
+      c+='<circle cx="'+px(n)+'" cy="'+py(n)+'" r="'+(r+5)+'" fill="none" stroke="'+C_ACCENT+'" stroke-width="2"/>';
+  });
+  svg.innerHTML=e+c;
+}
+
+/* ------------------------------------------------------------------
+   renderGraph(svg, G, opts)
+   G = { n, labels[], pos[[x,y]], edges[[u,v]] or [[u,v,w]], directed }
+   opts.state[i]     'u' unvisited | 'f' frontier | 'v' visited | 'c' current
+   opts.badge[i]     text beside a vertex (distance, id)
+   opts.edgeLabel(i,ed) -> weight / "flow/cap" / null
+   opts.edgeCls(i,ed)   -> 'hi' | 'sat' | null
+   opts.treeEdges    Set of "u-v" strings to thicken
+   ------------------------------------------------------------------ */
+function renderGraph(svg,G,opts){
+  opts=opts||{};
+  if(!svg) return;
+  _paints(svg,function(){ renderGraph(svg,G,opts); });
+  var r=19,maxx=0,maxy=0;
+  G.pos.forEach(function(p){ if(p[0]>maxx)maxx=p[0]; if(p[1]>maxy)maxy=p[1]; });
+  var W=maxx+r+26,H=maxy+r+26;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); sizeSVG(svg,W);
+  var e='',c='';
+  G.edges.forEach(function(ed,ei){
+    var a=G.pos[ed[0]],b=G.pos[ed[1]];
+    var key=ed[0]+'-'+ed[1],key2=ed[1]+'-'+ed[0];
+    var cls=opts.edgeCls?opts.edgeCls(ei,ed):null;
+    var hi=(cls==='hi')||(opts.treeEdges&&(opts.treeEdges.has(key)||opts.treeEdges.has(key2)));
+    var col=hi?C_ACCENT:(cls==='sat'?C_BAD:C_RULE), wdt=hi?3:(cls==='sat'?2.4:1.6);
+    var dx=b[0]-a[0],dy=b[1]-a[1],L=Math.sqrt(dx*dx+dy*dy)||1,ux=dx/L,uy=dy/L;
+    var x1=a[0]+ux*r,y1=a[1]+uy*r,x2=b[0]-ux*r,y2=b[1]-uy*r;
+    e+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+col+'" stroke-width="'+wdt+'"/>';
+    if(G.directed){
+      var px=-uy,py=ux,sz=5;
+      e+='<path d="M '+x2+' '+y2+' L '+(x2-ux*10+px*sz)+' '+(y2-uy*10+py*sz)+
+         ' L '+(x2-ux*10-px*sz)+' '+(y2-uy*10-py*sz)+' Z" fill="'+col+'"/>';
+    }
+    if(opts.edgeLabel){
+      var lab=opts.edgeLabel(ei,ed);
+      if(lab!==null&&lab!==undefined){
+        var mx=(x1+x2)/2-uy*13,my=(y1+y2)/2+ux*13,lw=String(lab).length*6.6+8;
+        e+='<rect x="'+(mx-lw/2)+'" y="'+(my-9)+'" width="'+lw+'" height="15" rx="2" fill="'+C_BOX+'" stroke="'+
+           (hi?C_ACCENT:C_WASH)+'" stroke-width="1"/>'+
+           '<text x="'+mx+'" y="'+(my+2.5)+'" text-anchor="middle" fill="'+(hi?C_ACCENT:C_INK)+
+           '" font-family="JetBrains Mono, monospace" font-size="10">'+lab+'</text>';
+      }
+    }
+  });
+  for(var i=0;i<G.n;i++){
+    var st=opts.state?opts.state[i]:'u';
+    var fill=C_NODE,stroke=C_INK,txt=C_INK,sw=1.5;
+    if(st==='f'){fill=C_SOFT;stroke=C_ACCENT;txt=C_ACCENT;}
+    else if(st==='v'){fill=C_ACCENT;stroke=C_ACCENT;txt=C_ON;}
+    else if(st==='c'){fill=C_BAD;stroke=C_BAD;txt=C_ON;sw=2.5;}
+    c+='<circle cx="'+G.pos[i][0]+'" cy="'+G.pos[i][1]+'" r="'+r+'" fill="'+fill+
+       '" stroke="'+stroke+'" stroke-width="'+sw+'"/>'+
+       '<text x="'+G.pos[i][0]+'" y="'+(G.pos[i][1]+4)+'" text-anchor="middle" fill="'+txt+
+       '" font-family="JetBrains Mono, monospace" font-size="'+(G.labels[i].length>1?10:12)+'">'+G.labels[i]+'</text>';
+    if(opts.badge&&opts.badge[i]!==undefined&&opts.badge[i]!==null)
+      c+='<text x="'+(G.pos[i][0]+r+3)+'" y="'+(G.pos[i][1]-r+2)+'" fill="'+C_ACCENT+
+         '" font-family="JetBrains Mono, monospace" font-size="10">'+opts.badge[i]+'</text>';
+  }
+  svg.innerHTML=e+c;
+}
+
+/* ------------------------------------------------------------------
+   drawMini(id, spec) — hand-placed schematic diagrams (rotation cases,
+   split/merge before-and-after, the shape you want them to recognise).
+   spec = { w, h, nodes:[{id,x,y,l,sub,subCol,tri,keys,hl}], edges:[[a,b]] }
+   A node with `keys` draws as a B-tree box; with `tri` as a subtree
+   triangle; otherwise as a circle.
+   ------------------------------------------------------------------ */
+function drawMini(id,spec){
+  var svg=document.getElementById(id); if(!svg) return;
+  _paints(svg,function(){ drawMini(id,spec); });
+  svg.setAttribute('viewBox','0 0 '+spec.w+' '+spec.h); sizeSVG(svg,spec.w);
+  var cw=spec.cw||30,bh=26,map={};
+  spec.nodes.forEach(function(n){ n._w=n.keys?Math.max(n.keys.length,1)*cw+6:0; map[n.id]=n; });
+  var s='';
+  (spec.edges||[]).forEach(function(ed){
+    /* accepts ['a','b'] for circles and ['parent', slot, 'child'] for boxes */
+    var slotMid=(typeof ed[1]==='number');
+    var a=map[ed[0]], b=map[slotMid?ed[2]:ed[1]], slot=slotMid?ed[1]:(ed[2]||0);
+    if(a.keys) s+=lineSVG(a.x+3+slot*cw,a.y+bh,b.x+b._w/2,b.y);
+    else s+=lineSVG(a.x,a.y,b.x,b.y);
+  });
+  spec.nodes.forEach(function(n){
+    if(n.keys) s+=boxSVG(n.x,n.y,n.keys,cw,bh,!!n.alt,!!n.hl);
+    else if(n.tri) s+=triSVG(n.x,n.y-10,26,40,n.l);
+    else s+=circSVG(n.x,n.y,17,n.l,n.sub,n.subCol,n.fill,n.txt);
+  });
+  svg.innerHTML=s;
+}
+
+
+/* ==================================================================
+   RECURSION — the real implementations. Every counter below is
+   incremented by the algorithm itself; nothing on a slide is a
+   figure that was typed in by hand.
+   ================================================================== */
+
+function recStats(){ return {calls:0, depth:0, maxDepth:0, ops:0}; }
+function enter(st){ st.calls++; st.depth++; if(st.depth>st.maxDepth) st.maxDepth=st.depth; }
+function leave(st){ st.depth--; }
+
+function factRec(n,st){ enter(st); var r=(n<=1)?1:n*factRec(n-1,st); st.ops++; leave(st); return r; }
+function factLoop(n,st){ var r=1; for(var i=2;i<=n;i++){ r*=i; st.ops++; } return r; }
+function sumTail(n,acc,st){ enter(st); st.ops++;
+  if(n===0){ leave(st); return acc; }
+  var r=sumTail(n-1,acc+n,st); leave(st); return r; }
+function sumLoop(n,st){ var acc=0; while(n!==0){ acc+=n; n--; st.ops++; } return acc; }
+
+function fibNaive(n,st){ enter(st); st.ops++;
+  var r=(n<2)?n:fibNaive(n-1,st)+fibNaive(n-2,st); leave(st); return r; }
+function fibMemo(n,st){
+  var memo=new Map();
+  function go(k){ enter(st); st.ops++;
+    if(k<2){ leave(st); return k; }
+    if(memo.has(k)){ leave(st); return memo.get(k); }
+    var v=go(k-1)+go(k-2); memo.set(k,v); leave(st); return v; }
+  return go(n);
+}
+function fibLoop(n,st){ if(n<2) return n; var a=0,b=1;
+  for(var i=2;i<=n;i++){ var c=a+b; a=b; b=c; st.ops++; } return b; }
+
+function hanoiGen(n,from,to,via,out,st){
+  enter(st);
+  if(n===0){ leave(st); return; }
+  hanoiGen(n-1,from,via,to,out,st);
+  out.push([n,from,to]); st.ops++;
+  hanoiGen(n-1,via,to,from,out,st);
+  leave(st);
+}
+/* PROPERTY test: replay on three real pegs. Mirrors hanoi_check in the C. */
+function hanoiLegal(moves,n){
+  var peg={A:[],B:[],C:[]}, i;
+  for(var d=n;d>=1;d--) peg.A.push(d);
+  for(i=0;i<moves.length;i++){
+    var m=moves[i], src=peg[m[1]], dst=peg[m[2]];
+    if(!src.length) return 'moved from an empty peg';
+    if(src[src.length-1]!==m[0]) return 'moved a buried disk';
+    if(dst.length && dst[dst.length-1]<m[0]) return 'larger onto smaller';
+    dst.push(src.pop());
+  }
+  if(peg.C.length!==n) return 'did not finish on C';
+  for(i=1;i<peg.C.length;i++) if(peg.C[i-1]<peg.C[i]) return 'C out of order';
+  return moves.length===Math.pow(2,n)-1 ? 'ok' : 'not optimal';
+}
+
+/* n-queens. level 2 prunes on every partial placement; level 1 only tests
+   complete placements. Identical answers, wildly different node counts. */
+function queensCount(n,level){
+  var col=new Array(n).fill(-1), st={nodes:0,sols:0};
+  function safe(r,c){ for(var i=0;i<r;i++){
+    if(col[i]===c) return false;
+    if(Math.abs(col[i]-c)===r-i) return false; } return true; }
+  function go(r){
+    st.nodes++;
+    if(r===n){
+      if(level===1){ for(var a=0;a<n;a++) for(var b=a+1;b<n;b++){
+        if(col[a]===col[b]) return;
+        if(Math.abs(col[a]-col[b])===b-a) return; } }
+      st.sols++; return; }
+    for(var c=0;c<n;c++){
+      if(level===2 && !safe(r,c)) continue;
+      col[r]=c; go(r+1); col[r]=-1; }
+  }
+  go(0); return st;
+}
+/* sum(n^r, r=0..n). Verified against the executed count for n<=8, in both
+   the JS harness and the C. Above that it is stated, never generated. */
+function queensNodesUnpruned(n){ var s=0,p=1;
+  for(var r=0;r<=n;r++){ s+=p; p*=n; } return s; }
+
+function queensTrace(n,limit){
+  var col=new Array(n).fill(-1), steps=[], sols=0, stop=false;
+  function safe(r,c){ for(var i=0;i<r;i++){
+    if(col[i]===c||Math.abs(col[i]-c)===r-i) return false; } return true; }
+  function snap(kind,r,c){ steps.push({col:col.slice(),kind:kind,r:r,c:c,sols:sols}); }
+  function go(r){
+    if(stop) return;
+    if(r===n){ sols++; snap('solution',r,-1);
+      if(limit&&sols>=limit) stop=true; return; }
+    for(var c=0;c<n&&!stop;c++){
+      if(!safe(r,c)){ snap('reject',r,c); continue; }
+      col[r]=c; snap('place',r,c);
+      go(r+1); if(stop) return;
+      col[r]=-1; snap('undo',r,c); }
+  }
+  go(0);
+  return {steps:steps, sols:sols};
+}
+
+/* recursion trees, for the tree renderer */
+function treeFact(n){ function go(k){ return k<=1?{l:'fact(1)',kids:[]}
+  :{l:'fact('+k+')',kids:[go(k-1)]}; } return go(n); }
+function treeHanoi(n){ function go(k){ return k===0?{l:'·',kids:[]}
+  :{l:'h('+k+')',kids:[go(k-1),go(k-1)]}; } return go(n); }
+function treeFib(n){ function go(k){ return k<2?{l:'fib('+k+')',kids:[]}
+  :{l:'fib('+k+')',kids:[go(k-1),go(k-2)]}; } return go(n); }
+function treeNodes(t){ var c=1; for(var i=0;i<t.kids.length;i++) c+=treeNodes(t.kids[i]); return c; }
+function treeDepth(t){ var d=0; for(var i=0;i<t.kids.length;i++) d=Math.max(d,treeDepth(t.kids[i])); return d+1; }
+function treeLeaves(t){ if(!t.kids.length) return 1; var c=0;
+  for(var i=0;i<t.kids.length;i++) c+=treeLeaves(t.kids[i]); return c; }
+
+function fmtN(x){
+  if(typeof x!=='number') return String(x);
+  if(!isFinite(x)) return '∞';
+  if(Math.abs(x)>=1e15) return x.toExponential(2);
+  return String(Math.round(x)).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+}
+
+/* ------------------------------------------------------------------
+   renderFrames(svg, frames, opts) — the call stack as activation
+   records, outermost at the top, the way a debugger prints it.
+   frames: [{label, detail, state:'live'|'wait'|'done', ret}]
+   ------------------------------------------------------------------ */
+function renderFrames(svg,frames,opts){
+  if(!svg) return;
+  _paints(svg,function(){ renderFrames(svg,frames,opts); });
+  opts=opts||{};
+  var bw=232, bh=34, gap=7, m=16, lx=30;
+  var rows=Math.max(frames.length,1);
+  var W=lx+bw+m+74, H=m*2+rows*(bh+gap);
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); sizeSVG(svg,W);
+  var s='';
+  /* the "grows downward" spine */
+  s+='<line x1="'+(lx-14)+'" y1="'+m+'" x2="'+(lx-14)+'" y2="'+(H-m)+'" stroke="'+
+     C_WASH+'" stroke-width="1.4"/>';
+  if(!frames.length){
+    s+='<text x="'+(lx+20)+'" y="'+(m+22)+'" fill="'+C_FAINT+
+       '" font-family="JetBrains Mono, monospace" font-size="12">stack empty</text>';
+    svg.innerHTML=s; return;
+  }
+  frames.forEach(function(f,i){
+    var y=m+i*(bh+gap);
+    var fill=C_NODE, stroke=C_RULE, ink=C_INK, sw=1.2;
+    if(f.state==='live'){ fill=C_SOFT; stroke=C_ACCENT; ink=C_ACCENT; sw=2; }
+    else if(f.state==='done'){ fill=C_CELL; stroke=C_WASH; ink=C_FAINT; }
+    else if(f.state==='wait'){ fill=C_BLOCKSOFT; stroke=C_BLOCK; ink=C_INK; }
+    s+='<rect x="'+lx+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="3" fill="'+fill+
+       '" stroke="'+stroke+'" stroke-width="'+sw+'"/>'+
+       '<text x="'+(lx+11)+'" y="'+(y+21)+'" fill="'+ink+
+       '" font-family="JetBrains Mono, monospace" font-size="12">'+f.label+'</text>';
+    if(f.detail!==undefined&&f.detail!==null)
+      s+='<text x="'+(lx+bw-11)+'" y="'+(y+21)+'" text-anchor="end" fill="'+
+         (f.state==='done'?C_FAINT:C_DIMC)+
+         '" font-family="JetBrains Mono, monospace" font-size="11">'+f.detail+'</text>';
+    if(f.ret!==undefined&&f.ret!==null)
+      s+='<text x="'+(lx+bw+9)+'" y="'+(y+21)+'" fill="'+C_ACCENT+
+         '" font-family="JetBrains Mono, monospace" font-size="11">→ '+f.ret+'</text>';
+  });
+  svg.innerHTML=s;
+}
+
+/* ------------------------------------------------------------------
+   renderRecTree(svg, t, opts) — an n-ary recursion tree. x by leaf
+   order, y by depth. opts.path = array of node objects to highlight
+   (the live call stack). Labels are dropped when the tree gets wide,
+   because the shape is the lesson at that size, not the arguments.
+   ------------------------------------------------------------------ */
+function renderRecTree(svg,t,opts){
+  if(!svg) return;
+  _paints(svg,function(){ renderRecTree(svg,t,opts); });
+  opts=opts||{};
+  var leaves=treeLeaves(t), depth=treeDepth(t);
+  var TEXT_MAX = 24;                 /* above this the labels stop fitting */
+  var showText = leaves<=TEXT_MAX;
+  var cw = leaves>140?7:(leaves>72?11:17);
+  var dy = depth>7?34:44, m=18, rw, rh;
+  if(showText){ rw=40; rh=21; cw=48; } else { rw=Math.max(cw-3,4); rh=Math.min(13,dy-16); }
+  var i=0, items=[];
+  (function walk(n,d){
+    if(!n.kids.length){ n._x=i++; }
+    else { var first=i; for(var k=0;k<n.kids.length;k++) walk(n.kids[k],d+1);
+           n._x=(n.kids[0]._x+n.kids[n.kids.length-1]._x)/2; if(first===i) n._x=i++; }
+    n._d=d; items.push(n);
+  })(t,0);
+  var W=leaves*cw+m*2, H=depth*dy+m*2;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); sizeSVG(svg,W);
+  function px(n){ return m+n._x*cw+cw/2; }
+  function py(n){ return m+n._d*dy; }
+  var onPath=new Set(); if(opts.path) opts.path.forEach(function(n){ onPath.add(n); });
+  var e='',c='';
+  items.forEach(function(n){
+    n.kids.forEach(function(k){
+      var hi=onPath.has(n)&&onPath.has(k);
+      e+='<line x1="'+px(n)+'" y1="'+(py(n)+rh/2)+'" x2="'+px(k)+'" y2="'+(py(k)-rh/2)+
+         '" stroke="'+(hi?C_ACCENT:C_RULE)+'" stroke-width="'+(hi?2.6:1.1)+'"/>';
+    });
+  });
+  items.forEach(function(n){
+    var hi=onPath.has(n), leaf=!n.kids.length;
+    var fill=hi?C_ACCENT:(leaf?C_CELL:C_NODE);
+    var stroke=hi?C_ACCENT:(leaf?C_WASH:C_RULE);
+    c+='<rect x="'+(px(n)-rw/2)+'" y="'+(py(n)-rh/2)+'" width="'+rw+'" height="'+rh+
+       '" rx="'+(showText?3:2)+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+(hi?1.8:1)+'"/>';
+    if(showText)
+      c+='<text x="'+px(n)+'" y="'+(py(n)+4)+'" text-anchor="middle" fill="'+
+         (hi?C_ON:(leaf?C_FAINT:C_INK))+
+         '" font-family="JetBrains Mono, monospace" font-size="10">'+n.l+'</text>';
+  });
+  svg.innerHTML=e+c;
+}
+
+/* ------------------------------------------------------------------
+   renderHanoi(svg, pegs, opts) — three pegs, disks as bars whose
+   width is the disk size. pegs = {A:[..], B:[..], C:[..]}, bottom first.
+   ------------------------------------------------------------------ */
+function renderHanoi(svg,pegs,opts){
+  if(!svg) return;
+  _paints(svg,function(){ renderHanoi(svg,pegs,opts); });
+  opts=opts||{};
+  var n=opts.n||1, names=['A','B','C'];
+  var dh=17, maxW=150, minW=40, pegGap=196, m=22, baseY;
+  var H=m+n*dh+46, W=m*2+pegGap*2+maxW;
+  baseY=H-30;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); sizeSVG(svg,W);
+  var s='';
+  names.forEach(function(nm,pi){
+    var cx=m+maxW/2+pi*pegGap;
+    s+='<line x1="'+cx+'" y1="'+(baseY-n*dh-6)+'" x2="'+cx+'" y2="'+baseY+
+       '" stroke="'+C_WASH+'" stroke-width="3"/>'+
+       '<line x1="'+(cx-maxW/2-6)+'" y1="'+baseY+'" x2="'+(cx+maxW/2+6)+'" y2="'+baseY+
+       '" stroke="'+C_RULE+'" stroke-width="2.4"/>'+
+       '<text x="'+cx+'" y="'+(baseY+20)+'" text-anchor="middle" fill="'+C_FAINT+
+       '" font-family="JetBrains Mono, monospace" font-size="11">'+nm+'</text>';
+    pegs[nm].forEach(function(disk,di){
+      var w=minW+(maxW-minW)*((disk-1)/Math.max(n-1,1));
+      var y=baseY-(di+1)*dh+2, hgt=dh-3;
+      var hot=(opts.hi===disk);
+      s+='<rect x="'+(cx-w/2)+'" y="'+y+'" width="'+w+'" height="'+hgt+'" rx="3" fill="'+
+         (hot?C_ACCENT:C_SOFT)+'" stroke="'+C_ACCENT+'" stroke-width="'+(hot?2:1)+'"/>'+
+         '<text x="'+cx+'" y="'+(y+hgt-3.5)+'" text-anchor="middle" fill="'+
+         (hot?C_ON:C_ACCENT)+'" font-family="JetBrains Mono, monospace" font-size="10">'+disk+'</text>';
+    });
+  });
+  svg.innerHTML=s;
+}
+
+/* ------------------------------------------------------------------
+   renderBoard(svg, n, col, opts) — a chessboard mid-search.
+   col[r] = column of the queen in row r, or -1. opts.reject / opts.undo
+   are [r,c] pairs to mark.
+   ------------------------------------------------------------------ */
+function renderBoard(svg,n,col,opts){
+  if(!svg) return;
+  _paints(svg,function(){ renderBoard(svg,n,col,opts); });
+  opts=opts||{};
+  var cs=n>8?36:44, m=14;
+  var W=n*cs+m*2, H=n*cs+m*2;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); sizeSVG(svg,W);
+  var s='',r,c;
+  for(r=0;r<n;r++) for(c=0;c<n;c++){
+    var dark=((r+c)&1)===1;
+    s+='<rect x="'+(m+c*cs)+'" y="'+(m+r*cs)+'" width="'+cs+'" height="'+cs+
+       '" fill="'+(dark?C_CELL:C_BOX)+'" stroke="'+C_WASH+'" stroke-width="0.7"/>';
+  }
+  if(opts.reject){
+    var rr=opts.reject[0], rc=opts.reject[1];
+    s+='<rect x="'+(m+rc*cs)+'" y="'+(m+rr*cs)+'" width="'+cs+'" height="'+cs+
+       '" fill="'+C_BADSOFT+'" stroke="'+C_BAD+'" stroke-width="2"/>'+
+       '<line x1="'+(m+rc*cs+9)+'" y1="'+(m+rr*cs+9)+'" x2="'+(m+rc*cs+cs-9)+'" y2="'+
+       (m+rr*cs+cs-9)+'" stroke="'+C_BAD+'" stroke-width="2.2"/>'+
+       '<line x1="'+(m+rc*cs+cs-9)+'" y1="'+(m+rr*cs+9)+'" x2="'+(m+rc*cs+9)+'" y2="'+
+       (m+rr*cs+cs-9)+'" stroke="'+C_BAD+'" stroke-width="2.2"/>';
+  }
+  for(r=0;r<n;r++){
+    if(col[r]<0) continue;
+    var x=m+col[r]*cs+cs/2, y=m+r*cs+cs/2;
+    var undoing=opts.undo&&opts.undo[0]===r&&opts.undo[1]===col[r];
+    s+='<circle cx="'+x+'" cy="'+y+'" r="'+(cs*0.32)+'" fill="'+(undoing?C_BLOCKSOFT:C_ACCENT)+
+       '" stroke="'+(undoing?C_BLOCK:C_ACCENT)+'" stroke-width="2"/>'+
+       '<text x="'+x+'" y="'+(y+4)+'" text-anchor="middle" fill="'+(undoing?C_BLOCK:C_ON)+
+       '" font-family="JetBrains Mono, monospace" font-size="12">Q</text>';
+  }
+  svg.innerHTML=s;
+}
+
+/* ---------- 01 hero: the tree, with one stack highlighted ---------- */
+(function(){
+  var svg=document.getElementById('heroTree'); if(!svg) return;
+  var N=4, t=treeHanoi(N);
+  /* walk to the leftmost-then-right leaf: a plausible instant mid-run */
+  var path=[], cur=t;
+  while(cur){ path.push(cur); cur = cur.kids.length ? cur.kids[path.length%2?0:1] : null; }
+  renderRecTree(svg,t,{path:path});
+  var st=recStats(), out=[]; hanoiGen(N,'A','C','B',out,st);
+  var cap=document.getElementById('heroCap');
+  if(cap) cap.textContent='hanoi('+N+'): '+treeNodes(t)+' calls and '+out.length+
+    ' moves in total — but never more than '+st.maxDepth+
+    ' frames alive at once. The highlighted path is the stack; the rest of the tree is memory you are not paying for.';
+})();
+
+/* ---------- 02 a legal 8-queens board ---------- */
+(function(){
+  var svg=document.getElementById('p1Board'); if(!svg) return;
+  var t=queensTrace(8,1), last=t.steps[t.steps.length-1];
+  renderBoard(svg,8,last.col,{});
+  var cap=document.getElementById('p1Cap');
+  var full=queensCount(8,2);
+  if(cap) cap.textContent='One of the '+full.sols+' legal arrangements. Backtracking found it after '+
+    fmtN(t.steps.length)+' steps; the brute force above would have tested billions.';
+})();
+
+/* ---------- 05 the frame stepper ---------- */
+(function(){
+  var svg=document.getElementById('frmSvg'); if(!svg) return;
+  var stat=document.getElementById('frmStat'), inN=document.getElementById('frmN');
+  var snaps=[], at=0;
+
+  function build(n){
+    snaps=[]; var stack=[];
+    function push(k){
+      stack.forEach(function(f){ f.state='wait'; });
+      stack.push({label:'fact('+k+')',detail:'n = '+k,state:'live',n:k});
+      snap('call fact('+k+')');
+    }
+    function snap(msg){
+      snaps.push({frames:stack.map(function(f){ return {label:f.label,detail:f.detail,
+        state:f.state,ret:f.ret}; }), msg:msg});
+    }
+    function go(k){
+      push(k);
+      var v;
+      if(k<=1){ v=1; }
+      else { v=k*go(k-1); }
+      var top=stack[stack.length-1];
+      top.state='done'; top.ret=v;
+      snap(k<=1?'base case — fact(1) returns 1'
+                :'fact('+k+') computes '+k+' × '+(v/k)+' = '+v+' and returns');
+      stack.pop();
+      if(stack.length) stack[stack.length-1].state='live';
+      return v;
+    }
+    var r=go(n);
+    snaps.push({frames:[],msg:'stack empty — main has '+r});
+    at=0;
+  }
+  function draw(){
+    var s=snaps[at];
+    renderFrames(svg,s.frames,{});
+    var live=s.frames.length;
+    stat.innerHTML='step <b>'+(at+1)+' / '+snaps.length+'</b> &nbsp; frames alive <b>'+live+
+      '</b> &nbsp; '+s.msg;
+  }
+  document.getElementById('frmFwd').addEventListener('click',function(){ if(at<snaps.length-1){at++;draw();} });
+  document.getElementById('frmBack').addEventListener('click',function(){ if(at>0){at--;draw();} });
+  document.getElementById('frmReset').addEventListener('click',function(){ at=0; draw(); });
+  inN.addEventListener('change',function(){
+    var n=Math.max(1,Math.min(7,parseInt(inN.value,10)||4)); inN.value=n; build(n); draw(); });
+  build(4); draw();
+})();
+
+/* ---------- 06 the recursion tree ---------- */
+(function(){
+  var svg=document.getElementById('rtSvg'); if(!svg) return;
+  var cap=document.getElementById('rtCap'), stat=document.getElementById('rtStat'),
+      inN=document.getElementById('rtN');
+  var kind='fib', showPath=true, t=null, clamped=false;
+  var MAX={fact:9,hanoi:6,fib:9};
+
+  function build(){
+    var want=Math.max(1,Math.min(9,parseInt(inN.value,10)||5));
+    var n=Math.min(want,MAX[kind]); clamped=(n!==want);
+    t = kind==='fact'?treeFact(n) : kind==='hanoi'?treeHanoi(n) : treeFib(n);
+    t._n=n;
+  }
+  function stackPath(){
+    if(!showPath) return null;
+    var path=[], cur=t;
+    while(cur){ path.push(cur); cur=cur.kids.length?cur.kids[0]:null; }
+    return path;
+  }
+  function draw(){
+    build();
+    renderRecTree(svg,t,{path:stackPath()});
+    var nodes=treeNodes(t), d=treeDepth(t), lv=treeLeaves(t);
+    var names={fact:'fact',hanoi:'hanoi',fib:'fib'};
+    cap.textContent=names[kind]+'('+t._n+') — '+fmtN(nodes)+' nodes, depth '+d+', '+
+      fmtN(lv)+' leaves'+(lv>24?'  (labels dropped — above two dozen leaves the shape is the lesson, not the arguments)':'')+
+      (clamped?'  — clamped to n = '+t._n+' so the tree still fits on a screen':'');
+    stat.innerHTML='time ≈ <b>'+fmtN(nodes)+'</b> calls &nbsp;&nbsp; stack ≤ <b>'+d+
+      '</b> frames &nbsp;&nbsp; ratio <b>'+(nodes/d).toFixed(1)+'×</b>';
+  }
+  function pick(k){ return function(){ kind=k; draw(); }; }
+  document.getElementById('rtFact').addEventListener('click',pick('fact'));
+  document.getElementById('rtHanoi').addEventListener('click',pick('hanoi'));
+  document.getElementById('rtFib').addEventListener('click',pick('fib'));
+  document.getElementById('rtPath').addEventListener('click',function(){ showPath=!showPath; draw(); });
+  inN.addEventListener('change',draw);
+  draw();
+})();
+
+/* ---------- 09 how deep can you actually go ----------
+   Two functions, identical recursion, different frame sizes. The engine
+   decides the exact bytes, so read the RATIO, not the absolute numbers. */
+(function(){
+  var out=document.getElementById('dpOut'); if(!out) return;
+
+  function deepSlim(d){ return deepSlim(d+1); }
+
+  /* 32 live locals, all consumed, so nothing is optimised away */
+  function deepFat(d){
+    var a0=d,a1=d+1,a2=d+2,a3=d+3,a4=d+4,a5=d+5,a6=d+6,a7=d+7;
+    var a8=d+8,a9=d+9,b0=d+10,b1=d+11,b2=d+12,b3=d+13,b4=d+14,b5=d+15;
+    var b6=d+16,b7=d+17,b8=d+18,b9=d+19,c0=d+20,c1=d+21,c2=d+22,c3=d+23;
+    var c4=d+24,c5=d+25,c6=d+26,c7=d+27,c8=d+28,c9=d+29,e0=d+30,e1=d+31;
+    var s=a0+a1+a2+a3+a4+a5+a6+a7+a8+a9+b0+b1+b2+b3+b4+b5+
+          b6+b7+b8+b9+c0+c1+c2+c3+c4+c5+c6+c7+c8+c9+e0+e1;
+    if(s<0) return 0;              /* never true; keeps them all live */
+    return deepFat(d+1);
+  }
+  function probe(fn){
+    var lo=0;
+    try{ fn(0); }catch(e){ }
+    /* the throw unwinds before we can read a counter, so count by binary
+       search on a depth limit instead — slower, but it reports honestly */
+    function survives(limit){
+      var d=0;
+      function slim(){ if(++d>=limit) return 0; return slim(); }
+      function fat(){
+        var x0=d,x1=d+1,x2=d+2,x3=d+3,x4=d+4,x5=d+5,x6=d+6,x7=d+7;
+        var x8=d+8,x9=d+9,y0=d+10,y1=d+11,y2=d+12,y3=d+13,y4=d+14,y5=d+15;
+        var y6=d+16,y7=d+17,y8=d+18,y9=d+19,z0=d+20,z1=d+21,z2=d+22,z3=d+23;
+        var z4=d+24,z5=d+25,z6=d+26,z7=d+27,z8=d+28,z9=d+29,w0=d+30,w1=d+31;
+        var s=x0+x1+x2+x3+x4+x5+x6+x7+x8+x9+y0+y1+y2+y3+y4+y5+
+              y6+y7+y8+y9+z0+z1+z2+z3+z4+z5+z6+z7+z8+z9+w0+w1;
+        if(s<0) return 1;
+        if(++d>=limit) return 0;
+        return fat();
+      }
+      try{ (fn===deepFat?fat:slim)(); return true; }catch(e){ return false; }
+    }
+    var good=0, bad=1;
+    while(survives(bad)){ good=bad; bad*=2; if(bad>4000000) break; }
+    while(bad-good>1){ var mid=(good+bad)>>1; if(survives(mid)) good=mid; else bad=mid; }
+    return good;
+  }
+  var slimD=null, fatD=null;
+  function report(){
+    var txt='';
+    if(slimD!==null) txt+='small frame: <b>'+fmtN(slimD)+'</b> levels';
+    if(fatD!==null) txt+=(txt?' &nbsp;|&nbsp; ':'')+'32 live locals: <b>'+fmtN(fatD)+'</b> levels';
+    if(slimD!==null&&fatD!==null)
+      txt+=' &nbsp;|&nbsp; the fat frame dies <b>'+(slimD/fatD).toFixed(1)+'×</b> sooner';
+    out.innerHTML=txt;
+  }
+  document.getElementById('dpSmall').addEventListener('click',function(){
+    out.textContent='probing…';
+    setTimeout(function(){ slimD=probe(deepSlim); report(); },20); });
+  document.getElementById('dpFat').addEventListener('click',function(){
+    out.textContent='probing…';
+    setTimeout(function(){ fatD=probe(deepFat); report(); },20); });
+})();
+
+/* ---------- 10 the measurement harness ---------- */
+(function(){
+  var out=document.getElementById('mOut'); if(!out) return;
+  var inN=document.getElementById('mN');
+  function getN(lo,hi,dflt){
+    var n=parseInt(inN.value,10); if(isNaN(n)) n=dflt;
+    n=Math.max(lo,Math.min(hi,n)); inN.value=n; return n; }
+  function time(fn){ var t0=performance.now(); var v=fn(); return [performance.now()-t0,v]; }
+  function table(head,rows,foot){
+    var s='<table><thead><tr>';
+    head.forEach(function(h){ s+='<th>'+h+'</th>'; });
+    s+='</tr></thead><tbody>';
+    rows.forEach(function(r){ s+='<tr>';
+      r.forEach(function(c,i){ s+='<td'+(i?' class="num"':'')+'>'+c+'</td>'; });
+      s+='</tr>'; });
+    return s+'</tbody></table>'+(foot?'<p class="small">'+foot+'</p>':'');
+  }
+
+  document.getElementById('mFact').addEventListener('click',function(){
+    var n=getN(1,30,20), rows=[];
+    [['fact — recursive',function(st){ return factRec(n,st); }],
+     ['fact — loop',function(st){ return factLoop(n,st); }],
+     ['sum 1..n — tail recursive',function(st){ return sumTail(n,0,st); }],
+     ['sum 1..n — loop',function(st){ return sumLoop(n,st); }]
+    ].forEach(function(p){
+      var st=recStats(), r=time(function(){ return p[1](st); });
+      rows.push([p[0],fmtN(st.calls),fmtN(st.maxDepth),fmtN(st.ops),r[0].toFixed(3),fmtN(r[1])]);
+    });
+    out.innerHTML='<h3>n = '+n+'</h3>'+table(
+      ['implementation','calls','max stack depth','arithmetic ops','ms','result'],rows,
+      'The two factorials do the same number of multiplications. The only column that differs is the stack. That is the entire trade — and it is why "recursion is slower" is a claim about call overhead, not about doing more work.');
+  });
+
+  document.getElementById('mFib').addEventListener('click',function(){
+    var n=getN(1,34,24), rows=[];
+    [['fib — naive recursion',function(st){ return fibNaive(n,st); }],
+     ['fib — memoised recursion',function(st){ return fibMemo(n,st); }],
+     ['fib — loop',function(st){ return fibLoop(n,st); }]
+    ].forEach(function(p){
+      var st=recStats(), r=time(function(){ return p[1](st); });
+      rows.push([p[0],fmtN(st.calls),fmtN(st.maxDepth),r[0].toFixed(3),fmtN(r[1])]);
+    });
+    var a=recStats(); fibNaive(n,a);
+    var b=recStats(); fibMemo(n,b);
+    out.innerHTML='<h3>n = '+n+'</h3>'+table(
+      ['implementation','calls','max stack depth','ms','fib(n)'],rows,
+      'Naive makes '+fmtN(a.calls)+' calls to compute '+(n+1)+' distinct values — a ratio of '+
+      (a.calls/b.calls).toFixed(0)+'× over the memoised version. Now read the depth column: memoisation '+
+      'did nothing to it. It fixes the width of the recursion tree and leaves the height alone.');
+  });
+
+  document.getElementById('mHanoi').addEventListener('click',function(){
+    var n=getN(1,22,20), rows=[];
+    for(var k=Math.max(1,n-3);k<=n;k++){
+      var st=recStats(), out2=[];
+      var t0=performance.now(); hanoiGen(k,'A','C','B',out2,st); var ms=performance.now()-t0;
+      rows.push(['hanoi('+k+')',fmtN(st.calls),fmtN(out2.length),fmtN(st.maxDepth),
+                 ms.toFixed(2),hanoiLegal(out2,k)]);
+    }
+    out.innerHTML='<h3>up to n = '+n+'</h3>'+table(
+      ['call','calls','moves emitted','max stack depth','ms','property check'],rows,
+      'Calls and moves double with every disk; the stack grows by exactly one. The last column replays '+
+      'every move on three real pegs and checks no larger disk ever landed on a smaller one — a property '+
+      'test, not a comparison against an expected output.');
+  });
+})();
+
+/* ---------- 12 hanoi, stepped ---------- */
+(function(){
+  var svg=document.getElementById('hnSvg'); if(!svg) return;
+  var cap=document.getElementById('hnCap'), stat=document.getElementById('hnStat'),
+      frames=document.getElementById('hnFrames'), inN=document.getElementById('hnN');
+  var N=4, moves=[], at=0, timer=null;
+
+  /* snapshot the live frame list alongside each move, so the chips are
+     the real call chain rather than a reconstruction */
+  function build(n){
+    N=n; moves=[];
+    var stack=[];
+    (function go(k,from,to,via){
+      if(k===0) return;
+      stack.push({k:k,from:from,to:to});
+      go(k-1,from,via,to);
+      moves.push({m:[k,from,to],frames:stack.map(function(f){
+        return 'h('+f.k+') '+f.from+'→'+f.to; })});
+      go(k-1,via,to,from);
+      stack.pop();
+    })(n,'A','C','B');
+    at=0;
+  }
+  function stateAt(i){
+    var peg={A:[],B:[],C:[]};
+    for(var d=N;d>=1;d--) peg.A.push(d);
+    for(var k=0;k<i;k++){ var m=moves[k].m; peg[m[2]].push(peg[m[1]].pop()); }
+    return peg;
+  }
+  function draw(){
+    var peg=stateAt(at);
+    var hi=at>0?moves[at-1].m[0]:null;
+    renderHanoi(svg,peg,{n:N,hi:hi});
+    var done=at, total=moves.length;
+    cap.textContent=at===0?'start — all '+N+' disks on A'
+      :(at===total?'done — the tower is on C in '+total+' moves, which is 2^'+N+' − 1'
+      :'after move '+at+' of '+total);
+    var legal=hanoiLegal(moves.map(function(x){return x.m;}),N);
+    stat.innerHTML='move <b>'+done+' / '+total+'</b>'+
+      (at>0?' &nbsp; last: disk <b>'+moves[at-1].m[0]+'</b> '+moves[at-1].m[1]+' → '+moves[at-1].m[2]:'')+
+      ' &nbsp; live frames <b>'+(at>0?moves[at-1].frames.length:0)+
+      '</b> &nbsp; full sequence valid <b>'+legal+'</b>';
+    var chips='';
+    if(at>0) moves[at-1].frames.forEach(function(f,i){
+      chips+='<span class="chip'+(i===moves[at-1].frames.length-1?' on':'')+'">'+f+'</span>'; });
+    else chips='<span class="chip">stack empty</span>';
+    frames.innerHTML=chips;
+  }
+  function stop(){ if(timer){ clearInterval(timer); timer=null;
+    document.getElementById('hnAuto').textContent='Play'; } }
+  document.getElementById('hnFwd').addEventListener('click',function(){
+    stop(); if(at<moves.length){ at++; draw(); } });
+  document.getElementById('hnBack').addEventListener('click',function(){
+    stop(); if(at>0){ at--; draw(); } });
+  document.getElementById('hnReset').addEventListener('click',function(){ stop(); at=0; draw(); });
+  document.getElementById('hnAuto').addEventListener('click',function(){
+    if(timer){ stop(); return; }
+    this.textContent='Pause';
+    timer=setInterval(function(){ if(at>=moves.length){ stop(); return; } at++; draw(); },420);
+  });
+  inN.addEventListener('change',function(){
+    stop(); var n=Math.max(1,Math.min(7,parseInt(inN.value,10)||4));
+    inN.value=n; build(n); draw(); });
+  build(4); draw();
+})();
+
+/* ---------- 15 the queens visualiser ---------- */
+(function(){
+  var svg=document.getElementById('qSvg'); if(!svg) return;
+  var stat=document.getElementById('qStat'), inN=document.getElementById('qN');
+  var N=6, tr=null, at=0, timer=null;
+
+  function build(n){ N=n; tr=queensTrace(n); at=0; }
+  function draw(){
+    var s=at<tr.steps.length?tr.steps[at]:tr.steps[tr.steps.length-1];
+    renderBoard(svg,N,s.col,{
+      reject: s.kind==='reject'?[s.r,s.c]:null,
+      undo:   s.kind==='undo'?[s.r,s.c]:null });
+    var places=0,rejects=0,undos=0,i;
+    for(i=0;i<=at&&i<tr.steps.length;i++){
+      var k=tr.steps[i].kind;
+      if(k==='place') places++; else if(k==='reject') rejects++; else if(k==='undo') undos++;
+    }
+    var full=queensCount(N,2);
+    stat.innerHTML='step <b>'+(at+1)+' / '+tr.steps.length+'</b> &nbsp; '+s.kind+
+      (s.c>=0?' at row '+s.r+', col '+s.c:'')+
+      ' &nbsp;|&nbsp; placed <b>'+places+'</b> &nbsp; rejected <b>'+rejects+
+      '</b> &nbsp; undone <b>'+undos+'</b> &nbsp; rejects per place <b>'+
+      (places?(rejects/places).toFixed(1):'—')+
+      '</b> &nbsp;|&nbsp; solutions found <b>'+s.sols+' / '+full.sols+'</b>';
+  }
+  function stop(){ if(timer){ clearInterval(timer); timer=null;
+    document.getElementById('qAuto').textContent='Play'; } }
+  document.getElementById('qFwd').addEventListener('click',function(){
+    stop(); if(at<tr.steps.length-1){ at++; draw(); } });
+  document.getElementById('qBack').addEventListener('click',function(){
+    stop(); if(at>0){ at--; draw(); } });
+  document.getElementById('qReset').addEventListener('click',function(){ stop(); at=0; draw(); });
+  document.getElementById('qJump').addEventListener('click',function(){
+    stop();
+    for(var i=at+1;i<tr.steps.length;i++){
+      if(tr.steps[i].kind==='solution'){ at=i; draw(); return; } }
+    at=tr.steps.length-1; draw();
+  });
+  document.getElementById('qAuto').addEventListener('click',function(){
+    if(timer){ stop(); return; }
+    this.textContent='Pause';
+    timer=setInterval(function(){
+      if(at>=tr.steps.length-1){ stop(); return; } at++; draw(); },90);
+  });
+  inN.addEventListener('change',function(){
+    stop(); var n=Math.max(4,Math.min(8,parseInt(inN.value,10)||6));
+    inN.value=n; build(n); draw(); });
+  build(6); draw();
+})();
+
+/* ---------- 16 pruning, measured ---------- */
+(function(){
+  var out=document.getElementById('pOut'); if(!out) return;
+  var inN=document.getElementById('pN');
+  document.getElementById('pRun').addEventListener('click',function(){
+    var n=Math.max(4,Math.min(12,parseInt(inN.value,10)||8)); inN.value=n;
+    out.innerHTML='<p class="small">running…</p>';
+    setTimeout(function(){
+      var t0=performance.now(); var pr=queensCount(n,2); var pms=performance.now()-t0;
+      var un, ums=null, exact;
+      if(n<=8){ var t1=performance.now(); var u=queensCount(n,1); ums=performance.now()-t1;
+                un=u.nodes; exact=true;
+                /* the closed form must agree with what we just executed */
+                if(un!==queensNodesUnpruned(n)) un=un+' (formula disagrees!)';
+      } else { un=queensNodesUnpruned(n); exact=false; }
+      var ratio=(typeof un==='number')?(un/pr.nodes):null;
+      var s='<h3>n = '+n+' &nbsp;·&nbsp; '+pr.sols+' solutions</h3><table><thead><tr>'+
+        '<th>search</th><th>nodes visited</th><th>ms</th><th>solutions</th></tr></thead><tbody>'+
+        '<tr><td>prune at every partial placement</td><td class="num">'+fmtN(pr.nodes)+
+        '</td><td class="num">'+pms.toFixed(1)+'</td><td class="num">'+pr.sols+'</td></tr>'+
+        '<tr><td>test only complete placements'+(exact?'':' <span class="small">(closed form — not executed)</span>')+
+        '</td><td class="num'+(ratio&&ratio>1000?' alert':'')+'">'+fmtN(un)+
+        '</td><td class="num">'+(ums===null?'—':ums.toFixed(1))+'</td><td class="num">'+
+        (exact?pr.sols:'same')+'</td></tr></tbody></table>';
+      if(ratio) s+='<p class="small">Pruning visits <b>'+fmtN(ratio)+
+        '×</b> fewer nodes, and finds exactly the same '+pr.sols+' solutions. '+
+        (exact?'Both rows were executed; the closed form (n<sup>n+1</sup> − 1)/(n − 1) agrees with the executed count.'
+              :'The unpruned row is the closed form — executing it at this n would visit '+fmtN(un)+
+               ' nodes, which is why it is stated rather than run.')+'</p>';
+      out.innerHTML=s;
+    },20);
+  });
+})();
+
+
+
+/* ==================================================================
+   THEME -- auto / light / dark.  Do not delete.
+   Cycles on the bar button and on the T key. The choice is stored under
+   one key shared by every deck in a series, so setting it in one sets it
+   in the rest; where localStorage is unavailable the deck still switches,
+   it just does not remember across reloads.
+   ================================================================== */
+(function(){
+  var KEY='deck-theme';
+  var root=document.documentElement, btn=document.getElementById('theme');
+  var modes=['auto','light','dark'];
+  var labels={auto:'\u25D0 Auto',light:'\u2600 Light',dark:'\u263E Dark'};
+  var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+  var mode='auto';
+  try{ var v=localStorage.getItem(KEY); if(modes.indexOf(v)>=0) mode=v; }catch(e){}
+
+  function apply(persist){
+    if(mode==='auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme',mode);
+    if(btn){
+      btn.textContent=labels[mode];
+      btn.setAttribute('aria-label','Colour theme: '+mode+'. Click to change.');
+    }
+    if(persist){ try{ localStorage.setItem(KEY,mode); }catch(e){} }
+    repaintAll();          /* the SVGs hold the old palette until redrawn */
+  }
+  function cycle(){ mode=modes[(modes.indexOf(mode)+1)%modes.length]; apply(true); }
+
+  if(btn) btn.addEventListener('click',cycle);
+  document.addEventListener('keydown',function(e){
+    var t=e.target.tagName;
+    if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA') return;
+    if(e.key==='t'||e.key==='T') cycle();
+  });
+  if(mq){
+    var onSys=function(){ if(mode==='auto') apply(false); };
+    if(mq.addEventListener) mq.addEventListener('change',onSys);
+    else if(mq.addListener) mq.addListener(onSys);
+  }
+  apply(false);
+})();
+
+/* ---------- boot (keep last) ---------- */
+(function(){var h=parseInt((location.hash||'').replace('#',''),10);show(isNaN(h)?0:h-1);})();
+</script>
+</body>
+</html>

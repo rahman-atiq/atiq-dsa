@@ -1,0 +1,2148 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Linked List Lab</title>
+<script>
+/* applied before first paint so a dark-theme reload never flashes white */
+try{ const t = localStorage.getItem('linkedlistlab.theme');
+     if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; }catch(e){}
+</script>
+</head><body>
+<style>
+:root{
+  color-scheme:light;
+  --paper:#F4F6F7; --panel:#FFFFFF; --ink:#222B31; --mut:#5C6B75; --line:#D9E1E5;
+  --accent:#D96F24; --accent-soft:rgba(217,111,36,.14);
+  --link:#3E7BC4; --ok:#2E9E5B; --bad:#CE4A43;
+  --pill:#33424E; --pill-ink:#F2F6F8;
+  --code-bg:#1D242B; --code-ink:#D5DEE5; --code-dim:#6C7B87; --code-on:rgba(233,138,62,.22); --code-on-edge:#E98A3E;
+  --btn:#FFFFFF; --btn-line:#C9D3D9;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#12171B; --panel:#1A2127; --ink:#E1E8ED; --mut:#8CA0AC; --line:#2B353D;
+  --accent:#E98A3E; --accent-soft:rgba(233,138,62,.16);
+  --link:#6FA5DF; --ok:#48B478; --bad:#E0655E;
+  --pill:#D7E2E9; --pill-ink:#16202B;
+  --code-bg:#141A20; --btn:#212A31; --btn-line:#39454E;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#12171B; --panel:#1A2127; --ink:#E1E8ED; --mut:#8CA0AC; --line:#2B353D;
+  --accent:#E98A3E; --accent-soft:rgba(233,138,62,.16);
+  --link:#6FA5DF; --ok:#48B478; --bad:#E0655E;
+  --pill:#D7E2E9; --pill-ink:#16202B;
+  --code-bg:#141A20; --btn:#212A31; --btn-line:#39454E;
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --paper:#F4F6F7; --panel:#FFFFFF; --ink:#222B31; --mut:#5C6B75; --line:#D9E1E5;
+  --accent:#D96F24; --accent-soft:rgba(217,111,36,.14);
+  --link:#3E7BC4; --ok:#2E9E5B; --bad:#CE4A43;
+  --pill:#33424E; --pill-ink:#F2F6F8;
+  --code-bg:#1D242B; --btn:#FFFFFF; --btn-line:#C9D3D9;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.app{max-width:1460px;margin:0 auto;padding:14px 18px 40px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 22px;padding:4px 2px 12px}
+.brand{font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:-.02em}
+.brand .cursor{color:var(--accent)}
+.brand .sub{font-family:var(--sans);font-weight:400;font-size:12.5px;color:var(--mut);margin-left:10px;letter-spacing:0}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.tabs button{font-family:var(--mono);font-size:12px;padding:6px 11px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut)}
+.tabs button:hover{border-color:var(--mut)}
+.tabs button.on{background:var(--pill);color:var(--pill-ink);border-color:var(--pill);font-weight:700}
+/* theme switcher — deliberately NOT inside .tabs, so it stays live mid-run */
+.themeBtn{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut);display:inline-flex;align-items:center;gap:6px}
+.themeBtn:hover{border-color:var(--mut);color:var(--ink)}
+.themeBtn .ic{font-size:12.5px;line-height:1}
+.work{display:grid;grid-template-columns:236px minmax(0,1fr) 330px;gap:14px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+/* ---- operations rail ---- */
+.rail{display:flex;flex-direction:column;gap:12px}
+.inputs{display:flex;gap:8px;padding:10px}
+.inputs label{flex:1;font-size:11px;color:var(--mut);display:flex;flex-direction:column;gap:3px}
+.inputs input{width:100%;font-family:var(--mono);font-size:14px;padding:5px 7px;border:1px solid var(--btn-line);border-radius:4px;background:var(--paper);color:var(--ink)}
+.ops{padding:4px 10px 12px}
+.ops h3,.histwrap h3{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut);margin:12px 0 6px;font-weight:600}
+.ops .grp{display:flex;flex-direction:column;gap:5px}
+.ops button{text-align:left;font-size:12.5px;line-height:1.3;padding:6px 9px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:1px 8px;align-items:baseline;width:100%}
+.ops button:hover{border-color:var(--link)}
+.ops button > span:first-child{flex:1 1 auto;min-width:0}
+.ops button .hint{flex:0 1 auto;min-width:0;margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ops button.bug{border-color:color-mix(in srgb,var(--bad) 45%,var(--btn-line));}
+.ops button.bug:hover{border-color:var(--bad)}
+.ops button.util{color:var(--mut)}
+body.running .ops button,body.running .tabs button{opacity:.45;pointer-events:none}
+.histwrap{padding:2px 10px 10px}
+.hist{max-height:210px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.h-item{font-size:11.5px;border-left:2px solid var(--line);padding:1px 0 1px 8px}
+.h-item code{font-family:var(--mono);font-size:11.5px;color:var(--ink);display:block}
+.h-mode{color:var(--mut);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.h-sum{color:var(--link);font-family:var(--mono);font-size:10.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---- canvas ---- */
+.canvas-wrap{min-width:0}
+.canvas-scroll{overflow-x:auto;padding:4px}
+svg{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:5px 14px;padding:8px 12px;border-top:1px solid var(--line);font-size:11px;color:var(--mut)}
+.legend .k{display:inline-flex;align-items:center;gap:5px}
+.legend .sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+/* svg parts */
+.node{transition:transform .45s ease}
+.node .box{fill:var(--panel);stroke:var(--ink);stroke-width:1.4}
+.node .div{stroke:var(--line);stroke-width:1}
+.node .val{font-family:var(--mono);font-size:15px;font-weight:700;fill:var(--ink)}
+.node .ptrv{font-family:var(--mono);font-size:8px;fill:var(--link)}
+.node .nul{stroke:var(--mut);stroke-width:1.3}
+.node .addr{font-family:var(--mono);font-size:9.5px;fill:var(--link);opacity:.85}
+.node.hot .box{stroke:var(--accent);stroke-width:2}
+.node.found .box{stroke:var(--ok);stroke-width:2.4}
+.node.leaked .box{stroke:var(--bad);stroke-dasharray:5 3;stroke-width:1.6}
+.node.freed{opacity:.5}
+.node .xx{stroke:var(--bad);stroke-width:1.6}
+.tag{font-family:var(--mono);font-size:9.5px;font-weight:700}
+.tag.bad{fill:var(--bad)}
+.edge{fill:none;stroke:var(--link);stroke-width:1.5}
+.edge.prev{stroke:var(--mut)}
+.pill rect{fill:var(--pill)}
+.pill text{font-family:var(--mono);font-size:10.5px;font-weight:700;fill:var(--pill-ink)}
+.pill.temp rect{fill:var(--accent)}
+.pill.temp text{fill:#fff}
+.pill line{stroke:var(--pill);stroke-width:1.4}
+.pill.temp line{stroke:var(--accent)}
+.nullbar{font-family:var(--mono);font-size:11px;fill:var(--mut)}
+.hintTxt{font-family:var(--sans);font-size:13px;fill:var(--mut)}
+/* ---- code pane ---- */
+.codepane{display:flex;flex-direction:column;overflow:hidden}
+.code-head{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12.5px;font-weight:700}
+pre.code{margin:0;background:var(--code-bg);color:var(--code-ink);font-family:var(--mono);font-size:12px;line-height:1.55;padding:10px 0;overflow:auto;max-height:400px;min-height:180px}
+pre.code .cl{padding:0 14px;white-space:pre}
+pre.code .cl.dim{color:var(--code-dim)}
+pre.code .cl.on{background:var(--code-on);box-shadow:inset 3px 0 0 var(--code-on-edge)}
+.note{padding:10px 12px;font-size:12.5px;min-height:56px;color:var(--ink);border-top:1px solid var(--line);background:var(--accent-soft)}
+.stepbar{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line);align-items:center;flex-wrap:wrap}
+.stepbar button{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px}
+.stepbar button:disabled{opacity:.4;cursor:default}
+.stepbar button.primary{background:var(--pill);color:var(--pill-ink);border-color:var(--pill);font-weight:700}
+.stepcount{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--mut)}
+.kbd-hint{padding:0 12px 10px;font-size:10.5px;color:var(--mut)}
+@media (max-width:1080px){
+  .work{grid-template-columns:1fr}
+  .canvas-wrap{order:1}.codepane{order:2}.rail{order:3}
+  .tabs{margin-left:0}
+  pre.code{max-height:300px}
+}
+@media (prefers-reduced-motion: reduce){.node{transition:none}}
+</style>
+<div class="app">
+  <header class="top">
+    <div class="brand">linked_list_lab<span class="cursor">_</span><span class="sub">step through C linked-list operations, pointer by pointer</span></div>
+    <nav class="tabs" id="tabs" aria-label="data structure"></nav>
+    <button class="themeBtn" id="themeBtn" title="switch theme: auto → light → dark"></button>
+  </header>
+  <main class="work">
+    <aside class="rail">
+      <div class="panel inputs">
+        <label>value<input id="val" type="number" value="42"></label>
+        <label>position<input id="pos" type="number" value="2" min="1"></label>
+      </div>
+      <div class="panel ops" id="ops"></div>
+      <div class="panel histwrap">
+        <h3>History</h3>
+        <div class="hist" id="hist"></div>
+      </div>
+    </aside>
+    <section class="panel canvas-wrap">
+      <div class="canvas-scroll">
+        <svg id="svg" role="img" aria-label="linked list diagram">
+          <defs>
+            <marker id="arrN" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--link)"/></marker>
+            <marker id="arrP" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--mut)"/></marker>
+          </defs>
+          <g id="edges"></g>
+          <g id="nodesLayer"></g>
+          <g id="pills"></g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span class="k"><span class="sw" style="background:var(--pill)"></span>list pointer</span>
+        <span class="k"><span class="sw" style="background:var(--accent)"></span>temp pointer (inside the function)</span>
+        <span class="k"><span class="sw" style="background:var(--link)"></span>next link</span>
+        <span class="k"><span class="sw" style="background:var(--mut)"></span>prev link</span>
+        <span class="k" style="font-family:var(--mono)">?? = garbage</span>
+        <span class="k" style="font-family:var(--mono)">⟍ = NULL</span>
+        <span class="k"><span class="sw" style="background:var(--ok)"></span>found</span>
+        <span class="k"><span class="sw" style="background:var(--bad)"></span>leaked / freed</span>
+      </div>
+    </section>
+    <aside class="panel codepane">
+      <div class="code-head" id="opName">pick an operation ←</div>
+      <pre class="code" id="code"></pre>
+      <div class="note" id="note">Choose a structure above, then click an operation. Its C code appears here and you execute it line by line — watch every pointer move on the canvas.</div>
+      <div class="stepbar">
+        <button id="btnPrev" disabled>⟨ Prev</button>
+        <button id="btnNext" class="primary" disabled>Next ⟩</button>
+        <button id="btnRun" disabled>Run ▶▶</button>
+        <button id="btnEnd" disabled>Finish ⇥</button>
+        <span class="stepcount" id="stepCount"></span>
+      </div>
+      <div class="kbd-hint">keyboard: → next step · ← previous step</div>
+    </aside>
+  </main>
+</div>
+<script>
+'use strict';
+/* ============ core state (no DOM) ============ */
+const MODES = {
+  sll:  { label:'Singly',    doubly:false, circ:false, ptrs:['head'],  vert:false },
+  dll:  { label:'Doubly',    doubly:true,  circ:false, ptrs:['head'],  vert:false },
+  csll: { label:'Circ-Singly',doubly:false, circ:true,  ptrs:['head'],  vert:false },
+  cdll: { label:'Circ-Doubly',doubly:true,  circ:true,  ptrs:['head'],  vert:false },
+  stack:{ label:'Stack',     doubly:false, circ:false, ptrs:['top'],   vert:true  },
+  queue:{ label:'Queue',     doubly:false, circ:false, ptrs:['front','rear'], vert:false },
+  deque:{ label:'Deque',     doubly:true,  circ:false, ptrs:['front','rear'], vert:false },
+};
+const G = '??';               /* uninitialised (garbage) pointer */
+const DB = {};                /* one persistent structure per mode */
+let mode = 'sll';
+
+function freshState(m){
+  const p = {};
+  MODES[m].ptrs.forEach(k => p[k] = null);
+  return { nodes:{}, ptrs:p, temps:{}, freed:[], mark:null, addrN:0 };
+}
+function st(){ if(!DB[mode]) DB[mode] = freshState(mode); return DB[mode]; }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function alloc(s){
+  s.addrN++;
+  const a = '0x' + (0x1A40 + s.addrN*0x18).toString(16).toUpperCase();
+  s.nodes[a] = { v:G, next:G, prev: MODES[mode].doubly ? G : null };
+  return a;
+}
+/* the chain reachable from the primary pointer, following next */
+function chainOf(s){
+  const cfg = MODES[mode];
+  const out = [], seen = {};
+  let a = s.ptrs[cfg.ptrs[0]];
+  while (a && a !== G && s.nodes[a] && !seen[a]) { out.push(a); seen[a] = 1; a = s.nodes[a].next; }
+  return out;
+}
+/* every node any pointer (list or temp) can still reach */
+function reachable(s){
+  const q = [], seen = {};
+  Object.values(s.ptrs).concat(Object.values(s.temps)).forEach(a => {
+    if (a && a !== G && s.nodes[a]) q.push(a);
+  });
+  while (q.length){
+    const a = q.pop();
+    if (seen[a]) continue;
+    seen[a] = 1;
+    const n = s.nodes[a];
+    [n.next, n.prev].forEach(b => { if (b && b !== G && s.nodes[b] && !seen[b]) q.push(b); });
+  }
+  return seen;
+}
+function summary(s){
+  const chain = chainOf(s);
+  if (!chain.length) return '(empty)';
+  const vals = chain.map(a => s.nodes[a].v).join(' → ');
+  return MODES[mode].circ ? vals + ' ↺' : vals + ' → NULL';
+}
+function seedable(s){ return Object.keys(s.nodes).length === 0; }
+function seedList(){
+  const s = st(), cfg = MODES[mode];
+  const addrs = [10,20,30].map(v => { const a = alloc(s); s.nodes[a].v = v; return a; });
+  addrs.forEach((a,i) => {
+    s.nodes[a].next = addrs[i+1] || null;
+    if (cfg.doubly) s.nodes[a].prev = addrs[i-1] || null;
+  });
+  if (cfg.circ){
+    s.nodes[addrs[2]].next = addrs[0];
+    if (cfg.doubly) s.nodes[addrs[0]].prev = addrs[2];
+  }
+  s.ptrs[cfg.ptrs[0]] = addrs[0];
+  if (cfg.ptrs[1]) s.ptrs[cfg.ptrs[1]] = addrs[2];
+}
+const CAP = 10;
+function capIns(s){
+  return Object.keys(s.nodes).length >= CAP
+    ? 'Keep it to ≤ '+CAP+' nodes so the picture stays readable.' : null;
+}
+/* split C source into lines (drop leading newline of template literal) */
+function C(src){ return src.replace(/^\n/,'').split('\n'); }
+/* ============ rendering + step runner (DOM) ============ */
+const $ = s => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+let run = null, timer = null;
+
+function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function geo(){
+  const cfg = MODES[mode];
+  const NW = cfg.doubly ? 132 : 92, NH = 46;
+  return { cfg, NW, NH, STEP: NW + 62 };
+}
+function layoutPos(s){
+  const { cfg, NW, NH, STEP } = geo();
+  const chain = chainOf(s);
+  const inChain = {}; chain.forEach(a => inChain[a] = 1);
+  const others = Object.keys(s.nodes).filter(a => !inChain[a]);
+  const pos = {};
+  let W, H;
+  if (cfg.vert){
+    chain.forEach((a,i) => pos[a] = { x:190, y:64 + i*78 });
+    others.forEach((a,i) => pos[a] = { x:420, y:64 + i*78 });
+    const rows = Math.max(chain.length, others.length, 3);
+    W = 600; H = 64 + rows*78 + 30;
+  } else {
+    chain.forEach((a,i) => pos[a] = { x:36 + i*STEP, y:110 });
+    others.forEach((a,i) => pos[a] = { x:36 + i*STEP, y:252 });
+    const cols = Math.max(chain.length, others.length, 4);
+    W = Math.max(680, 36 + cols*STEP + 50); H = 366;
+  }
+  return { pos, chain, others, W, H, NW, NH, cfg };
+}
+
+function ptrCellSVG(p, x, w, h){
+  if (p === null)
+    return `<line class="nul" x1="${x+7}" y1="${h-9}" x2="${x+w-7}" y2="9"/>`;
+  const t = p === G ? '??' : p;
+  return `<text class="ptrv" x="${x+w/2}" y="${h/2+3}" text-anchor="middle">${t}</text>`;
+}
+function nodeSVG(n, addr, NW, NH, cfg, freed, leaked){
+  const pw = cfg.doubly ? 32 : 0;          /* prev cell width */
+  const dw = cfg.doubly ? 68 : 52;         /* data cell width */
+  let h = `<rect class="box" width="${NW}" height="${NH}" rx="3"/>`;
+  if (cfg.doubly){
+    h += `<line class="div" x1="${pw}" y1="0" x2="${pw}" y2="${NH}"/>`;
+    h += ptrCellSVG(n.prev, 0, pw, NH);
+  }
+  h += `<line class="div" x1="${pw+dw}" y1="0" x2="${pw+dw}" y2="${NH}"/>`;
+  h += `<text class="val" x="${pw+dw/2}" y="${NH/2+5}" text-anchor="middle">${esc(n.v)}</text>`;
+  h += ptrCellSVG(n.next, pw+dw, NW-(pw+dw), NH);
+  h += `<text class="addr" x="${NW/2}" y="${NH+15}" text-anchor="middle">${addr}</text>`;
+  if (freed){
+    h += `<line class="xx" x1="2" y1="2" x2="${NW-2}" y2="${NH-2}"/>`;
+    h += `<line class="xx" x1="${NW-2}" y1="2" x2="2" y2="${NH-2}"/>`;
+    h += `<text class="tag bad" x="${NW/2}" y="-7" text-anchor="middle">free()d</text>`;
+  } else if (leaked){
+    h += `<text class="tag bad" x="${NW/2}" y="-7" text-anchor="middle">leaked!</text>`;
+  }
+  return h;
+}
+/* one arrow between two nodes (or a self-loop) */
+function edgeSVG(sp, tp, kind, NW, NH, wrapLong){
+  const cls = kind === 'prev' ? 'edge prev' : 'edge';
+  const mk  = kind === 'prev' ? 'url(#arrP)' : 'url(#arrN)';
+  let d;
+  if (sp === tp){                                  /* self-loop */
+    const x = sp.x, y = sp.y;
+    d = `M ${x+NW-20} ${y} C ${x+NW-18} ${y-34}, ${x+NW+40} ${y-26}, ${x+NW+5} ${y-3}`;
+  } else if (kind === 'next'){
+    const sx = sp.x+NW, sy = sp.y+15, tx = tp.x, ty = tp.y+15;
+    if (sp.y === tp.y && tp.x > sp.x){
+      d = `M ${sx} ${sy} L ${tx-2} ${ty}`;
+    } else if (sp.y === tp.y){                     /* leftward: arc underneath */
+      const dip = wrapLong ? 60 : 52;
+      d = `M ${sp.x+NW-20} ${sp.y+NH} C ${sp.x+NW-20} ${sp.y+NH+dip}, ${tp.x+26} ${tp.y+NH+dip}, ${tp.x+26} ${tp.y+NH+3}`;
+    } else if (sp.x === tp.x){                     /* vertical (stack) */
+      const c = sp.y < tp.y
+        ? `M ${sp.x+NW-20} ${sp.y+NH} L ${tp.x+NW-20} ${tp.y-3}`
+        : `M ${sp.x+NW-20} ${sp.y} L ${tp.x+NW-20} ${tp.y+NH+3}`;
+      d = c;
+    } else {                                       /* different rows */
+      d = `M ${sx} ${sy} C ${sx+46} ${sy}, ${tx-46} ${ty}, ${tx-2} ${ty}`;
+    }
+  } else {                                         /* prev arrows run low */
+    const sx = sp.x, sy = sp.y+32, tx = tp.x+NW, ty = tp.y+32;
+    if (sp.y === tp.y && tp.x < sp.x){
+      d = `M ${sx} ${sy} L ${tx+2} ${ty}`;
+    } else if (sp.y === tp.y){                     /* rightward prev: deep under-arc */
+      d = `M ${sp.x+26} ${sp.y+NH} C ${sp.x+26} ${sp.y+NH+84}, ${tp.x+NW-20} ${tp.y+NH+84}, ${tp.x+NW-20} ${tp.y+NH+3}`;
+    } else {
+      d = `M ${sx} ${sy} C ${sx-46} ${sy}, ${tx+46} ${ty}, ${tx+2} ${ty}`;
+    }
+  }
+  return `<path class="${cls}" d="${d}" marker-end="${mk}"/>`;
+}
+function pillsSVG(s, pos, NW, NH, vert){
+  let out = '';
+  const at = {};                                   /* addr -> [{name,temp}] */
+  const nulls = [];
+  Object.entries(s.ptrs).forEach(([k,v]) => v && pos[v] ? (at[v]=at[v]||[]).push({n:k,t:0}) : nulls.push({n:k,t:0,v}));
+  Object.entries(s.temps).forEach(([k,v]) => {
+    if (v && pos[v]) (at[v]=at[v]||[]).push({n:k,t:1});
+    else nulls.push({n:k,t:1,v});
+  });
+  Object.entries(at).forEach(([a,list]) => {
+    const p = pos[a];
+    list.forEach((it,i) => {
+      const w = it.n.length*7.4 + 16;
+      if (vert){
+        const px = p.x - 14 - w, py = p.y + 4 + i*22;
+        out += `<g class="pill${it.t?' temp':''}">`
+             + (i===0 ? `<line x1="${p.x-12}" y1="${py+9}" x2="${p.x-2}" y2="${py+9}"/>` : '')
+             + `<rect x="${px}" y="${py}" width="${w}" height="18" rx="9"/>`
+             + `<text x="${px+w/2}" y="${py+13}" text-anchor="middle">${it.n}</text></g>`;
+      } else {
+        const cx = p.x + NW/2, py = p.y - 26 - i*22;
+        out += `<g class="pill${it.t?' temp':''}">`
+             + (i===0 ? `<line x1="${cx}" y1="${py+18}" x2="${cx}" y2="${p.y-2}"/>` : '')
+             + `<rect x="${cx-w/2}" y="${py}" width="${w}" height="18" rx="9"/>`
+             + `<text x="${cx}" y="${py+13}" text-anchor="middle">${it.n}</text></g>`;
+      }
+    });
+  });
+  let nx = 14;
+  nulls.forEach(it => {
+    const t = it.n + ' = ' + (it.v === G ? '??' : 'NULL');
+    out += `<text class="nullbar" x="${nx}" y="20">${t}</text>`;
+    nx += t.length*7 + 26;
+  });
+  return out;
+}
+
+function render(){
+  const s = st();
+  const { pos, chain, others, W, H, NW, NH, cfg } = layoutPos(s);
+  const svg = $('#svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+
+  /* nodes: keyed groups so position changes animate */
+  const layer = $('#nodesLayer');
+  const existing = {};
+  [...layer.children].forEach(g => existing[g.dataset.addr] = g);
+  const reach = reachable(s);
+  const all = chain.concat(others);
+  all.forEach(a => {
+    let g = existing[a];
+    if (!g){
+      g = document.createElementNS(NS,'g');
+      g.dataset.addr = a;
+      layer.appendChild(g);
+    } else delete existing[a];
+    const n = s.nodes[a];
+    const freed  = s.freed.includes(a);
+    const leaked = !freed && !reach[a];
+    const isTemp = Object.values(s.temps).includes(a);
+    const mark   = s.mark && s.mark.addr === a ? ' ' + s.mark.kind : '';
+    g.setAttribute('class', 'node' + (freed?' freed':'') + (leaked?' leaked':'') + (isTemp?' hot':'') + mark);
+    g.setAttribute('transform', `translate(${pos[a].x},${pos[a].y})`);
+    g.innerHTML = nodeSVG(n, a, NW, NH, cfg, freed, leaked);
+  });
+  Object.values(existing).forEach(g => g.remove());
+
+  /* edges */
+  let e = '';
+  const headA = chain[0], lastA = chain[chain.length-1];
+  all.forEach(a => {
+    const n = s.nodes[a];
+    if (n.next && n.next !== G && s.nodes[n.next] && pos[n.next])
+      e += edgeSVG(pos[a], pos[n.next], 'next', NW, NH, cfg.circ && a === lastA && n.next === headA && chain.length > 1);
+    if (cfg.doubly && n.prev && n.prev !== G && s.nodes[n.prev] && pos[n.prev])
+      e += edgeSVG(pos[a], pos[n.prev], 'prev', NW, NH, false);
+  });
+  $('#edges').innerHTML = e;
+
+  /* pills + empty hint */
+  let p = pillsSVG(s, pos, NW, NH, cfg.vert);
+  if (!all.length)
+    p += `<text class="hintTxt" x="${W/2}" y="${H/2}" text-anchor="middle">${MODES[mode].label} is empty — run an insert, or press “seed 10, 20, 30”.</text>`;
+  $('#pills').innerHTML = p;
+}
+
+function renderCode(){
+  const pre = $('#code');
+  if (!run){
+    pre.innerHTML = '<div class="cl dim">// pick an operation on the left —</div><div class="cl dim">// its C implementation shows up here</div>';
+    return;
+  }
+  pre.innerHTML = run.op.code.map((l,i) =>
+    `<div class="cl${i === run.line ? ' on' : ''}">${esc(l) || ' '}</div>`).join('');
+  const on = pre.querySelector('.on');
+  if (on) on.scrollIntoView({ block:'nearest' });
+}
+function note(msg){ $('#note').textContent = msg; }
+function updateBar(){
+  $('#btnPrev').disabled = !run || run.n === 0;
+  $('#btnNext').disabled = !run;
+  $('#btnRun').disabled  = !run;
+  $('#btnEnd').disabled  = !run;
+  $('#stepCount').textContent = run ? 'step ' + run.n : '';
+}
+function renderAll(){ render(); renderCode(); updateBar(); }
+
+function logHist(txt){
+  const d = document.createElement('div');
+  d.className = 'h-item';
+  d.innerHTML = `<span class="h-mode">${MODES[mode].label}</span><code>${esc(txt)}</code><span class="h-sum">${esc(summary(st()))}</span>`;
+  $('#hist').prepend(d);
+}
+
+/* ---------- runner ---------- */
+function startOp(op){
+  if (run) finishRun();
+  const s = st();
+  const args = { value: parseInt($('#val').value,10), pos: parseInt($('#pos').value,10) };
+  if (op.needsValue && isNaN(args.value)) { note('Type a value in the “value” box first.'); return; }
+  if (op.needsPos && (isNaN(args.pos) || args.pos < 1)) { note('Type a position ≥ 1 in the “position” box.'); return; }
+  if (op.check){ const err = op.check(s, args); if (err){ note(err); return; } }
+  run = { op, args, snap: clone(s), gen: op.gen(s, args), n:0, line:-1 };
+  document.body.classList.add('running');
+  $('#opName').textContent = op.sig(args);
+  note('Press Next ⟩ to execute one line at a time — or Run ▶▶ to autoplay.');
+  renderAll();
+}
+function stepFwd(){
+  if (!run) return;
+  const r = run.gen.next();
+  if (r.done){ finishRun(); return; }
+  run.n++; run.line = r.value[0];
+  note(r.value[1]);
+  renderAll();
+}
+function stepBack(){
+  if (!run || run.n === 0) return;
+  const target = run.n - 1;
+  DB[mode] = clone(run.snap);
+  run.gen = run.op.gen(st(), run.args);
+  run.n = 0; run.line = -1;
+  let msg = 'Back at the start — nothing executed yet.';
+  for (let i = 0; i < target; i++){
+    const r = run.gen.next();
+    run.n++; run.line = r.value[0]; msg = r.value[1];
+  }
+  note(msg);
+  renderAll();
+}
+function finishRun(){
+  if (!run) return;
+  stopAuto();
+  let r;
+  while (!(r = run.gen.next()).done){ run.n++; run.line = r.value[0]; }
+  const s = st();
+  s.freed.forEach(a => delete s.nodes[a]);
+  s.freed = []; s.temps = {}; s.mark = null;
+  const sig = run.op.sig(run.args);
+  logHist(sig);
+  if (run.op.needsValue) $('#val').value = 1 + Math.floor(Math.random()*98);
+  run = null;
+  document.body.classList.remove('running');
+  note('✓ ' + sig + ' finished. List is now: ' + summary(s));
+  renderAll();
+}
+function toggleAuto(){
+  if (!run) return;
+  if (timer){ stopAuto(); return; }
+  $('#btnRun').textContent = 'Pause ⏸';
+  timer = setInterval(() => { if (!run){ stopAuto(); return; } stepFwd(); }, 950);
+}
+function stopAuto(){ clearInterval(timer); timer = null; $('#btnRun').textContent = 'Run ▶▶'; }
+
+/* ---------- theme ---------- */
+/* three states, cycled by one button: auto (follow the OS) → light → dark.
+   "auto" is the absence of data-theme, which is what lets the
+   prefers-color-scheme block in the stylesheet win. */
+const THEMES = ['auto','light','dark'];
+const THEME_ICON = { auto:'◐', light:'☀', dark:'☾' };
+const THEME_KEY = 'linkedlistlab.theme';
+const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+
+function readTheme(){
+  let t = null;
+  try { t = localStorage.getItem(THEME_KEY); } catch(e){}
+  return THEMES.includes(t) ? t : 'auto';
+}
+function applyTheme(t){
+  if (t === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = t;
+  try { t === 'auto' ? localStorage.removeItem(THEME_KEY) : localStorage.setItem(THEME_KEY, t); } catch(e){}
+  paintThemeBtn(t);
+}
+function paintThemeBtn(t){
+  const b = $('#themeBtn');
+  const resolved = t === 'auto' ? (darkMQ.matches ? 'dark' : 'light') : t;
+  b.innerHTML = `<span class="ic">${THEME_ICON[t]}</span>${t}`;
+  b.setAttribute('aria-label', `theme: ${t}${t === 'auto' ? ' (currently ' + resolved + ')' : ''} — click to change`);
+}
+function cycleTheme(){
+  const next = THEMES[(THEMES.indexOf(readTheme()) + 1) % THEMES.length];
+  applyTheme(next);
+  note('Theme: ' + next + (next === 'auto' ? ' — following your system setting.' : '.'));
+}
+
+/* ---------- chrome ---------- */
+function setMode(m){
+  if (run) finishRun();
+  mode = m;
+  [...$('#tabs').children].forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  buildOps();
+  $('#opName').textContent = 'pick an operation ←';
+  note(MODES[m].label + ' selected. State is kept per structure — switch tabs freely.');
+  renderAll();
+}
+function buildTabs(){
+  $('#tabs').innerHTML = '';
+  Object.entries(MODES).forEach(([m,cfg]) => {
+    const b = document.createElement('button');
+    b.textContent = cfg.label; b.dataset.m = m;
+    b.onclick = () => setMode(m);
+    $('#tabs').appendChild(b);
+  });
+}
+function buildOps(){
+  const wrap = $('#ops');
+  wrap.innerHTML = '';
+  const groups = [['ins','Insert'],['del','Delete'],['insp','Traverse & more'],['bug','⚠ Common bugs']];
+  groups.forEach(([gid,label]) => {
+    const list = OPS[mode].filter(o => o.group === gid);
+    if (!list.length) return;
+    const h = document.createElement('h3'); h.textContent = label; wrap.appendChild(h);
+    const g = document.createElement('div'); g.className = 'grp'; wrap.appendChild(g);
+    list.forEach(op => {
+      const b = document.createElement('button');
+      if (gid === 'bug') b.className = 'bug';
+      const hint = op.needsValue && op.needsPos ? 'value, pos' : op.needsValue ? 'value' : op.needsPos ? 'pos' : '';
+      b.innerHTML = `<span>${esc(op.label)}</span>` + (hint ? `<span class="hint">${hint}</span>` : '');
+      b.onclick = () => startOp(op);
+      g.appendChild(b);
+    });
+  });
+  const h = document.createElement('h3'); h.textContent = 'Utility'; wrap.appendChild(h);
+  const g = document.createElement('div'); g.className = 'grp'; wrap.appendChild(g);
+  const bs = document.createElement('button'); bs.className = 'util'; bs.textContent = 'seed 10, 20, 30';
+  bs.onclick = () => {
+    if (!seedable(st())){ note('Seed only works on an empty list — reset first.'); return; }
+    seedList(); logHist('seed(10, 20, 30)'); renderAll();
+  };
+  const br = document.createElement('button'); br.className = 'util'; br.textContent = 'reset (empty the list)';
+  br.onclick = () => { if (run) finishRun(); DB[mode] = freshState(mode); logHist('reset()'); renderAll(); };
+  g.appendChild(bs); g.appendChild(br);
+}
+function boot(){
+  applyTheme(readTheme());
+  $('#themeBtn').onclick = cycleTheme;
+  /* while on "auto", the OS flipping at sunset should update the button label too */
+  darkMQ.addEventListener('change', () => { if (readTheme() === 'auto') paintThemeBtn('auto'); });
+  buildTabs();
+  $('#btnNext').onclick = stepFwd;
+  $('#btnPrev').onclick = stepBack;
+  $('#btnRun').onclick  = toggleAuto;
+  $('#btnEnd').onclick  = finishRun;
+  document.addEventListener('keydown', ev => {
+    if (ev.target.tagName === 'INPUT') return;
+    if (ev.key === 'ArrowRight'){ stepFwd(); ev.preventDefault(); }
+    if (ev.key === 'ArrowLeft'){ stepBack(); ev.preventDefault(); }
+  });
+  setMode('sll');
+}
+/* ============ operations: C code + step scripts ============ */
+const NL = a => a || 'NULL';
+/* shared "malloc + set data" opening, used by every insert */
+function* mkNode(s, v, lMalloc, lData){
+  const n = alloc(s);
+  s.temps.newNode = n;
+  yield [lMalloc, 'malloc grabs fresh heap memory at ' + n + '. Every field is garbage (??) until we write to it.'];
+  s.nodes[n].v = v;
+  yield [lData, 'newNode->data = ' + v + '. The pointer field(s) are still garbage!'];
+  return n;
+}
+const BAIL = 'This loop never finds its stop condition — the list has a cycle (did a bug demo corrupt it?). In real C this would spin forever. Bailing out; press reset.';
+
+const OPS = {
+/* ================================================== SINGLY ==== */
+sll: [
+{ label:'insert at beginning', group:'ins', needsValue:true,
+  sig:a=>`insertAtBeginning(${a.value})`, check:capIns,
+  code:C(`
+void insertAtBeginning(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->next = head;
+    head = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    s.nodes[n].next = s.ptrs.head;
+    yield [3, s.ptrs.head ? 'newNode->next = head — it now holds ' + s.ptrs.head + ', the old first node. Nothing is lost.'
+                          : 'newNode->next = head, and head is NULL — so newNode will end the list.'];
+    s.ptrs.head = n;
+    yield [4, 'head = newNode. ' + n + ' is the new first node. O(1) — no walking needed.'];
+  } },
+
+{ label:'insert at end', group:'ins', needsValue:true,
+  sig:a=>`insertAtEnd(${a.value})`, check:capIns,
+  code:C(`
+void insertAtEnd(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->next = NULL;
+    if (head == NULL) {
+        head = newNode;
+        return;
+    }
+    Node *curr = head;
+    while (curr->next != NULL)
+        curr = curr->next;
+    curr->next = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    s.nodes[n].next = null;
+    yield [3, 'newNode->next = NULL — it will be the last node.'];
+    if (s.ptrs.head === null){
+      yield [4, 'head == NULL — the list is empty. Easy case.'];
+      s.ptrs.head = n;
+      yield [5, 'head = newNode. Done — a one-node list.'];
+      return;
+    }
+    yield [4, 'head is ' + s.ptrs.head + ', not NULL — we must walk to the end.'];
+    s.temps.curr = s.ptrs.head;
+    yield [8, 'curr starts at head (' + s.ptrs.head + ').'];
+    let gd = 0;
+    while (s.nodes[s.temps.curr].next !== null){
+      if (++gd > 24){ yield [9, BAIL]; return; }
+      yield [9, 'curr->next = ' + s.nodes[s.temps.curr].next + ' ≠ NULL → not the last node yet.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [10, 'curr = curr->next → now at ' + s.temps.curr + '.'];
+    }
+    yield [9, 'curr->next == NULL → curr (' + s.temps.curr + ') is the last node. Leave the loop.'];
+    s.nodes[s.temps.curr].next = n;
+    yield [11, 'curr->next = newNode — linked! This was O(n): we visited every node to get here.'];
+  } },
+
+{ label:'insert at position', group:'ins', needsValue:true, needsPos:true,
+  sig:a=>`insertAtPosition(${a.value}, ${a.pos})`,
+  check:(s,a)=>{
+    const c = capIns(s); if (c) return c;
+    const len = chainOf(s).length;
+    if (a.pos > len + 1) return 'Position ' + a.pos + ' is out of range — the list has ' + len + ' node' + (len===1?'':'s') + ' (max insert position: ' + (len+1) + ').';
+    return null;
+  },
+  code:C(`
+void insertAtPosition(int data, int pos) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    if (pos == 1) {
+        newNode->next = head;
+        head = newNode;
+        return;
+    }
+    Node *curr = head;
+    for (int i = 1; i < pos - 1; i++)
+        curr = curr->next;
+    newNode->next = curr->next;
+    curr->next = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    if (a.pos === 1){
+      yield [3, 'pos == 1 → this is just “insert at beginning”.'];
+      s.nodes[n].next = s.ptrs.head;
+      yield [4, 'newNode->next = head (' + NL(s.ptrs.head) + ').'];
+      s.ptrs.head = n;
+      yield [5, 'head = newNode. Done.'];
+      return;
+    }
+    yield [3, 'pos is ' + a.pos + ', not 1 → walk to node #' + (a.pos-1) + ', the one BEFORE the insertion point.'];
+    s.temps.curr = s.ptrs.head;
+    yield [8, 'curr starts at head (' + s.ptrs.head + ') — node #1.'];
+    for (let i = 1; i < a.pos - 1; i++){
+      yield [9, 'i = ' + i + ' < ' + (a.pos-1) + ' → keep walking.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [10, 'curr = curr->next → ' + s.temps.curr + ' (node #' + (i+1) + ').'];
+    }
+    yield [9, 'Loop done — curr is node #' + (a.pos-1) + '.'];
+    s.nodes[n].next = s.nodes[s.temps.curr].next;
+    yield [11, 'FIRST: newNode->next = curr->next (' + NL(s.nodes[n].next) + '). Hook the new node in before touching the old chain.'];
+    s.nodes[s.temps.curr].next = n;
+    yield [12, 'THEN: curr->next = newNode. Do these two lines in the other order and the rest of the list is lost.'];
+  } },
+
+{ label:'delete at beginning', group:'del', needsValue:false,
+  sig:()=>'deleteAtBeginning()',
+  code:C(`
+void deleteAtBeginning(void) {
+    if (head == NULL) return;
+    Node *temp = head;
+    head = head->next;
+    free(temp);
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — the list is empty, nothing to delete. return.']; return; }
+    yield [1, 'head is ' + s.ptrs.head + ' — list not empty, carry on.'];
+    s.temps.temp = s.ptrs.head;
+    yield [2, 'temp remembers the first node (' + s.temps.temp + ') so we can still free it after head moves.'];
+    s.ptrs.head = s.nodes[s.ptrs.head].next;
+    yield [3, 'head = head->next → head now points to ' + NL(s.ptrs.head) + '.'];
+    s.freed.push(s.temps.temp);
+    yield [4, 'free(temp) — the memory goes back to the heap. temp is now a DANGLING pointer; never use it again.'];
+  } },
+
+{ label:'delete at end', group:'del', needsValue:false,
+  sig:()=>'deleteAtEnd()',
+  code:C(`
+void deleteAtEnd(void) {
+    if (head == NULL) return;
+    if (head->next == NULL) {
+        free(head);
+        head = NULL;
+        return;
+    }
+    Node *curr = head;
+    while (curr->next->next != NULL)
+        curr = curr->next;
+    free(curr->next);
+    curr->next = NULL;
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to delete. return.']; return; }
+    yield [1, 'List not empty — head is ' + s.ptrs.head + '.'];
+    if (s.nodes[s.ptrs.head].next === null){
+      yield [2, 'head->next == NULL — there is only one node.'];
+      s.freed.push(s.ptrs.head);
+      yield [3, 'free(head).'];
+      s.ptrs.head = null;
+      yield [4, 'head = NULL — the list is empty again. Without this line head would dangle!'];
+      return;
+    }
+    yield [2, 'More than one node — we need the SECOND-TO-LAST node (its next must become NULL).'];
+    s.temps.curr = s.ptrs.head;
+    yield [7, 'curr starts at head.'];
+    let gd = 0;
+    while (s.nodes[s.nodes[s.temps.curr].next].next !== null){
+      if (++gd > 24){ yield [8, BAIL]; return; }
+      yield [8, 'curr->next->next = ' + s.nodes[s.nodes[s.temps.curr].next].next + ' ≠ NULL → keep walking. (We look TWO ahead.)'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [9, 'curr = curr->next → ' + s.temps.curr + '.'];
+    }
+    yield [8, 'curr->next->next == NULL → curr (' + s.temps.curr + ') is second-to-last.'];
+    s.freed.push(s.nodes[s.temps.curr].next);
+    yield [10, 'free(curr->next) — the last node is released. Note curr->next still points at freed memory…'];
+    s.nodes[s.temps.curr].next = null;
+    yield [11, '…so curr->next = NULL. curr is the new last node.'];
+  } },
+
+{ label:'delete at position', group:'del', needsValue:false, needsPos:true,
+  sig:a=>`deleteAtPosition(${a.pos})`,
+  check:(s,a)=>{
+    const len = chainOf(s).length;
+    if (len && a.pos > len) return 'Position ' + a.pos + ' is out of range — the list has only ' + len + ' node' + (len===1?'':'s') + '.';
+    return null;
+  },
+  code:C(`
+void deleteAtPosition(int pos) {
+    if (head == NULL) return;
+    if (pos == 1) {
+        Node *temp = head;
+        head = head->next;
+        free(temp);
+        return;
+    }
+    Node *curr = head;
+    for (int i = 1; i < pos - 1; i++)
+        curr = curr->next;
+    Node *temp = curr->next;
+    curr->next = temp->next;
+    free(temp);
+}`),
+  gen:function*(s,a){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — the list is empty, nothing to delete. return.']; return; }
+    yield [1, 'head is ' + s.ptrs.head + ' — list not empty, carry on.'];
+    if (a.pos === 1){
+      yield [2, 'pos == 1 → deleting the FIRST node, so head itself must move. Special case.'];
+      s.temps.temp = s.ptrs.head;
+      yield [3, 'temp = head (' + s.temps.temp + ') — keep a handle so we can still free it after head moves.'];
+      s.ptrs.head = s.nodes[s.ptrs.head].next;
+      yield [4, 'head = head->next → ' + NL(s.ptrs.head) + '.'];
+      s.freed.push(s.temps.temp);
+      yield [5, 'free(temp). Done.'];
+      return;
+    }
+    yield [2, 'pos is ' + a.pos + ', not 1 → walk to node #' + (a.pos-1) + ', the one BEFORE the victim.'];
+    s.temps.curr = s.ptrs.head;
+    yield [8, 'curr starts at head (' + s.ptrs.head + ') — node #1.'];
+    for (let i = 1; i < a.pos - 1; i++){
+      yield [9, 'i = ' + i + ' < ' + (a.pos-1) + ' → keep walking.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [10, 'curr = curr->next → ' + s.temps.curr + ' (node #' + (i+1) + ').'];
+    }
+    yield [9, 'Loop done — curr (' + s.temps.curr + ') is node #' + (a.pos-1) + ', just BEFORE the victim.'];
+    s.temps.temp = s.nodes[s.temps.curr].next;
+    yield [11, 'temp = curr->next (' + s.temps.temp + ') — a handle on the victim, node #' + a.pos + '.'];
+    s.nodes[s.temps.curr].next = s.nodes[s.temps.temp].next;
+    yield [12, 'curr->next = temp->next (' + NL(s.nodes[s.temps.temp].next) + ') — the chain now BYPASSES the victim.'];
+    s.freed.push(s.temps.temp);
+    yield [13, 'free(temp). Unlink first, free second — the other order reads freed memory.'];
+  } },
+
+{ label:'delete by value', group:'del', needsValue:true,
+  sig:a=>`deleteByValue(${a.value})`,
+  code:C(`
+void deleteByValue(int data) {
+    if (head == NULL) return;
+    if (head->data == data) {
+        Node *temp = head;
+        head = head->next;
+        free(temp);
+        return;
+    }
+    Node *curr = head;
+    while (curr->next != NULL && curr->next->data != data)
+        curr = curr->next;
+    if (curr->next == NULL) return;   /* not found */
+    Node *temp = curr->next;
+    curr->next = temp->next;
+    free(temp);
+}`),
+  gen:function*(s,a){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — empty list, nothing to delete.']; return; }
+    yield [1, 'List not empty. Hunting for ' + a.value + '.'];
+    if (s.nodes[s.ptrs.head].v === a.value){
+      yield [2, 'The FIRST node holds ' + a.value + ' — special case, because head itself must move.'];
+      s.temps.temp = s.ptrs.head;
+      yield [3, 'temp = head (' + s.temps.temp + ').'];
+      s.ptrs.head = s.nodes[s.ptrs.head].next;
+      yield [4, 'head = head->next → ' + NL(s.ptrs.head) + '.'];
+      s.freed.push(s.temps.temp);
+      yield [5, 'free(temp).'];
+      return;
+    }
+    yield [2, 'First node holds ' + s.nodes[s.ptrs.head].v + ', not ' + a.value + ' — search the rest.'];
+    s.temps.curr = s.ptrs.head;
+    yield [8, 'curr = head. Trick: we always look ONE AHEAD (curr->next), so curr stops just BEFORE the match.'];
+    let gd = 0;
+    while (s.nodes[s.temps.curr].next !== null && s.nodes[s.nodes[s.temps.curr].next].v !== a.value){
+      if (++gd > 24){ yield [9, BAIL]; return; }
+      yield [9, 'curr->next holds ' + s.nodes[s.nodes[s.temps.curr].next].v + ' ≠ ' + a.value + ' → advance.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [10, 'curr = curr->next → ' + s.temps.curr + '.'];
+    }
+    if (s.nodes[s.temps.curr].next === null){
+      yield [9, 'curr->next == NULL — reached the end without a match.'];
+      yield [11, a.value + ' is not in the list. return, delete nothing.'];
+      return;
+    }
+    yield [9, 'curr->next (' + s.nodes[s.temps.curr].next + ') holds ' + a.value + ' — found the victim. curr sits right before it.'];
+    s.temps.temp = s.nodes[s.temps.curr].next;
+    yield [12, 'temp = curr->next (' + s.temps.temp + ') — keep a handle on the victim.'];
+    s.nodes[s.temps.curr].next = s.nodes[s.temps.temp].next;
+    yield [13, 'curr->next = temp->next — the chain now BYPASSES the victim.'];
+    s.freed.push(s.temps.temp);
+    yield [14, 'free(temp). Unlink first, free second — the other order reads freed memory.'];
+  } },
+
+{ label:'search', group:'insp', needsValue:true,
+  sig:a=>`search(${a.value})`,
+  code:C(`
+int search(int data) {
+    Node *curr = head;
+    int pos = 1;
+    while (curr != NULL) {
+        if (curr->data == data)
+            return pos;   /* found */
+        curr = curr->next;
+        pos++;
+    }
+    return -1;   /* not in the list */
+}`),
+  gen:function*(s,a){
+    s.temps.curr = s.ptrs.head;
+    yield [1, 'curr = head (' + NL(s.ptrs.head) + ').'];
+    let p = 1;
+    yield [2, 'pos = 1 — count nodes as we go.'];
+    let gd = 0;
+    while (s.temps.curr !== null){
+      if (++gd > 24){ yield [3, BAIL]; return; }
+      yield [3, 'curr = ' + s.temps.curr + ' ≠ NULL → check this node.'];
+      if (s.nodes[s.temps.curr].v === a.value){
+        s.mark = { addr: s.temps.curr, kind: 'found' };
+        yield [4, 'curr->data == ' + a.value + ' — FOUND, at position ' + p + '!'];
+        yield [5, 'return ' + p + '.'];
+        return;
+      }
+      yield [4, 'curr->data is ' + s.nodes[s.temps.curr].v + ' ≠ ' + a.value + ' — not this one.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [6, 'curr = curr->next → ' + NL(s.temps.curr) + '.'];
+      p++;
+      yield [7, 'pos = ' + p + '.'];
+    }
+    yield [3, 'curr == NULL — walked off the end of the list.'];
+    yield [9, a.value + ' is not in the list. return -1.'];
+  } },
+
+{ label:'reverse', group:'insp', needsValue:false,
+  sig:()=>'reverse()',
+  code:C(`
+void reverse(void) {
+    Node *prev = NULL, *curr = head, *next;
+    while (curr != NULL) {
+        next = curr->next;
+        curr->next = prev;
+        prev = curr;
+        curr = next;
+    }
+    head = prev;
+}`),
+  gen:function*(s){
+    s.temps.prev = null; s.temps.curr = s.ptrs.head; s.temps.next = null;
+    yield [1, 'Three walkers: prev = NULL, curr = head (' + NL(s.ptrs.head) + '), next unset.'];
+    let gd = 0;
+    while (s.temps.curr !== null){
+      if (++gd > 24){ yield [2, BAIL]; return; }
+      yield [2, 'curr = ' + s.temps.curr + ' ≠ NULL → flip this node’s arrow.'];
+      s.temps.next = s.nodes[s.temps.curr].next;
+      yield [3, 'SAVE the rest of the list first: next = ' + NL(s.temps.next) + '.'];
+      s.nodes[s.temps.curr].next = s.temps.prev;
+      yield [4, 'Flip: curr->next now points ' + (s.temps.prev ? 'BACK to ' + s.temps.prev : 'to NULL (it becomes the new tail)') + '.'];
+      s.temps.prev = s.temps.curr;
+      yield [5, 'prev catches up: prev = ' + s.temps.prev + '.'];
+      s.temps.curr = s.temps.next;
+      yield [6, 'curr moves on via the saved pointer: curr = ' + NL(s.temps.curr) + '.'];
+    }
+    yield [2, 'curr == NULL — every arrow has been flipped.'];
+    s.ptrs.head = s.temps.prev;
+    yield [8, 'head = prev (' + NL(s.ptrs.head) + ') — the old last node is the new first. Reversed in O(n), no extra memory.'];
+  } },
+
+{ label:'traverse', group:'insp', needsValue:false,
+  sig:()=>'traverse()',
+  code:C(`
+void traverse(void) {
+    Node *curr = head;
+    while (curr != NULL) {
+        printf("%d -> ", curr->data);
+        curr = curr->next;
+    }
+    printf("NULL\\n");
+}`),
+  gen:function*(s){
+    s.temps.curr = s.ptrs.head;
+    yield [1, 'curr = head (' + NL(s.ptrs.head) + ').'];
+    let out = '';
+    let gd = 0;
+    while (s.temps.curr !== null){
+      if (++gd > 24){ yield [2, BAIL]; return; }
+      yield [2, 'curr ≠ NULL → visit it.'];
+      out += s.nodes[s.temps.curr].v + ' -> ';
+      yield [3, 'Output so far:  ' + out];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [4, 'curr = curr->next → ' + NL(s.temps.curr) + '.'];
+    }
+    yield [2, 'curr == NULL — done walking.'];
+    yield [6, 'Final output:  ' + out + 'NULL'];
+  } },
+
+{ label:'insert head — wrong order', group:'bug', needsValue:true,
+  sig:a=>`BUGGY insertAtBeginning(${a.value})`, check:capIns,
+  code:C(`
+void insertAtBeginning(int data) {   /* buggy! */
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    head = newNode;        /* moved head too early */
+    newNode->next = head;  /* head is already newNode! */
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    s.ptrs.head = n;
+    yield [3, 'head = newNode — but wait: nothing points to the old first node any more…'];
+    s.nodes[n].next = n;
+    yield [4, 'newNode->next = head… but head is ALREADY newNode. The node points at itself, and every old node just LEAKED. Correct order: newNode->next = head FIRST, then head = newNode.'];
+  } },
+
+{ label:'delete head — memory leak', group:'bug', needsValue:false,
+  sig:()=>'LEAKY deleteAtBeginning()',
+  code:C(`
+void deleteAtBeginning(void) {   /* leaky! */
+    if (head == NULL) return;
+    head = head->next;   /* …who frees the old node? */
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to delete.']; return; }
+    yield [1, 'List not empty — proceed.'];
+    s.ptrs.head = s.nodes[s.ptrs.head].next;
+    yield [2, 'head moved on — the list LOOKS right. But the old first node was never free()d and no pointer can reach it: that memory is leaked until the program exits. Tools like valgrind catch exactly this.'];
+  } },
+
+{ label:'reverse — lost the list', group:'bug', needsValue:false,
+  sig:()=>'BUGGY reverse()',
+  code:C(`
+void reverse(void) {   /* buggy! */
+    Node *prev = NULL, *curr = head;
+    while (curr != NULL) {
+        curr->next = prev;   /* lost curr's old next! */
+        prev = curr;
+        curr = curr->next;   /* walks BACKWARD now */
+    }
+    head = prev;
+}`),
+  gen:function*(s){
+    s.temps.prev = null; s.temps.curr = s.ptrs.head;
+    yield [1, 'prev = NULL, curr = head (' + NL(s.ptrs.head) + '). Note: no “next” variable…'];
+    let gd = 0;
+    while (s.temps.curr !== null){
+      if (++gd > 10){ yield [2, '(bailing out)']; break; }
+      yield [2, 'curr = ' + s.temps.curr + ' ≠ NULL → loop.'];
+      s.nodes[s.temps.curr].next = s.temps.prev;
+      yield [3, 'curr->next = prev — we just overwrote the ONLY pointer to the rest of the list. It is gone.'];
+      s.temps.prev = s.temps.curr;
+      yield [4, 'prev = curr.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [5, 'curr = curr->next — but next was just overwritten! curr goes to ' + NL(s.temps.curr) + ' — backwards.'];
+    }
+    yield [2, 'curr == NULL — the loop ended after ONE pass.'];
+    s.ptrs.head = s.temps.prev;
+    yield [7, 'head = prev. Result: a one-node “reversed” list; everything else leaked. The fix: SAVE next = curr->next before overwriting curr->next.'];
+  } },
+],
+
+/* ================================================== DOUBLY ==== */
+dll: [
+{ label:'insert at beginning', group:'ins', needsValue:true,
+  sig:a=>`insertAtBeginning(${a.value})`, check:capIns,
+  code:C(`
+void insertAtBeginning(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->prev = NULL;
+    newNode->next = head;
+    if (head != NULL)
+        head->prev = newNode;
+    head = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    s.nodes[n].prev = null;
+    yield [3, 'newNode->prev = NULL — it will be first; nothing comes before it.'];
+    s.nodes[n].next = s.ptrs.head;
+    yield [4, 'newNode->next = head (' + NL(s.ptrs.head) + ').'];
+    if (s.ptrs.head !== null){
+      yield [5, 'head is not NULL — the old first node must learn about its new neighbour.'];
+      s.nodes[s.ptrs.head].prev = n;
+      yield [6, 'head->prev = newNode. Both directions consistent now.'];
+    } else {
+      yield [5, 'head == NULL — no old first node to fix.'];
+    }
+    s.ptrs.head = n;
+    yield [7, 'head = newNode. Done — O(1), but count the pointers: a DLL insert touches up to FOUR of them.'];
+  } },
+
+{ label:'insert at end', group:'ins', needsValue:true,
+  sig:a=>`insertAtEnd(${a.value})`, check:capIns,
+  code:C(`
+void insertAtEnd(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->next = NULL;
+    if (head == NULL) {
+        newNode->prev = NULL;
+        head = newNode;
+        return;
+    }
+    Node *curr = head;
+    while (curr->next != NULL)
+        curr = curr->next;
+    curr->next = newNode;
+    newNode->prev = curr;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    s.nodes[n].next = null;
+    yield [3, 'newNode->next = NULL — it goes at the end.'];
+    if (s.ptrs.head === null){
+      yield [4, 'head == NULL — empty list.'];
+      s.nodes[n].prev = null;
+      yield [5, 'newNode->prev = NULL as well.'];
+      s.ptrs.head = n;
+      yield [6, 'head = newNode. A one-node list.'];
+      return;
+    }
+    yield [4, 'List not empty — walk to the last node.'];
+    s.temps.curr = s.ptrs.head;
+    yield [9, 'curr = head (' + s.ptrs.head + ').'];
+    let gd = 0;
+    while (s.nodes[s.temps.curr].next !== null){
+      if (++gd > 24){ yield [10, BAIL]; return; }
+      yield [10, 'curr->next ≠ NULL → keep walking.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [11, 'curr = curr->next → ' + s.temps.curr + '.'];
+    }
+    yield [10, 'curr->next == NULL → curr (' + s.temps.curr + ') is the last node.'];
+    s.nodes[s.temps.curr].next = n;
+    yield [12, 'curr->next = newNode — forward link set.'];
+    s.nodes[n].prev = s.temps.curr;
+    yield [13, 'newNode->prev = curr — backward link set. Every DLL insert must set BOTH directions.'];
+  } },
+
+{ label:'delete at beginning', group:'del', needsValue:false,
+  sig:()=>'deleteAtBeginning()',
+  code:C(`
+void deleteAtBeginning(void) {
+    if (head == NULL) return;
+    Node *temp = head;
+    head = head->next;
+    if (head != NULL)
+        head->prev = NULL;
+    free(temp);
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to delete.']; return; }
+    yield [1, 'List not empty.'];
+    s.temps.temp = s.ptrs.head;
+    yield [2, 'temp = head (' + s.temps.temp + ').'];
+    s.ptrs.head = s.nodes[s.ptrs.head].next;
+    yield [3, 'head = head->next → ' + NL(s.ptrs.head) + '.'];
+    if (s.ptrs.head !== null){
+      yield [4, 'New head exists — its prev still points at the node we are about to free…'];
+      s.nodes[s.ptrs.head].prev = null;
+      yield [5, 'head->prev = NULL. Skip this and the list keeps a dangling prev pointer.'];
+    } else {
+      yield [4, 'head == NULL now — the list became empty, no prev to fix.'];
+    }
+    s.freed.push(s.temps.temp);
+    yield [6, 'free(temp).'];
+  } },
+
+{ label:'delete at end', group:'del', needsValue:false,
+  sig:()=>'deleteAtEnd()',
+  code:C(`
+void deleteAtEnd(void) {
+    if (head == NULL) return;
+    if (head->next == NULL) {
+        free(head);
+        head = NULL;
+        return;
+    }
+    Node *curr = head;
+    while (curr->next != NULL)
+        curr = curr->next;
+    curr->prev->next = NULL;
+    free(curr);
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to delete.']; return; }
+    yield [1, 'List not empty.'];
+    if (s.nodes[s.ptrs.head].next === null){
+      yield [2, 'Only one node.'];
+      s.freed.push(s.ptrs.head);
+      yield [3, 'free(head).'];
+      s.ptrs.head = null;
+      yield [4, 'head = NULL.'];
+      return;
+    }
+    yield [2, 'More than one node — walk curr all the way to the LAST node (prev pointers make the rest easy).'];
+    s.temps.curr = s.ptrs.head;
+    yield [7, 'curr = head.'];
+    let gd = 0;
+    while (s.nodes[s.temps.curr].next !== null){
+      if (++gd > 24){ yield [8, BAIL]; return; }
+      yield [8, 'curr->next ≠ NULL → keep walking.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [9, 'curr = curr->next → ' + s.temps.curr + '.'];
+    }
+    yield [8, 'curr (' + s.temps.curr + ') is the last node. In an SLL we needed the second-to-last; here curr->prev gives it for free.'];
+    s.nodes[s.nodes[s.temps.curr].prev].next = null;
+    yield [10, 'curr->prev->next = NULL — the second-to-last node is the new end.'];
+    s.freed.push(s.temps.curr);
+    yield [11, 'free(curr).'];
+  } },
+
+{ label:'delete by value', group:'del', needsValue:true,
+  sig:a=>`deleteByValue(${a.value})`,
+  code:C(`
+void deleteByValue(int data) {
+    Node *curr = head;
+    while (curr != NULL && curr->data != data)
+        curr = curr->next;
+    if (curr == NULL) return;   /* not found */
+    if (curr->prev != NULL)
+        curr->prev->next = curr->next;
+    else
+        head = curr->next;
+    if (curr->next != NULL)
+        curr->next->prev = curr->prev;
+    free(curr);
+}`),
+  gen:function*(s,a){
+    s.temps.curr = s.ptrs.head;
+    yield [1, 'curr = head (' + NL(s.ptrs.head) + '). No look-ahead trick needed — prev pointers exist.'];
+    let gd = 0;
+    while (s.temps.curr !== null && s.nodes[s.temps.curr].v !== a.value){
+      if (++gd > 24){ yield [2, BAIL]; return; }
+      yield [2, 'curr holds ' + s.nodes[s.temps.curr].v + ' ≠ ' + a.value + ' → keep looking.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [3, 'curr = curr->next → ' + NL(s.temps.curr) + '.'];
+    }
+    if (s.temps.curr === null){
+      yield [2, 'curr == NULL — ' + a.value + ' is not in the list.'];
+      yield [4, 'return — nothing deleted.'];
+      return;
+    }
+    yield [2, 'curr (' + s.temps.curr + ') holds ' + a.value + ' — this is the victim.'];
+    const cur = s.temps.curr, nn = s.nodes[cur];
+    if (nn.prev !== null){
+      yield [5, 'curr->prev is ' + nn.prev + ' — the victim is not first.'];
+      s.nodes[nn.prev].next = nn.next;
+      yield [6, 'curr->prev->next = curr->next — forward chain bypasses the victim.'];
+    } else {
+      yield [5, 'curr->prev == NULL — the victim IS the first node.'];
+      s.ptrs.head = nn.next;
+      yield [8, 'head = curr->next.'];
+    }
+    if (nn.next !== null){
+      yield [9, 'curr->next is ' + nn.next + ' — fix its backward link.'];
+      s.nodes[nn.next].prev = nn.prev;
+      yield [10, 'curr->next->prev = curr->prev — backward chain bypasses too.'];
+    } else {
+      yield [9, 'curr->next == NULL — victim was last; no backward link to fix.'];
+    }
+    s.freed.push(cur);
+    yield [11, 'free(curr). Four cases, two pointers — this is why DLL delete is the classic exam question.'];
+  } },
+
+{ label:'traverse forward', group:'insp', needsValue:false,
+  sig:()=>'traverseForward()',
+  code:C(`
+void traverseForward(void) {
+    Node *curr = head;
+    while (curr != NULL) {
+        printf("%d <-> ", curr->data);
+        curr = curr->next;
+    }
+    printf("NULL\\n");
+}`),
+  gen:function*(s){
+    s.temps.curr = s.ptrs.head;
+    yield [1, 'curr = head (' + NL(s.ptrs.head) + ').'];
+    let out = '', gd = 0;
+    while (s.temps.curr !== null){
+      if (++gd > 24){ yield [2, BAIL]; return; }
+      yield [2, 'curr ≠ NULL → visit.'];
+      out += s.nodes[s.temps.curr].v + ' <-> ';
+      yield [3, 'Output so far:  ' + out];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [4, 'curr = curr->next → ' + NL(s.temps.curr) + '.'];
+    }
+    yield [2, 'curr == NULL.'];
+    yield [6, 'Final output:  ' + out + 'NULL'];
+  } },
+
+{ label:'traverse backward', group:'insp', needsValue:false,
+  sig:()=>'traverseBackward()',
+  code:C(`
+void traverseBackward(void) {
+    if (head == NULL) return;
+    Node *curr = head;
+    while (curr->next != NULL)
+        curr = curr->next;
+    while (curr != NULL) {
+        printf("%d <-> ", curr->data);
+        curr = curr->prev;
+    }
+    printf("NULL\\n");
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to walk.']; return; }
+    yield [1, 'List not empty.'];
+    s.temps.curr = s.ptrs.head;
+    yield [2, 'curr = head — first, get to the END.'];
+    let gd = 0;
+    while (s.nodes[s.temps.curr].next !== null){
+      if (++gd > 24){ yield [3, BAIL]; return; }
+      yield [3, 'curr->next ≠ NULL → keep going right.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [4, 'curr = curr->next → ' + s.temps.curr + '.'];
+    }
+    yield [3, 'curr (' + s.temps.curr + ') is the last node. Now walk BACK using prev.'];
+    let out = ''; gd = 0;
+    while (s.temps.curr !== null){
+      if (++gd > 24){ yield [5, 'prev chain has a cycle — bailing out.']; return; }
+      yield [5, 'curr ≠ NULL → visit.'];
+      out += s.nodes[s.temps.curr].v + ' <-> ';
+      yield [6, 'Output so far:  ' + out];
+      s.temps.curr = s.nodes[s.temps.curr].prev;
+      yield [7, 'curr = curr->prev → ' + NL(s.temps.curr) + '. If a prev pointer was never set, this walk breaks — that is what traverse backward is FOR.'];
+    }
+    yield [5, 'curr == NULL — reached the front.'];
+    yield [9, 'Final output:  ' + out + 'NULL'];
+  } },
+
+{ label:'insert — forgot head->prev', group:'bug', needsValue:true,
+  sig:a=>`BUGGY insertAtBeginning(${a.value})`, check:capIns,
+  code:C(`
+void insertAtBeginning(int data) {   /* buggy! */
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->prev = NULL;
+    newNode->next = head;
+    head = newNode;   /* forgot: head->prev = newNode */
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    s.nodes[n].prev = null;
+    yield [3, 'newNode->prev = NULL.'];
+    s.nodes[n].next = s.ptrs.head;
+    yield [4, 'newNode->next = head (' + NL(s.ptrs.head) + ').'];
+    const old = s.ptrs.head;
+    s.ptrs.head = n;
+    yield [5, 'head = newNode — and the function returns. Spot the missing arrow: ' + (old ? old + '’s prev is still NULL, so nothing points BACK to the new node.' : '(list was empty, so this time nothing breaks — try it with nodes in the list!)') + ' Forward traversal looks fine; run “traverse backward” and watch it stop early. Every DLL insert must fix BOTH directions.'];
+  } },
+],
+
+/* ============================================ CIRCULAR SINGLY ==== */
+csll: [
+{ label:'insert at beginning', group:'ins', needsValue:true,
+  sig:a=>`insertAtBeginning(${a.value})`, check:capIns,
+  code:C(`
+void insertAtBeginning(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    if (head == NULL) {
+        newNode->next = newNode;
+        head = newNode;
+        return;
+    }
+    Node *last = head;
+    while (last->next != head)
+        last = last->next;
+    newNode->next = head;
+    last->next = newNode;
+    head = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    if (s.ptrs.head === null){
+      yield [3, 'head == NULL — empty circular list.'];
+      s.nodes[n].next = n;
+      yield [4, 'newNode->next = newNode — a one-node circle points at ITSELF. No NULL anywhere.'];
+      s.ptrs.head = n;
+      yield [5, 'head = newNode. Done.'];
+      return;
+    }
+    yield [3, 'List not empty. The LAST node points back to head, so its next must change too — find it.'];
+    s.temps.last = s.ptrs.head;
+    yield [8, 'last starts at head.'];
+    let gd = 0;
+    while (s.nodes[s.temps.last].next !== s.ptrs.head){
+      if (++gd > 24){ yield [9, BAIL]; return; }
+      yield [9, 'last->next (' + s.nodes[s.temps.last].next + ') ≠ head → keep walking.'];
+      s.temps.last = s.nodes[s.temps.last].next;
+      yield [10, 'last = last->next → ' + s.temps.last + '.'];
+    }
+    yield [9, 'last->next == head → ' + s.temps.last + ' is the last node.'];
+    s.nodes[n].next = s.ptrs.head;
+    yield [11, 'newNode->next = head — the new node joins the circle.'];
+    s.nodes[s.temps.last].next = n;
+    yield [12, 'last->next = newNode — the circle now closes through the new node.'];
+    s.ptrs.head = n;
+    yield [13, 'head = newNode. (Without this line it would have been insertAtEnd — the circle is identical!)'];
+  } },
+
+{ label:'insert at end', group:'ins', needsValue:true,
+  sig:a=>`insertAtEnd(${a.value})`, check:capIns,
+  code:C(`
+void insertAtEnd(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    if (head == NULL) {
+        newNode->next = newNode;
+        head = newNode;
+        return;
+    }
+    Node *last = head;
+    while (last->next != head)
+        last = last->next;
+    last->next = newNode;
+    newNode->next = head;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    if (s.ptrs.head === null){
+      yield [3, 'head == NULL — empty circular list.'];
+      s.nodes[n].next = n;
+      yield [4, 'newNode->next = newNode — one-node circle.'];
+      s.ptrs.head = n;
+      yield [5, 'head = newNode. Done.'];
+      return;
+    }
+    yield [3, 'List not empty — find the last node (the one whose next is head).'];
+    s.temps.last = s.ptrs.head;
+    yield [8, 'last starts at head.'];
+    let gd = 0;
+    while (s.nodes[s.temps.last].next !== s.ptrs.head){
+      if (++gd > 24){ yield [9, BAIL]; return; }
+      yield [9, 'last->next (' + s.nodes[s.temps.last].next + ') ≠ head → keep walking.'];
+      s.temps.last = s.nodes[s.temps.last].next;
+      yield [10, 'last = last->next → ' + s.temps.last + '.'];
+    }
+    yield [9, 'last->next == head → ' + s.temps.last + ' is the last node.'];
+    s.nodes[s.temps.last].next = n;
+    yield [11, 'last->next = newNode.'];
+    s.nodes[n].next = s.ptrs.head;
+    yield [12, 'newNode->next = head — the circle is whole again. head never moved: same code as insertAtBeginning minus one line.'];
+  } },
+
+{ label:'delete at beginning', group:'del', needsValue:false,
+  sig:()=>'deleteAtBeginning()',
+  code:C(`
+void deleteAtBeginning(void) {
+    if (head == NULL) return;
+    if (head->next == head) {
+        free(head);
+        head = NULL;
+        return;
+    }
+    Node *last = head;
+    while (last->next != head)
+        last = last->next;
+    Node *temp = head;
+    head = head->next;
+    last->next = head;
+    free(temp);
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to delete.']; return; }
+    yield [1, 'List not empty.'];
+    if (s.nodes[s.ptrs.head].next === s.ptrs.head){
+      yield [2, 'head->next == head — a one-node circle.'];
+      s.freed.push(s.ptrs.head);
+      yield [3, 'free(head).'];
+      s.ptrs.head = null;
+      yield [4, 'head = NULL.'];
+      return;
+    }
+    yield [2, 'More than one node. The last node points at head, so IT must be re-aimed — find it first.'];
+    s.temps.last = s.ptrs.head;
+    yield [7, 'last starts at head.'];
+    let gd = 0;
+    while (s.nodes[s.temps.last].next !== s.ptrs.head){
+      if (++gd > 24){ yield [8, BAIL]; return; }
+      yield [8, 'last->next ≠ head → keep walking.'];
+      s.temps.last = s.nodes[s.temps.last].next;
+      yield [9, 'last = last->next → ' + s.temps.last + '.'];
+    }
+    yield [8, 'Found the last node: ' + s.temps.last + '.'];
+    s.temps.temp = s.ptrs.head;
+    yield [10, 'temp = head (' + s.temps.temp + ') — the victim.'];
+    s.ptrs.head = s.nodes[s.ptrs.head].next;
+    yield [11, 'head = head->next → ' + s.ptrs.head + '.'];
+    s.nodes[s.temps.last].next = s.ptrs.head;
+    yield [12, 'last->next = head — the circle closes around the gap.'];
+    s.freed.push(s.temps.temp);
+    yield [13, 'free(temp).'];
+  } },
+
+{ label:'delete at end', group:'del', needsValue:false,
+  sig:()=>'deleteAtEnd()',
+  code:C(`
+void deleteAtEnd(void) {
+    if (head == NULL) return;
+    if (head->next == head) {
+        free(head);
+        head = NULL;
+        return;
+    }
+    Node *curr = head;
+    while (curr->next->next != head)
+        curr = curr->next;
+    free(curr->next);
+    curr->next = head;
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to delete.']; return; }
+    yield [1, 'List not empty.'];
+    if (s.nodes[s.ptrs.head].next === s.ptrs.head){
+      yield [2, 'One-node circle.'];
+      s.freed.push(s.ptrs.head);
+      yield [3, 'free(head).'];
+      s.ptrs.head = null;
+      yield [4, 'head = NULL.'];
+      return;
+    }
+    yield [2, 'More than one node — find the SECOND-TO-LAST (its next->next is head).'];
+    s.temps.curr = s.ptrs.head;
+    yield [7, 'curr = head.'];
+    let gd = 0;
+    while (s.nodes[s.nodes[s.temps.curr].next].next !== s.ptrs.head){
+      if (++gd > 24){ yield [8, BAIL]; return; }
+      yield [8, 'curr->next->next ≠ head → keep walking.'];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [9, 'curr = curr->next → ' + s.temps.curr + '.'];
+    }
+    yield [8, 'curr (' + s.temps.curr + ') is second-to-last.'];
+    s.freed.push(s.nodes[s.temps.curr].next);
+    yield [10, 'free(curr->next) — the last node is released.'];
+    s.nodes[s.temps.curr].next = s.ptrs.head;
+    yield [11, 'curr->next = head — curr is the new last node and the circle is closed. (In an SLL this line would be = NULL.)'];
+  } },
+
+{ label:'traverse (do-while)', group:'insp', needsValue:false,
+  sig:()=>'traverse()',
+  code:C(`
+void traverse(void) {
+    if (head == NULL) return;
+    Node *curr = head;
+    do {
+        printf("%d -> ", curr->data);
+        curr = curr->next;
+    } while (curr != head);
+    printf("(back at head)\\n");
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to print.']; return; }
+    yield [1, 'List not empty.'];
+    s.temps.curr = s.ptrs.head;
+    yield [2, 'curr = head. A do-while visits head BEFORE testing — that is why it works on circles.'];
+    let out = '', gd = 0;
+    do {
+      if (++gd > 24){ yield [3, BAIL]; return; }
+      out += s.nodes[s.temps.curr].v + ' -> ';
+      yield [4, 'Output so far:  ' + out];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [5, 'curr = curr->next → ' + s.temps.curr + '.'];
+      if (s.temps.curr !== s.ptrs.head)
+        yield [6, 'curr ≠ head → go around again.'];
+    } while (s.temps.curr !== s.ptrs.head);
+    yield [6, 'curr == head — we are back where we started. STOP. (A while(curr != NULL) would loop forever here.)'];
+    yield [7, 'Final output:  ' + out + '(back at head)'];
+  } },
+
+{ label:'traverse with != NULL', group:'bug', needsValue:false,
+  sig:()=>'BUGGY traverse()',
+  code:C(`
+void traverse(void) {   /* buggy! */
+    Node *curr = head;
+    while (curr != NULL) {
+        printf("%d -> ", curr->data);
+        curr = curr->next;
+    }
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){
+      s.temps.curr = null;
+      yield [1, 'curr = NULL — empty list is the ONLY case where this bug is invisible.'];
+      yield [2, 'curr == NULL → loop never runs. Try again with nodes in the list!'];
+      return;
+    }
+    s.temps.curr = s.ptrs.head;
+    yield [1, 'curr = head (' + s.ptrs.head + ').'];
+    const laps = 2, len = chainOf(s).length;
+    let out = '';
+    for (let i = 0; i < laps * len; i++){
+      yield [2, 'curr = ' + s.temps.curr + ' — not NULL (it never will be) → loop.'];
+      out += s.nodes[s.temps.curr].v + ' -> ';
+      yield [3, 'Output so far:  ' + out + (i >= len ? '   …wait, we have printed these before.' : '')];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [4, 'curr = curr->next → ' + s.temps.curr + '.'];
+    }
+    yield [2, 'Two full laps and curr is STILL not NULL — in a circular list every next points at a real node, so this loop runs forever. The fix: do { … } while (curr != head).'];
+  } },
+],
+
+/* ============================================ CIRCULAR DOUBLY ==== */
+cdll: [
+{ label:'insert at beginning', group:'ins', needsValue:true,
+  sig:a=>`insertAtBeginning(${a.value})`, check:capIns,
+  code:C(`
+void insertAtBeginning(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    if (head == NULL) {
+        newNode->next = newNode->prev = newNode;
+        head = newNode;
+        return;
+    }
+    Node *last = head->prev;
+    newNode->next = head;
+    newNode->prev = last;
+    last->next = newNode;
+    head->prev = newNode;
+    head = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    if (s.ptrs.head === null){
+      yield [3, 'head == NULL — empty list.'];
+      s.nodes[n].next = n; s.nodes[n].prev = n;
+      yield [4, 'newNode->next = newNode->prev = newNode — a one-node circle, both ways.'];
+      s.ptrs.head = n;
+      yield [5, 'head = newNode.'];
+      return;
+    }
+    yield [3, 'List not empty.'];
+    s.temps.last = s.nodes[s.ptrs.head].prev;
+    yield [8, 'last = head->prev (' + s.temps.last + ') — NO walking! head->prev IS the last node. This is the big win of circular doubly.'];
+    s.nodes[n].next = s.ptrs.head;
+    yield [9, 'newNode->next = head.'];
+    s.nodes[n].prev = s.temps.last;
+    yield [10, 'newNode->prev = last.'];
+    s.nodes[s.temps.last].next = n;
+    yield [11, 'last->next = newNode.'];
+    s.nodes[s.ptrs.head].prev = n;
+    yield [12, 'head->prev = newNode — four pointers set, circle intact both ways.'];
+    s.ptrs.head = n;
+    yield [13, 'head = newNode. All O(1).'];
+  } },
+
+{ label:'insert at end', group:'ins', needsValue:true,
+  sig:a=>`insertAtEnd(${a.value})`, check:capIns,
+  code:C(`
+void insertAtEnd(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    if (head == NULL) {
+        newNode->next = newNode->prev = newNode;
+        head = newNode;
+        return;
+    }
+    Node *last = head->prev;
+    newNode->next = head;
+    newNode->prev = last;
+    last->next = newNode;
+    head->prev = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    if (s.ptrs.head === null){
+      yield [3, 'head == NULL — empty list.'];
+      s.nodes[n].next = n; s.nodes[n].prev = n;
+      yield [4, 'newNode->next = newNode->prev = newNode.'];
+      s.ptrs.head = n;
+      yield [5, 'head = newNode.'];
+      return;
+    }
+    yield [3, 'List not empty.'];
+    s.temps.last = s.nodes[s.ptrs.head].prev;
+    yield [8, 'last = head->prev (' + s.temps.last + ') — the last node, found in O(1).'];
+    s.nodes[n].next = s.ptrs.head;
+    yield [9, 'newNode->next = head — the new last node wraps around to the front.'];
+    s.nodes[n].prev = s.temps.last;
+    yield [10, 'newNode->prev = last.'];
+    s.nodes[s.temps.last].next = n;
+    yield [11, 'last->next = newNode.'];
+    s.nodes[s.ptrs.head].prev = n;
+    yield [12, 'head->prev = newNode. Identical to insertAtBeginning — we just never move head. Insert at EITHER end in O(1).'];
+  } },
+
+{ label:'delete at beginning', group:'del', needsValue:false,
+  sig:()=>'deleteAtBeginning()',
+  code:C(`
+void deleteAtBeginning(void) {
+    if (head == NULL) return;
+    if (head->next == head) {
+        free(head);
+        head = NULL;
+        return;
+    }
+    Node *last = head->prev;
+    Node *temp = head;
+    head = head->next;
+    last->next = head;
+    head->prev = last;
+    free(temp);
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to delete.']; return; }
+    yield [1, 'List not empty.'];
+    if (s.nodes[s.ptrs.head].next === s.ptrs.head){
+      yield [2, 'One-node circle.'];
+      s.freed.push(s.ptrs.head);
+      yield [3, 'free(head).'];
+      s.ptrs.head = null;
+      yield [4, 'head = NULL.'];
+      return;
+    }
+    yield [2, 'More than one node.'];
+    s.temps.last = s.nodes[s.ptrs.head].prev;
+    yield [7, 'last = head->prev (' + s.temps.last + ') — O(1) again, no loop anywhere in this function.'];
+    s.temps.temp = s.ptrs.head;
+    yield [8, 'temp = head — the victim.'];
+    s.ptrs.head = s.nodes[s.ptrs.head].next;
+    yield [9, 'head = head->next → ' + s.ptrs.head + '.'];
+    s.nodes[s.temps.last].next = s.ptrs.head;
+    yield [10, 'last->next = head.'];
+    s.nodes[s.ptrs.head].prev = s.temps.last;
+    yield [11, 'head->prev = last — circle closed in both directions.'];
+    s.freed.push(s.temps.temp);
+    yield [12, 'free(temp).'];
+  } },
+
+{ label:'delete at end', group:'del', needsValue:false,
+  sig:()=>'deleteAtEnd()',
+  code:C(`
+void deleteAtEnd(void) {
+    if (head == NULL) return;
+    if (head->next == head) {
+        free(head);
+        head = NULL;
+        return;
+    }
+    Node *last = head->prev;
+    last->prev->next = head;
+    head->prev = last->prev;
+    free(last);
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to delete.']; return; }
+    yield [1, 'List not empty.'];
+    if (s.nodes[s.ptrs.head].next === s.ptrs.head){
+      yield [2, 'One-node circle.'];
+      s.freed.push(s.ptrs.head);
+      yield [3, 'free(head).'];
+      s.ptrs.head = null;
+      yield [4, 'head = NULL.'];
+      return;
+    }
+    yield [2, 'More than one node.'];
+    s.temps.last = s.nodes[s.ptrs.head].prev;
+    yield [7, 'last = head->prev (' + s.temps.last + ') — the victim, found without walking. An SLL needed an O(n) loop for this delete; here it is O(1).'];
+    s.nodes[s.nodes[s.temps.last].prev].next = s.ptrs.head;
+    yield [8, 'last->prev->next = head — the node before the victim now wraps to the front.'];
+    s.nodes[s.ptrs.head].prev = s.nodes[s.temps.last].prev;
+    yield [9, 'head->prev = last->prev — backward direction fixed too.'];
+    s.freed.push(s.temps.last);
+    yield [10, 'free(last).'];
+  } },
+
+{ label:'traverse (do-while)', group:'insp', needsValue:false,
+  sig:()=>'traverse()',
+  code:C(`
+void traverse(void) {
+    if (head == NULL) return;
+    Node *curr = head;
+    do {
+        printf("%d <-> ", curr->data);
+        curr = curr->next;
+    } while (curr != head);
+    printf("(back at head)\\n");
+}`),
+  gen:function*(s){
+    if (s.ptrs.head === null){ yield [1, 'head == NULL — nothing to print.']; return; }
+    yield [1, 'List not empty.'];
+    s.temps.curr = s.ptrs.head;
+    yield [2, 'curr = head. do-while, because there is no NULL to test for.'];
+    let out = '', gd = 0;
+    do {
+      if (++gd > 24){ yield [3, BAIL]; return; }
+      out += s.nodes[s.temps.curr].v + ' <-> ';
+      yield [4, 'Output so far:  ' + out];
+      s.temps.curr = s.nodes[s.temps.curr].next;
+      yield [5, 'curr = curr->next → ' + s.temps.curr + '.'];
+      if (s.temps.curr !== s.ptrs.head)
+        yield [6, 'curr ≠ head → keep circling.'];
+    } while (s.temps.curr !== s.ptrs.head);
+    yield [6, 'curr == head — full circle. STOP.'];
+    yield [7, 'Final output:  ' + out + '(back at head)'];
+  } },
+],
+
+/* ================================================== STACK ==== */
+stack: [
+{ label:'push', group:'ins', needsValue:true,
+  sig:a=>`push(${a.value})`, check:capIns,
+  code:C(`
+void push(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->next = top;
+    top = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    s.nodes[n].next = s.ptrs.top;
+    yield [3, 'newNode->next = top (' + NL(s.ptrs.top) + ') — the new node sits ON TOP of the old stack.'];
+    s.ptrs.top = n;
+    yield [4, 'top = newNode. Look closely: push IS insertAtBeginning, just renamed. A stack is a singly linked list you only touch at one end — LIFO.'];
+  } },
+
+{ label:'pop', group:'del', needsValue:false,
+  sig:()=>'pop()',
+  code:C(`
+int pop(void) {
+    if (top == NULL) {
+        printf("Stack underflow!\\n");
+        return -1;
+    }
+    Node *temp = top;
+    int data = temp->data;
+    top = top->next;
+    free(temp);
+    return data;
+}`),
+  gen:function*(s){
+    if (s.ptrs.top === null){
+      yield [1, 'top == NULL — the stack is empty.'];
+      yield [2, '“Stack underflow!” — popping an empty stack is a classic runtime bug. The guard saves us.'];
+      yield [3, 'return -1.'];
+      return;
+    }
+    yield [1, 'top is ' + s.ptrs.top + ' — stack not empty.'];
+    s.temps.temp = s.ptrs.top;
+    yield [5, 'temp = top (' + s.temps.temp + ').'];
+    const v = s.nodes[s.temps.temp].v;
+    yield [6, 'data = temp->data = ' + v + ' — save the value BEFORE freeing the node.'];
+    s.ptrs.top = s.nodes[s.ptrs.top].next;
+    yield [7, 'top = top->next → ' + NL(s.ptrs.top) + '. (This is deleteAtBeginning.)'];
+    s.freed.push(s.temps.temp);
+    yield [8, 'free(temp).'];
+    yield [9, 'return ' + v + ' — last in, first out.'];
+  } },
+
+{ label:'peek', group:'insp', needsValue:false,
+  sig:()=>'peek()',
+  code:C(`
+int peek(void) {
+    if (top == NULL) return -1;   /* empty */
+    return top->data;
+}`),
+  gen:function*(s){
+    if (s.ptrs.top === null){ yield [1, 'top == NULL — empty stack, nothing to peek at. return -1.']; return; }
+    yield [1, 'top is ' + s.ptrs.top + ' — not empty.'];
+    s.mark = { addr: s.ptrs.top, kind: 'found' };
+    yield [2, 'return top->data = ' + s.nodes[s.ptrs.top].v + '. Read, don’t remove — the stack is unchanged.'];
+  } },
+],
+
+/* ================================================== QUEUE ==== */
+queue: [
+{ label:'enqueue', group:'ins', needsValue:true,
+  sig:a=>`enqueue(${a.value})`, check:capIns,
+  code:C(`
+void enqueue(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->next = NULL;
+    if (rear == NULL) {
+        front = rear = newNode;
+        return;
+    }
+    rear->next = newNode;
+    rear = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    s.nodes[n].next = null;
+    yield [3, 'newNode->next = NULL — it joins at the BACK of the line.'];
+    if (s.ptrs.rear === null){
+      yield [4, 'rear == NULL — the queue is empty.'];
+      s.ptrs.front = n; s.ptrs.rear = n;
+      yield [5, 'front = rear = newNode — one node is both first and last in line.'];
+      return;
+    }
+    yield [4, 'Queue not empty — rear is ' + s.ptrs.rear + '.'];
+    s.nodes[s.ptrs.rear].next = n;
+    yield [8, 'rear->next = newNode — the old last node links to the newcomer.'];
+    s.ptrs.rear = n;
+    yield [9, 'rear = newNode. Keeping a rear pointer makes enqueue O(1) — no walking, unlike plain insertAtEnd.'];
+  } },
+
+{ label:'dequeue', group:'del', needsValue:false,
+  sig:()=>'dequeue()',
+  code:C(`
+int dequeue(void) {
+    if (front == NULL) {
+        printf("Queue is empty!\\n");
+        return -1;
+    }
+    Node *temp = front;
+    int data = temp->data;
+    front = front->next;
+    if (front == NULL)
+        rear = NULL;
+    free(temp);
+    return data;
+}`),
+  gen:function*(s){
+    if (s.ptrs.front === null){
+      yield [1, 'front == NULL — the queue is empty.'];
+      yield [2, '“Queue is empty!”'];
+      yield [3, 'return -1.'];
+      return;
+    }
+    yield [1, 'front is ' + s.ptrs.front + ' — queue not empty.'];
+    s.temps.temp = s.ptrs.front;
+    yield [5, 'temp = front (' + s.temps.temp + ') — the node that has waited longest.'];
+    const v = s.nodes[s.temps.temp].v;
+    yield [6, 'data = temp->data = ' + v + '.'];
+    s.ptrs.front = s.nodes[s.ptrs.front].next;
+    yield [7, 'front = front->next → ' + NL(s.ptrs.front) + '.'];
+    if (s.ptrs.front === null){
+      yield [8, 'front became NULL — the queue is now empty…'];
+      s.ptrs.rear = null;
+      yield [9, '…so rear = NULL too. FORGETTING THIS is the classic queue bug: rear would dangle at freed memory and the next enqueue would corrupt the heap.'];
+    } else {
+      yield [8, 'front is not NULL — rear stays where it is.'];
+    }
+    s.freed.push(s.temps.temp);
+    yield [10, 'free(temp).'];
+    yield [11, 'return ' + v + ' — first in, first out.'];
+  } },
+
+{ label:'peek (front)', group:'insp', needsValue:false,
+  sig:()=>'peek()',
+  code:C(`
+int peek(void) {
+    if (front == NULL) return -1;   /* empty */
+    return front->data;
+}`),
+  gen:function*(s){
+    if (s.ptrs.front === null){ yield [1, 'front == NULL — empty queue. return -1.']; return; }
+    yield [1, 'front is ' + s.ptrs.front + '.'];
+    s.mark = { addr: s.ptrs.front, kind: 'found' };
+    yield [2, 'return front->data = ' + s.nodes[s.ptrs.front].v + '. The queue is unchanged.'];
+  } },
+],
+
+/* ================================================== DEQUE ==== */
+deque: [
+{ label:'insert at front', group:'ins', needsValue:true,
+  sig:a=>`insertFront(${a.value})`, check:capIns,
+  code:C(`
+void insertFront(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->prev = NULL;
+    newNode->next = front;
+    if (front == NULL)
+        rear = newNode;
+    else
+        front->prev = newNode;
+    front = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    s.nodes[n].prev = null;
+    yield [3, 'newNode->prev = NULL — nothing will be in front of it.'];
+    s.nodes[n].next = s.ptrs.front;
+    yield [4, 'newNode->next = front (' + NL(s.ptrs.front) + ').'];
+    if (s.ptrs.front === null){
+      yield [5, 'front == NULL — the deque is empty.'];
+      s.ptrs.rear = n;
+      yield [6, 'rear = newNode — it is the back too.'];
+    } else {
+      yield [5, 'Deque not empty.'];
+      s.nodes[s.ptrs.front].prev = n;
+      yield [8, 'front->prev = newNode — backward link fixed.'];
+    }
+    s.ptrs.front = n;
+    yield [9, 'front = newNode. O(1) — a deque on a DLL is fast at BOTH ends.'];
+  } },
+
+{ label:'insert at rear', group:'ins', needsValue:true,
+  sig:a=>`insertRear(${a.value})`, check:capIns,
+  code:C(`
+void insertRear(int data) {
+    Node *newNode = malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->next = NULL;
+    newNode->prev = rear;
+    if (rear == NULL)
+        front = newNode;
+    else
+        rear->next = newNode;
+    rear = newNode;
+}`),
+  gen:function*(s,a){
+    const n = yield* mkNode(s, a.value, 1, 2);
+    s.nodes[n].next = null;
+    yield [3, 'newNode->next = NULL — nothing will be behind it.'];
+    s.nodes[n].prev = s.ptrs.rear;
+    yield [4, 'newNode->prev = rear (' + NL(s.ptrs.rear) + ').'];
+    if (s.ptrs.rear === null){
+      yield [5, 'rear == NULL — the deque is empty.'];
+      s.ptrs.front = n;
+      yield [6, 'front = newNode — it is the front too.'];
+    } else {
+      yield [5, 'Deque not empty.'];
+      s.nodes[s.ptrs.rear].next = n;
+      yield [8, 'rear->next = newNode.'];
+    }
+    s.ptrs.rear = n;
+    yield [9, 'rear = newNode. Mirror image of insertFront.'];
+  } },
+
+{ label:'delete at front', group:'del', needsValue:false,
+  sig:()=>'deleteFront()',
+  code:C(`
+int deleteFront(void) {
+    if (front == NULL) return -1;   /* empty */
+    Node *temp = front;
+    int data = temp->data;
+    front = front->next;
+    if (front == NULL)
+        rear = NULL;
+    else
+        front->prev = NULL;
+    free(temp);
+    return data;
+}`),
+  gen:function*(s){
+    if (s.ptrs.front === null){ yield [1, 'front == NULL — empty deque. return -1.']; return; }
+    yield [1, 'front is ' + s.ptrs.front + '.'];
+    s.temps.temp = s.ptrs.front;
+    yield [2, 'temp = front.'];
+    const v = s.nodes[s.temps.temp].v;
+    yield [3, 'data = temp->data = ' + v + '.'];
+    s.ptrs.front = s.nodes[s.ptrs.front].next;
+    yield [4, 'front = front->next → ' + NL(s.ptrs.front) + '.'];
+    if (s.ptrs.front === null){
+      yield [5, 'Deque became empty…'];
+      s.ptrs.rear = null;
+      yield [6, '…so rear = NULL too — never leave rear dangling.'];
+    } else {
+      yield [5, 'Still nodes left.'];
+      s.nodes[s.ptrs.front].prev = null;
+      yield [8, 'front->prev = NULL — the new front has nothing before it.'];
+    }
+    s.freed.push(s.temps.temp);
+    yield [9, 'free(temp).'];
+    yield [10, 'return ' + v + '.'];
+  } },
+
+{ label:'delete at rear', group:'del', needsValue:false,
+  sig:()=>'deleteRear()',
+  code:C(`
+int deleteRear(void) {
+    if (rear == NULL) return -1;   /* empty */
+    Node *temp = rear;
+    int data = temp->data;
+    rear = rear->prev;
+    if (rear == NULL)
+        front = NULL;
+    else
+        rear->next = NULL;
+    free(temp);
+    return data;
+}`),
+  gen:function*(s){
+    if (s.ptrs.rear === null){ yield [1, 'rear == NULL — empty deque. return -1.']; return; }
+    yield [1, 'rear is ' + s.ptrs.rear + '.'];
+    s.temps.temp = s.ptrs.rear;
+    yield [2, 'temp = rear.'];
+    const v = s.nodes[s.temps.temp].v;
+    yield [3, 'data = temp->data = ' + v + '.'];
+    s.ptrs.rear = s.nodes[s.ptrs.rear].prev;
+    yield [4, 'rear = rear->prev → ' + NL(s.ptrs.rear) + '. The prev pointer is what makes an O(1) delete-at-end possible — a singly list cannot do this.'];
+    if (s.ptrs.rear === null){
+      yield [5, 'Deque became empty…'];
+      s.ptrs.front = null;
+      yield [6, '…so front = NULL too.'];
+    } else {
+      yield [5, 'Still nodes left.'];
+      s.nodes[s.ptrs.rear].next = null;
+      yield [8, 'rear->next = NULL — the new rear ends the deque.'];
+    }
+    s.freed.push(s.temps.temp);
+    yield [9, 'free(temp).'];
+    yield [10, 'return ' + v + '.'];
+  } },
+],
+};
+boot();
+</script>
+</body></html>

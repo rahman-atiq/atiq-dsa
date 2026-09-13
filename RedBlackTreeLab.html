@@ -1,0 +1,2120 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Red-Black Lab — One Bit of Slack</title>
+<style>
+/* ============================================================
+   RED-BLACK TREE LAB — self-contained teaching deck
+   No external dependencies. Light + dark theme.
+   ============================================================ */
+
+:root{
+  --violet:#7C3AED; --cyan:#0891B2; --amber:#D97706; --rose:#E11D48;
+  --emerald:#059669; --blue:#2563EB; --pink:#DB2777;
+
+  --bg:#FBF9F6; --bg2:#FFFFFF;
+  --ink:#141221; --ink2:#4A4560; --ink3:#7A7490;
+  --line:#E4DFF0; --line2:#CFC8E4;
+  --card:#FFFFFF; --card2:#F6F3FB;
+  --shadow:0 12px 40px -12px rgba(52,32,92,.22), 0 2px 8px -2px rgba(52,32,92,.10);
+  --shadow-lg:0 30px 70px -20px rgba(52,32,92,.34);
+
+  --node-fill:#EEF0FF; --node-stroke:#8B87C9; --node-ink:#241F45;
+  --edge:#B6AFD4;
+
+  --blob1:rgba(124,58,237,.16); --blob2:rgba(6,182,212,.16); --blob3:rgba(245,158,11,.15);
+  --grid:rgba(90,70,150,.055);
+  --sel:rgba(124,58,237,.16);
+}
+:root[data-theme="dark"]{
+  --violet:#A78BFA; --cyan:#22D3EE; --amber:#FBBF24; --rose:#FB7185;
+  --emerald:#34D399; --blue:#60A5FA; --pink:#F472B6;
+
+  --bg:#080716; --bg2:#0E0C22;
+  --ink:#F2EEFF; --ink2:#B9B2D8; --ink3:#8079A6;
+  --line:#241F44; --line2:#332C5C;
+  --card:#12102A; --card2:#191634;
+  --shadow:0 14px 44px -12px rgba(0,0,0,.72), 0 2px 10px -2px rgba(0,0,0,.5);
+  --shadow-lg:0 34px 80px -22px rgba(0,0,0,.85);
+
+  --node-fill:#221E45; --node-stroke:#6F67B8; --node-ink:#EFEBFF;
+  --edge:#4A4278;
+
+  --blob1:rgba(167,139,250,.22); --blob2:rgba(34,211,238,.18); --blob3:rgba(251,191,36,.15);
+  --grid:rgba(160,140,255,.05);
+  --sel:rgba(167,139,250,.24);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  overflow:hidden; -webkit-font-smoothing:antialiased;
+  transition:background .35s ease,color .35s ease;
+}
+::selection{background:var(--sel)}
+
+/* ---------- animated background ---------- */
+#bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+#bg .blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:1;animation:drift 26s ease-in-out infinite}
+#bg .b1{width:52vw;height:52vw;background:var(--blob1);top:-14vw;left:-10vw}
+#bg .b2{width:44vw;height:44vw;background:var(--blob2);bottom:-16vw;right:-8vw;animation-delay:-9s}
+#bg .b3{width:34vw;height:34vw;background:var(--blob3);top:44%;left:52%;animation-delay:-17s}
+@keyframes drift{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(4vw,-3vw) scale(1.10)}
+  66%{transform:translate(-3vw,4vw) scale(.94)}
+}
+#bg .grid{position:absolute;inset:0;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(ellipse at center,#000 30%,transparent 78%)}
+
+/* ---------- stage ---------- */
+#fit{position:fixed;inset:0;display:grid;place-items:center;z-index:1}
+#stage{width:1280px;height:720px;position:relative;transform-origin:center center}
+.slide{
+  position:absolute;inset:0;padding:34px 52px 58px;
+  display:none;flex-direction:column;
+}
+.slide.on{display:flex;animation:slideIn .42s cubic-bezier(.2,.8,.25,1)}
+@keyframes slideIn{from{opacity:0;transform:translateY(16px) scale(.99)}to{opacity:1;transform:none}}
+
+/* ---------- typography ---------- */
+h1{font-size:64px;line-height:1.03;margin:0;letter-spacing:-.03em;font-weight:850}
+h2{font-size:38px;line-height:1.12;margin:0;letter-spacing:-.022em;font-weight:820}
+h3{font-size:21px;margin:0;font-weight:800;letter-spacing:-.01em}
+p{margin:0;font-size:18px;line-height:1.5;color:var(--ink2)}
+.lead{font-size:21px;color:var(--ink2);line-height:1.48}
+.tiny{font-size:14px;color:var(--ink3)}
+b,strong{color:var(--ink);font-weight:820}
+code,.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+
+.grad{background:linear-gradient(100deg,var(--violet),var(--pink) 42%,var(--amber));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- slide header ---------- */
+.head{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex:0 0 auto}
+.kicker{
+  display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:999px;
+  font-size:12.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--card2);border:1.5px solid var(--line2);color:var(--ink2);white-space:nowrap;
+}
+.kicker.k-v{color:var(--violet);border-color:color-mix(in srgb,var(--violet) 42%,transparent);background:color-mix(in srgb,var(--violet) 11%,transparent)}
+.kicker.k-c{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 42%,transparent);background:color-mix(in srgb,var(--cyan) 11%,transparent)}
+.kicker.k-a{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 42%,transparent);background:color-mix(in srgb,var(--amber) 12%,transparent)}
+.kicker.k-r{color:var(--rose);border-color:color-mix(in srgb,var(--rose) 42%,transparent);background:color-mix(in srgb,var(--rose) 11%,transparent)}
+.kicker.k-e{color:var(--emerald);border-color:color-mix(in srgb,var(--emerald) 42%,transparent);background:color-mix(in srgb,var(--emerald) 11%,transparent)}
+.body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:14px}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:18px 20px;box-shadow:var(--shadow)}
+.card.tint-v{border-color:color-mix(in srgb,var(--violet) 34%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--violet) 7%,var(--card)),var(--card))}
+.card.tint-r{border-color:color-mix(in srgb,var(--rose) 34%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--rose) 7%,var(--card)),var(--card))}
+.card.tint-e{border-color:color-mix(in srgb,var(--emerald) 34%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--emerald) 7%,var(--card)),var(--card))}
+.card.tint-c{border-color:color-mix(in srgb,var(--cyan) 34%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--cyan) 7%,var(--card)),var(--card))}
+.card.tint-a{border-color:color-mix(in srgb,var(--amber) 36%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--amber) 9%,var(--card)),var(--card))}
+.row{display:flex;gap:14px}
+.qcard{flex:1 1 0;min-height:0;display:flex;flex-direction:column;justify-content:center}
+.col{display:flex;flex-direction:column;gap:14px}
+.grow{flex:1 1 0;min-width:0;min-height:0}
+.center{align-items:center;justify-content:center}
+
+/* ---------- before / after panels ---------- */
+.ba{display:grid;grid-template-columns:1fr 100px 1fr;align-items:stretch;gap:0;flex:1 1 auto;min-height:0}
+.panel{
+  background:var(--card);border:2px solid var(--line);border-radius:22px;
+  padding:12px 14px 14px;display:flex;flex-direction:column;box-shadow:var(--shadow);min-height:0;
+}
+.panel.before{border-color:color-mix(in srgb,var(--rose) 40%,transparent)}
+.panel.after{border-color:color-mix(in srgb,var(--emerald) 46%,transparent)}
+.panel.neutral{border-color:color-mix(in srgb,var(--violet) 38%,transparent)}
+.plabel{
+  align-self:flex-start;font-size:11.5px;font-weight:850;letter-spacing:.13em;text-transform:uppercase;
+  padding:4px 11px;border-radius:999px;margin-bottom:4px;
+}
+.panel.before .plabel{background:color-mix(in srgb,var(--rose) 15%,transparent);color:var(--rose)}
+.panel.after .plabel{background:color-mix(in srgb,var(--emerald) 16%,transparent);color:var(--emerald)}
+.panel.neutral .plabel{background:color-mix(in srgb,var(--violet) 14%,transparent);color:var(--violet)}
+.plabel.long{text-transform:none;letter-spacing:0;font-size:14.5px;font-weight:800;padding:5px 13px}
+.psub{font-size:13.5px;color:var(--ink3);margin-top:2px;min-height:18px}
+.arrowcol{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.arrowcol .glyph{
+  width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:23px;
+  background:linear-gradient(135deg,var(--violet),var(--pink));color:#fff;font-weight:900;
+  box-shadow:0 8px 22px -6px color-mix(in srgb,var(--violet) 70%,transparent);
+  animation:nudge 1.9s ease-in-out infinite;
+}
+@keyframes nudge{0%,100%{transform:translateX(-3px)}50%{transform:translateX(3px)}}
+.arrowcol .op{font-size:10.5px;font-weight:850;letter-spacing:.02em;text-align:center;color:var(--ink2);
+  line-height:1.3;max-width:92px;overflow-wrap:anywhere;word-break:break-word}
+
+/* ---------- tree svg ---------- */
+.tree{flex:1 1 auto;min-height:0;position:relative}
+.tree svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.tree .edge{stroke:var(--edge);stroke-width:3;stroke-linecap:round;fill:none}
+.tree .edge.hot{stroke:var(--rose);stroke-width:5;stroke-dasharray:7 5;animation:march 1s linear infinite}
+@keyframes march{to{stroke-dashoffset:-24}}
+.tree .nc{fill:var(--node-fill);stroke:var(--node-stroke);stroke-width:2.5}
+.tree .nt{fill:var(--node-ink);font-weight:800;font-size:16px;text-anchor:middle;dominant-baseline:central;
+  font-family:ui-rounded,"SF Pro Rounded",system-ui,sans-serif}
+.tree .bfb{font-size:11.5px;font-weight:850;text-anchor:middle;dominant-baseline:central;
+  font-family:ui-monospace,Menlo,monospace}
+
+.tree g.n-crit .nc{fill:color-mix(in srgb,var(--rose) 26%,var(--node-fill));stroke:var(--rose);stroke-width:4}
+.tree g.n-crit .nt{fill:var(--rose)}
+.tree g.n-pivot .nc{fill:color-mix(in srgb,var(--amber) 30%,var(--node-fill));stroke:var(--amber);stroke-width:4}
+.tree g.n-new  .nc{fill:color-mix(in srgb,var(--cyan) 28%,var(--node-fill));stroke:var(--cyan);stroke-width:3.5}
+.tree g.n-move .nc{fill:color-mix(in srgb,var(--emerald) 26%,var(--node-fill));stroke:var(--emerald);stroke-width:3.5}
+.tree g.n-good .nc{fill:color-mix(in srgb,var(--emerald) 20%,var(--node-fill));stroke:var(--emerald);stroke-width:3}
+.tree g.n-gone .nc{fill:none;stroke:var(--rose);stroke-width:2.5;stroke-dasharray:5 4;opacity:.65}
+.tree g.n-gone .nt{fill:var(--rose);opacity:.55;text-decoration:line-through}
+.tree g.n-dim  {opacity:.34}
+.tree g.n-sub  .nc{fill:color-mix(in srgb,var(--blue) 20%,var(--node-fill));stroke:var(--blue);stroke-width:3}
+.tree .ring{fill:none;stroke:var(--rose);stroke-width:3;opacity:.75;animation:pulse 1.6s ease-out infinite}
+.tree .spin{fill:none;stroke:var(--amber);stroke-width:4;stroke-linecap:round;
+  stroke-dasharray:11 8;animation:march 1.1s linear infinite}
+.tree .spinhead{fill:var(--amber)}
+.tree .spintxt{fill:var(--amber);font-size:13px;font-weight:850;text-anchor:middle;
+  dominant-baseline:central;font-family:ui-rounded,"SF Pro Rounded",system-ui,sans-serif}
+@keyframes pulse{0%{r:24;opacity:.8}100%{r:40;opacity:0}}
+.tree .tri{fill:color-mix(in srgb,var(--blue) 22%,var(--node-fill));stroke:var(--blue);stroke-width:2.5;stroke-linejoin:round}
+.tree .trit{fill:var(--node-ink);font-weight:800;font-size:15px;text-anchor:middle;dominant-baseline:central;
+  font-family:ui-rounded,"SF Pro Rounded",system-ui,sans-serif}
+
+/* ---------- pills, chips, legend ---------- */
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+  font-size:13px;font-weight:750;background:var(--card2);border:1.5px solid var(--line2);color:var(--ink2)}
+.chip .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.dot-r{background:var(--rose)} .dot-a{background:var(--amber)} .dot-e{background:var(--emerald)}
+.dot-c{background:var(--cyan)} .dot-b{background:var(--blue)} .dot-v{background:var(--violet)}
+
+.badge{display:inline-grid;place-items:center;min-width:30px;height:30px;padding:0 9px;border-radius:9px;
+  font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:800;
+  background:var(--card2);border:1.5px solid var(--line2)}
+.badge.ok{color:var(--emerald);border-color:color-mix(in srgb,var(--emerald) 45%,transparent);
+  background:color-mix(in srgb,var(--emerald) 12%,transparent)}
+.badge.bad{color:var(--rose);border-color:color-mix(in srgb,var(--rose) 45%,transparent);
+  background:color-mix(in srgb,var(--rose) 12%,transparent)}
+
+/* ---------- pseudocode ---------- */
+.code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:14.5px;line-height:1.62;
+  background:var(--card2);border:1.5px solid var(--line);border-radius:14px;padding:13px 15px;
+  color:var(--ink);white-space:pre;overflow:auto}
+.code .kw{color:var(--violet);font-weight:750}
+.code .fn{color:var(--cyan);font-weight:750}
+.code .cm{color:var(--ink3);font-style:italic}
+.code .nu{color:var(--amber)}
+.code .hl{background:color-mix(in srgb,var(--amber) 20%,transparent);border-radius:4px}
+
+/* ---------- tables ---------- */
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:16px}
+th{text-align:left;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);
+  padding:0 12px 8px;font-weight:820}
+td{padding:11px 12px;border-top:1.5px solid var(--line);vertical-align:middle}
+tr:first-child td{border-top:none}
+table.fill{height:100%}
+table.fill td{padding-top:0;padding-bottom:0}
+td.c{font-family:ui-monospace,Menlo,monospace;font-weight:750}
+td .bfcell{display:flex;align-items:center;gap:9px;white-space:nowrap}
+td .bfcell .whitecell{white-space:normal;font-size:14.5px;line-height:1.3;color:var(--ink2)}
+
+/* ---------- quiz ---------- */
+.quiz{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex:1 1 auto;min-height:0}
+.qcell{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:10px;
+  display:flex;flex-direction:column;cursor:pointer;transition:all .28s cubic-bezier(.2,.8,.25,1);
+  box-shadow:var(--shadow);position:relative;overflow:hidden}
+.qcell:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.qcell .qtag{font-size:12px;font-weight:850;letter-spacing:.11em;color:var(--ink3);text-transform:uppercase}
+.qcell .qv{margin-top:auto;font-size:14px;font-weight:800;opacity:0;transform:translateY(8px);
+  transition:all .3s ease;line-height:1.35}
+.qcell.rev .qv{opacity:1;transform:none}
+.qcell.rev.yes{border-color:var(--emerald);background:linear-gradient(180deg,color-mix(in srgb,var(--emerald) 12%,var(--card)),var(--card))}
+.qcell.rev.no{border-color:var(--rose);background:linear-gradient(180deg,color-mix(in srgb,var(--rose) 12%,var(--card)),var(--card))}
+.qcell.rev.yes .qv{color:var(--emerald)}
+.qcell.rev.no .qv{color:var(--rose)}
+.qcell .hintme{position:absolute;top:10px;right:12px;font-size:11px;color:var(--ink3);font-weight:750}
+.fcell .qv{font-size:15.5px;line-height:1.45}
+.fcell .qv .cn{font-size:19px;font-weight:850;letter-spacing:-.01em}
+.qcell.rev.c-ll{border-color:var(--rose);background:linear-gradient(180deg,color-mix(in srgb,var(--rose) 13%,var(--card)),var(--card))}
+.qcell.rev.c-ll .qv{color:var(--rose)}
+.qcell.rev.c-rr{border-color:var(--cyan);background:linear-gradient(180deg,color-mix(in srgb,var(--cyan) 13%,var(--card)),var(--card))}
+.qcell.rev.c-rr .qv{color:var(--cyan)}
+.qcell.rev.c-lr{border-color:var(--amber);background:linear-gradient(180deg,color-mix(in srgb,var(--amber) 13%,var(--card)),var(--card))}
+.qcell.rev.c-lr .qv{color:var(--amber)}
+.qcell.rev.c-rl{border-color:var(--emerald);background:linear-gradient(180deg,color-mix(in srgb,var(--emerald) 13%,var(--card)),var(--card))}
+.qcell.rev.c-rl .qv{color:var(--emerald)}
+
+.qcell.rev .hintme{display:none}
+
+/* ---------- buttons ---------- */
+.btn{appearance:none;border:1.5px solid var(--line2);background:var(--card);color:var(--ink2);
+  font:inherit;font-size:14px;font-weight:800;padding:8px 15px;border-radius:11px;cursor:pointer;
+  transition:all .2s ease;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--violet);color:var(--violet);transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,var(--violet),var(--pink));color:#fff;border-color:transparent;
+  box-shadow:0 8px 20px -8px color-mix(in srgb,var(--violet) 80%,transparent)}
+.btn.primary:hover{color:#fff;filter:brightness(1.08)}
+
+/* ---------- flashcard task box ---------- */
+.task{display:flex;gap:14px;align-items:stretch}
+.tasknum{
+  flex:0 0 auto;width:76px;border-radius:18px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;color:#fff;font-weight:900;
+  background:linear-gradient(150deg,var(--violet),var(--pink));
+  box-shadow:0 10px 26px -10px color-mix(in srgb,var(--violet) 80%,transparent)}
+.tasknum .n{font-size:34px;line-height:1}
+.tasknum .l{font-size:10px;letter-spacing:.16em;opacity:.9;margin-top:2px}
+.tasknum.boss{background:linear-gradient(150deg,var(--rose),var(--amber))}
+.hintbox{border:1.5px dashed var(--line2);border-radius:14px;padding:10px 14px;background:var(--card2);
+  font-size:15.5px;color:var(--ink2);display:none}
+.hintbox.on{display:block;animation:slideIn .3s ease}
+.hintbox b{color:var(--amber)}
+
+/* timer */
+.timer{display:flex;align-items:center;gap:11px}
+.tface{font-family:ui-monospace,Menlo,monospace;font-size:27px;font-weight:800;min-width:78px;
+  letter-spacing:-.02em;color:var(--ink)}
+.tface.low{color:var(--rose);animation:blink .9s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+
+/* ---------- fragments ---------- */
+.frag{opacity:0;transform:translateY(10px);transition:opacity .38s ease,transform .38s cubic-bezier(.2,.8,.25,1);
+  pointer-events:none}
+.frag.shown{opacity:1;transform:none;pointer-events:auto}
+
+/* ---------- title slide ---------- */
+.hero{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:22px}
+.hero .sub{font-size:23px;color:var(--ink2);max-width:800px;line-height:1.45}
+.keycaps{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:6px}
+kbd{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;font-weight:750;padding:4px 9px;border-radius:8px;
+  background:var(--card2);border:1.5px solid var(--line2);border-bottom-width:3px;color:var(--ink2)}
+
+/* ---------- deck chrome ---------- */
+#chrome{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:12px;
+  padding:10px 18px;pointer-events:none}
+#chrome > *{pointer-events:auto}
+#prog{position:fixed;top:0;left:0;height:4px;z-index:30;
+  background:linear-gradient(90deg,var(--violet),var(--pink),var(--amber));
+  transition:width .35s cubic-bezier(.2,.8,.25,1);border-radius:0 3px 3px 0}
+.cbtn{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;cursor:pointer;
+  background:var(--card);border:1.5px solid var(--line2);color:var(--ink2);font-size:15px;font-weight:800;
+  transition:all .2s ease;box-shadow:var(--shadow)}
+.cbtn:hover{color:var(--violet);border-color:var(--violet);transform:translateY(-2px)}
+#counter{font-family:ui-monospace,Menlo,monospace;font-size:13px;font-weight:800;color:var(--ink3);
+  padding:8px 13px;border-radius:11px;background:var(--card);border:1.5px solid var(--line2);
+  cursor:pointer;box-shadow:var(--shadow)}
+#counter:hover{color:var(--violet)}
+#slidename{font-size:13px;font-weight:750;color:var(--ink3);flex:1 1 auto;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- laser pointer ---------- */
+#laser{position:fixed;inset:0;z-index:60;pointer-events:none;display:none}
+body.laser #laser{display:block}
+body.laser,body.laser *{cursor:none !important}
+.cbtn.on{color:#fff;background:#E11D48;border-color:#E11D48;
+  box-shadow:0 0 0 4px rgba(225,29,72,.20),var(--shadow)}
+.cbtn.on:hover{color:#fff;border-color:#E11D48;transform:translateY(-2px)}
+
+/* ---------- menu overlay ---------- */
+#menu{position:fixed;inset:0;z-index:40;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(14px);display:none;padding:44px 52px;overflow:auto}
+#menu.on{display:block;animation:slideIn .3s ease}
+#menu h3{margin-bottom:16px;font-size:26px}
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.mitem{padding:10px 13px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);
+  cursor:pointer;font-size:13.5px;font-weight:700;color:var(--ink2);transition:all .18s ease;
+  display:flex;gap:9px;align-items:baseline}
+.mitem:hover{border-color:var(--violet);color:var(--violet);transform:translateY(-2px)}
+.mitem.cur{border-color:var(--violet);background:color-mix(in srgb,var(--violet) 12%,var(--card));color:var(--violet)}
+.mitem .mn{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--ink3);flex:0 0 auto}
+.macts{font-size:11.5px;font-weight:850;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
+  margin:18px 0 8px}
+.macts:first-of-type{margin-top:0}
+
+/* ============================================================
+   RED-BLACK ADDITIONS
+   ============================================================ */
+:root{
+  --rbR:#DC2626; --rbRs:#F87171; --rbRi:#FFFFFF;
+  --rbB:#1E1B32; --rbBs:#575075; --rbBi:#F7F5FF;
+  --nil:#8E88AE;
+}
+:root[data-theme="dark"]{
+  --rbR:#E8453C; --rbRs:#FCA5A5; --rbRi:#FFFFFF;
+  --rbB:#0A0918; --rbBs:#A79FD8; --rbBi:#F2EEFF;
+  --nil:#6B639A;
+}
+
+/* --- node colours: these must beat the generic .nc rule --- */
+.tree g.rb-b .nc{fill:var(--rbB);stroke:var(--rbBs);stroke-width:2.5}
+.tree g.rb-b .nt{fill:var(--rbBi)}
+.tree g.rb-r .nc{fill:var(--rbR);stroke:var(--rbRs);stroke-width:2.5}
+.tree g.rb-r .nt{fill:var(--rbRi)}
+
+/* --- highlights now touch the OUTLINE only, so colour always reads --- */
+.tree g.n-crit .nc{stroke:var(--amber);stroke-width:5.5}
+.tree g.n-crit .nt{fill:var(--rbBi)}
+.tree g.rb-r.n-crit .nt{fill:#fff}
+.tree g.n-pivot .nc{stroke:var(--violet);stroke-width:5}
+.tree g.n-new   .nc{stroke:var(--cyan);stroke-width:5}
+.tree g.n-move  .nc{stroke:var(--emerald);stroke-width:5}
+.tree g.n-good  .nc{stroke:var(--emerald);stroke-width:4}
+.tree g.n-sub   .nc{stroke:var(--blue);stroke-width:4}
+.tree g.n-gone  .nc{opacity:.30;stroke-dasharray:5 4}
+.tree g.n-gone  .nt{opacity:.40;text-decoration:line-through}
+.tree g.n-dim{opacity:.30}
+.tree .ring{fill:none;stroke:var(--amber);stroke-width:3;opacity:.75;animation:pulse 1.6s ease-out infinite}
+
+/* --- the doubly-black debt marker: a second ring around the node --- */
+.tree g.n-dbl .nc{stroke:var(--rbBs);stroke-width:2.5}
+.tree .dblring{fill:none;stroke:var(--ink);stroke-width:3.5;opacity:.9}
+.tree .dbltag{fill:var(--ink);font-size:15px;font-weight:900;text-anchor:middle;dominant-baseline:central;
+  font-family:ui-rounded,"SF Pro Rounded",system-ui,sans-serif}
+
+/* --- NIL leaves, drawn as the little black squares they really are --- */
+.tree .nilsq{fill:var(--rbB);stroke:var(--rbBs);stroke-width:1.6;opacity:.72}
+
+/* --- black-height badge --- */
+.tree .bhb{font-size:11.5px;font-weight:850;text-anchor:middle;dominant-baseline:central;
+  font-family:ui-monospace,Menlo,monospace}
+
+/* --- role tags (Z / P / G / U) parked beside a node --- */
+.tree .tagbg{fill:var(--card);stroke:var(--violet);stroke-width:1.8}
+.tree .tagtx{fill:var(--violet);font-size:12px;font-weight:900;text-anchor:middle;dominant-baseline:central;
+  font-family:ui-rounded,"SF Pro Rounded",system-ui,sans-serif}
+
+/* --- two independently coloured path highlights --- */
+.tree .edge.hot{stroke:var(--rose);stroke-width:5.5;stroke-dasharray:7 5;animation:march 1s linear infinite}
+.tree .edge.cool{stroke:var(--cyan);stroke-width:5.5;stroke-dasharray:7 5;animation:march 1s linear infinite}
+
+/* --- inline colour swatches for prose --- */
+.sw{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;
+  font-size:11px;font-weight:900;vertical-align:-5px;margin:0 1px}
+.sw.r{background:var(--rbR);color:#fff;border:2px solid var(--rbRs)}
+.sw.b{background:var(--rbB);color:var(--rbBi);border:2px solid var(--rbBs)}
+
+/* --- the "one bit" motif --- */
+.bit{display:inline-flex;border-radius:9px;overflow:hidden;border:2px solid var(--line2);vertical-align:-4px}
+.bit span{padding:3px 10px;font-family:ui-monospace,Menlo,monospace;font-size:13px;font-weight:850}
+.bit .z{background:var(--rbB);color:var(--rbBi)}
+.bit .o{background:var(--rbR);color:#fff}
+
+/* --- derivation ladder: numbered steps that reveal one at a time --- */
+.ladder{display:flex;flex-direction:column;gap:10px}
+.rung{display:flex;gap:13px;align-items:flex-start;background:var(--card);border:1.5px solid var(--line);
+  border-radius:16px;padding:12px 15px;box-shadow:var(--shadow)}
+.rung .rn{flex:0 0 auto;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;
+  font-size:15px;font-weight:900;color:#fff;background:linear-gradient(140deg,var(--violet),var(--rose))}
+.rung .rt{font-size:16.5px;line-height:1.45;color:var(--ink2)}
+.rung.done .rn{background:linear-gradient(140deg,var(--emerald),var(--cyan))}
+.rung.dead{border-color:color-mix(in srgb,var(--rose) 42%,transparent)}
+.rung.dead .rn{background:linear-gradient(140deg,var(--rose),var(--amber))}
+
+/* --- the maths box --- */
+.math{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:19px;font-weight:750;
+  text-align:center;padding:11px 14px;border-radius:14px;letter-spacing:.01em;
+  background:color-mix(in srgb,var(--violet) 10%,var(--card));
+  border:1.5px solid color-mix(in srgb,var(--violet) 38%,transparent);color:var(--ink)}
+.math.big{font-size:25px;padding:15px}
+.math sub,.math sup{font-size:.68em}
+
+/* --- ledger rows for the cost story --- */
+.ledger{display:flex;flex-direction:column;gap:7px}
+.lrow{display:flex;align-items:center;gap:11px;font-size:15.5px}
+.lrow .lk{flex:1 1 auto;color:var(--ink2)}
+.lrow .lv{font-family:ui-monospace,Menlo,monospace;font-weight:850;font-size:15px;
+  padding:3px 10px;border-radius:9px;background:var(--card2);border:1.5px solid var(--line2)}
+.lrow .lv.bad{color:var(--rose);border-color:color-mix(in srgb,var(--rose) 45%,transparent);
+  background:color-mix(in srgb,var(--rose) 11%,transparent)}
+.lrow .lv.ok{color:var(--emerald);border-color:color-mix(in srgb,var(--emerald) 45%,transparent);
+  background:color-mix(in srgb,var(--emerald) 11%,transparent)}
+
+.qcell.rev.c-1{border-color:var(--emerald);background:linear-gradient(180deg,color-mix(in srgb,var(--emerald) 13%,var(--card)),var(--card))}
+.qcell.rev.c-1 .qv{color:var(--emerald)}
+.qcell.rev.c-2{border-color:var(--amber);background:linear-gradient(180deg,color-mix(in srgb,var(--amber) 13%,var(--card)),var(--card))}
+.qcell.rev.c-2 .qv{color:var(--amber)}
+.qcell.rev.c-3{border-color:var(--violet);background:linear-gradient(180deg,color-mix(in srgb,var(--violet) 13%,var(--card)),var(--card))}
+.qcell.rev.c-3 .qv{color:var(--violet)}
+.qcell.rev.c-4{border-color:var(--cyan);background:linear-gradient(180deg,color-mix(in srgb,var(--cyan) 13%,var(--card)),var(--card))}
+.qcell.rev.c-4 .qv{color:var(--cyan)}
+
+/* dense variants for the reference slides that carry a lot of content */
+.card.dense{padding:11px 16px}
+.rung.dense{padding:9px 13px}
+.rung.dense .rt{font-size:15.5px;line-height:1.4}
+.rung.dense .rn{width:26px;height:26px;font-size:14px}
+
+/* dense tables for the two reference slides that carry a lot of rows */
+.tbl-compact{font-size:15px}
+.tbl-compact th{padding:0 12px 6px}
+.tbl-compact td{padding:6px 12px;line-height:1.34}
+
+/* a code block that fills its column, so its bottom edge lines up
+   with whatever sits beside it */
+.code.fill{flex:1 1 auto;min-height:0}
+
+.quiz.three{grid-template-columns:repeat(3,1fr)}
+.quiz.two{grid-template-columns:repeat(2,1fr)}
+</style>
+</head>
+<body>
+<div id="bg"><div class="grid"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<div id="prog"></div>
+<div id="fit"><div id="stage">
+
+<!-- ==================== 1. TITLE ==================== -->
+<section class="slide" data-name="Title" data-act="The bill">
+  <div class="hero">
+    <div class="chips"><span class="kicker k-r">Data Structures &middot; Lab 08</span></div>
+    <h1>Red-Black Trees<br><span class="grad">You are about to invent one.</span></h1>
+    <p class="sub">Last lab you built a tree that keeps itself as short as physically possible. This lab you find out
+      what that perfectionism <b>cost</b> — and then you design the cheaper tree yourself, one rule at a time.
+      Nobody is going to hand you the five properties. You are going to <b>derive</b> them and then check your work
+      against the answer.</p>
+    <div class="chips">
+      <span class="chip"><span class="dot dot-r"></span>1 bit per node</span>
+      <span class="chip"><span class="dot dot-v"></span>2 rules you'll invent</span>
+      <span class="chip"><span class="dot dot-a"></span>5 drills</span>
+      <span class="chip"><span class="dot dot-c"></span>1 boss fight</span>
+    </div>
+    <div class="keycaps">
+      <kbd>&rarr;</kbd><kbd>Space</kbd> next &nbsp; <kbd>&larr;</kbd> back &nbsp; <kbd>M</kbd> menu &nbsp;
+      <kbd>T</kbd> theme &nbsp; <kbd>S</kbd> timer &nbsp; <kbd>L</kbd> laser &nbsp; <kbd>F</kbd> fullscreen
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 2. THINK FIRST — the AVL bill ==================== -->
+<section class="slide" data-name="What did that delete cost?" data-act="The bill">
+  <div class="head"><span class="kicker k-r">Think first</span><h2>You already fixed this tree. So why are we back?</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="panel neutral grow">
+        <span class="plabel long">A perfectly legal AVL tree. Now delete <b>12</b>.</span>
+        <div class="tree" data-t="8(5(3(2(1,.),4),7(6,.)),11(10(9,.),12))" data-o="bf" data-hl="12:gone"></div>
+        <div class="psub">Every balance factor is legal. One key is about to leave.</div>
+      </div>
+      <div class="col" style="flex:0 0 458px">
+        <div class="card tint-a qcard"><h3 style="color:var(--amber)">1 &middot; Do it on paper. Count the rotations.</h3>
+          <p style="margin-top:7px;font-size:16px">Delete 12, then climb. How many nodes go out of balance
+            <b>on the way up</b>? Don't guess — climb it.</p></div>
+        <div class="card tint-c qcard"><h3 style="color:var(--cyan)">2 &middot; Now count what you wrote when nothing broke.</h3>
+          <p style="margin-top:7px;font-size:16px">Delete a key that needs <b>zero</b> rotations. How many
+            <b>heights</b> did you still have to recompute and store?</p></div>
+        <div class="card tint-v qcard"><h3 style="color:var(--violet)">3 &middot; Bound one delete.</h3>
+          <p style="margin-top:7px;font-size:16px">Worst case, a <b>single</b> AVL deletion rotates how many times?
+            Is that a <b>constant</b>, or does it grow with n?</p></div>
+      </div>
+    </div>
+    <div class="card tint-r">
+      <h3 style="color:var(--rose)">Your turn &mdash; before anyone says the answer</h3>
+      <p style="margin-top:7px">AVL is not wrong. It is <b>expensive at one specific thing</b>, and I want you to name that thing
+        precisely, in one sentence, using the numbers you just counted. Then answer the question that opens this whole lab:
+        <b>how much balance did we actually need?</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 3. PENS DOWN — the invoice ==================== -->
+<section class="slide" data-name="Pens down — the invoice" data-act="The bill">
+  <div class="head"><span class="kicker k-e">Pens down</span><h2>One delete. Two rotations. And it can be worse.</h2></div>
+  <div class="body">
+    <div class="ba" style="grid-template-columns:1fr 92px 1fr 92px 1fr">
+      <div class="panel before"><span class="plabel">12 leaves</span>
+        <div class="tree" data-t="8(5(3(2(1,.),4),7(6,.)),11(10(9,.),.))" data-o="bf" data-hl="11:crit"></div>
+        <div class="psub"><b>11</b> hits BF +2. Rotate right &mdash; that's <b>one</b>.</div></div>
+      <div class="arrowcol"><div class="glyph">&#8634;</div><div class="op">fix 11</div></div>
+      <div class="panel before"><span class="plabel">and now the parent</span>
+        <div class="tree" data-t="8(5(3(2(1,.),4),7(6,.)),10(9,11))" data-o="bf" data-hl="8:crit"></div>
+        <div class="psub">The fix made that subtree <b>shorter</b>. Now the <b>root</b> is +2. That's <b>two</b>.</div></div>
+      <div class="arrowcol"><div class="glyph">&#8634;</div><div class="op">fix 8</div></div>
+      <div class="panel after"><span class="plabel">finally legal</span>
+        <div class="tree" data-t="5(3(2(1,.),4),8(7(6,.),10(9,11)))" data-o="bf" data-hl="5:good"></div>
+        <div class="psub">Two rotations for one deletion. At depth 20, it can be twenty.</div></div>
+    </div>
+    <div class="row frag" style="gap:14px">
+      <div class="card tint-r grow"><h3 style="color:var(--rose)">The invoice, itemised</h3>
+        <div class="ledger" style="margin-top:9px">
+          <div class="lrow"><span class="lk">Rotations per <b>insert</b></span><span class="lv ok">&le; 2</span></div>
+          <div class="lrow"><span class="lk">Rotations per <b>delete</b></span><span class="lv bad">O(log n)</span></div>
+          <div class="lrow"><span class="lk">Height fields rewritten per operation &mdash; <i>even with zero rotations</i></span><span class="lv bad">O(log n)</span></div>
+          <div class="lrow"><span class="lk">Extra bytes stored per node</span><span class="lv bad">a whole int</span></div>
+        </div></div>
+      <div class="card tint-v grow"><h3 style="color:var(--violet)">Read the invoice properly</h3>
+        <p style="margin-top:7px">An insert's rotation restores the subtree's <b>original</b> height, so the repair stops dead.
+          A delete's rotation can leave the subtree <b>one level shorter</b> — which is a brand new violation for the parent,
+          and its parent, all the way up.</p>
+        <p style="margin-top:9px">That is the price of <span class="mono">|BF| &le; 1</span>: an invariant with <b>zero slack</b>
+          notices <i>every</i> disturbance, and every repair it orders is a <b>pointer rewrite</b>.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 4. THE REFRAME ==================== -->
+<section class="slide" data-name="The reframe — you optimised the wrong number" data-act="The bill">
+  <div class="head"><span class="kicker k-a">The turn</span><h2>AVL fought for a constant nobody asked for.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="col grow">
+        <div class="card tint-c"><h3 style="color:var(--cyan)">What "O(log n)" actually demands</h3>
+          <div class="math" style="margin-top:10px">height &le; <b>c</b> &middot; log&#8322;n &nbsp;&nbsp;for <i>some</i> constant c</div>
+          <p style="margin-top:10px">Read that again. It says <b>some</b> constant. It does not say a small one.
+            AVL spends effort on <i>every single write</i> to drive c down to <b>1.44</b>.
+            Big-O never asked for that. <b>c = 2</b> is exactly as O(log n) as c = 1.44.</p></div>
+        <div class="card tint-a"><h3 style="color:var(--amber)">So what does c = 2 actually cost you?</h3>
+          <p style="margin-top:7px">Worst case at a million keys: about <b>40</b> comparisons instead of <b>29</b>.
+            Eleven extra pointer hops — <i>in the worst case that basically never happens</i>. On random keys both trees
+            sit near <b>20</b>. That is the entire downside, and we are about to find out what it buys.</p></div>
+      </div>
+      <div class="card tint-r" style="flex:0 0 476px;display:flex;flex-direction:column;justify-content:center">
+        <h3 style="color:var(--rose)">Your design brief &mdash; write this one down</h3>
+        <p style="margin-top:9px">Invent a balance rule that obeys <b>all four</b> constraints:</p>
+        <div class="ladder" style="margin-top:11px">
+          <div class="rung"><span class="rn">a</span><span class="rt">It fits in <b>one bit</b> per node. Not a height. Not a counter. <span class="bit"><span class="z">0</span><span class="o">1</span></span></span></div>
+          <div class="rung"><span class="rn">b</span><span class="rt">You can check it by looking at a node and <b>a couple of relatives</b> — never by measuring a subtree.</span></div>
+          <div class="rung"><span class="rn">c</span><span class="rt">Most repairs move <b>zero pointers</b>.</span></div>
+          <div class="rung"><span class="rn">d</span><span class="rt">It still caps the height at <b>c &middot; log n</b>.</span></div>
+        </div>
+        <p class="tiny" style="margin-top:12px">Five minutes, in pairs. Constraint <b>(a)</b> is the one that gives the game away —
+          if you only get one bit, your rule <i>cannot</i> be about heights. It has to be about a <b>label</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 5. ONE BIT. GO. ==================== -->
+<section class="slide" data-name="One bit. Go." data-act="Inventing the rule">
+  <div class="head"><span class="kicker k-v">Build it live</span><h2>You have one bit. Spend it.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="col grow" style="flex:1 1 0">
+        <div class="ladder">
+          <div class="rung"><span class="rn">1</span><span class="rt">A bit sorts every node into <b>two clubs</b>. Name them anything.
+            History picked <span class="sw b">&#9679;</span><b>black</b> and <span class="sw r">&#9679;</span><b>red</b>, so we will too.</span></div>
+          <div class="rung frag"><span class="rn">2</span><span class="rt">Height is about <b>paths</b>. To bound it with a label, the label must let you
+            <b>compare paths</b>. Strongest demand you can make and still satisfy: <b>every root&rarr;NIL path holds the same number of
+            black nodes.</b> Call it the <b>black-height</b>.</span></div>
+          <div class="rung dead frag"><span class="rn">&#10007;</span><span class="rt"><b>Test it before you trust it.</b> The tree on the right obeys rule 2 perfectly —
+            every path has exactly <b>two</b> blacks — and it is a <b>chain</b>. Rule 2 alone is worth <i>nothing</i>.</span></div>
+          <div class="rung done frag"><span class="rn">3</span><span class="rt">The reds are unlimited slack, so <b>cap the slack</b>. Weakest cap that kills that chain:
+            <b>a red node may not have a red child.</b> Now reds can never be two in a row.</span></div>
+        </div>
+        <div class="card tint-a frag"><p><b>Stop. That is the whole invention.</b> Two rules, one bit, nothing measured.
+          Everything from here — five properties, three insert cases, four delete cases, the C code — is <i>consequences</i>.
+          Check them against whatever you wrote in your design brief.</p></div>
+      </div>
+      <div class="panel before" style="flex:0 0 400px">
+        <span class="plabel long">Rule 2 alone: legal, and useless</span>
+        <div class="tree" data-t="10b(.,20r(.,30r(.,40r(.,50r))))" data-path="10-20,20-30,30-40,40-50"></div>
+        <div class="psub">Two blacks on <b>every</b> path (the root, and the NIL at the end). Height <b>5</b>.
+          You rebuilt the linked list, in colour.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 6. THE MECHANISM ==================== -->
+<section class="slide" data-name="Why two rules bound the height" data-act="Inventing the rule">
+  <div class="head"><span class="kicker k-c">The mechanism</span><h2>Now squeeze the two rules together and watch a bound fall out.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="col grow" style="flex:0 0 470px">
+        <div class="card tint-c"><h3 style="color:var(--cyan)">Ask for the extremes</h3>
+          <p style="margin-top:8px"><b>Shortest possible path?</b> Take no slack at all — every node black.
+            Its length is exactly the black-height, <b>bh</b>.</p>
+          <p style="margin-top:8px"><b>Longest possible path?</b> Take maximum slack. Reds cannot touch, so the greediest
+            path is <b>black, red, black, red&hellip;</b> &mdash; one red between consecutive blacks. At most <b>2 &middot; bh</b>.</p></div>
+        <div class="card tint-v frag"><h3 style="color:var(--violet)">Both paths live in the <i>same</i> tree</h3>
+          <div class="math big" style="margin-top:9px">longest &le; 2 &times; shortest</div>
+          <p style="margin-top:9px">No height is stored. No subtree is measured. No two depths are ever compared.
+            The tree is balanced <b>because of who may stand next to whom</b>.</p></div>
+      </div>
+      <div class="panel neutral grow">
+        <span class="plabel long">Count the nodes on each marked path</span>
+        <div class="tree" data-t="40b(20r(10b(5r,.),30b),60b)" data-path="40-20,20-10,10-5" data-path2="40-60"></div>
+        <div class="psub"><span style="color:var(--cyan);font-weight:850">Cyan</span>: 40&rarr;60, <b>2</b> nodes, all black.
+          <span style="color:var(--rose);font-weight:850">Rose</span>: 40&rarr;20&rarr;10&rarr;5, <b>4</b> nodes, alternating.
+          Both cross exactly <b>three</b> blacks (counting the NIL at the bottom). Worst ratio possible: <b>exactly 2&times;</b>.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 7. DERIVE THE BOUND ==================== -->
+<section class="slide" data-name="Derive the height bound" data-act="Inventing the rule">
+  <div class="head"><span class="kicker k-a">Do the algebra yourself</span><h2>Three lines. No proof machinery. Follow along on paper.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="col grow">
+        <div class="ladder">
+          <div class="rung"><span class="rn">1</span><span class="rt"><b>A tree with black-height bh holds at least 2<sup>bh</sup> &minus; 1 nodes.</b>
+            Delete every red node by folding it into its parent. What is left has <b>exactly bh</b> nodes on every path —
+            so it is at least as full as a perfect tree of that height. <span class="mono">n &ge; 2<sup>bh</sup> &minus; 1</span></span></div>
+          <div class="rung frag"><span class="rn">2</span><span class="rt"><b>At least half of any path is black.</b> Reds can't be adjacent, so on a path of h nodes
+            at most every other one is red. <span class="mono">bh &ge; h / 2</span></span></div>
+          <div class="rung frag"><span class="rn">3</span><span class="rt"><b>Substitute and rearrange.</b>
+            <span class="mono">n &ge; 2<sup>bh</sup> &minus; 1 &ge; 2<sup>h/2</sup> &minus; 1</span>, so
+            <span class="mono">n + 1 &ge; 2<sup>h/2</sup></span>, so <span class="mono">log&#8322;(n+1) &ge; h/2</span>.</span></div>
+        </div>
+        <div class="math big frag" style="margin-top:14px">h &le; 2 &middot; log&#8322;(n + 1)</div>
+        <p class="tiny frag" style="margin-top:10px">Search, insert and delete each walk one root-to-leaf path.
+          All three are <b>O(log n)</b> — with c = 2, exactly as promised, and you just proved it in three lines.</p>
+      </div>
+      <div class="col" style="flex:0 0 430px">
+        <div class="panel neutral grow">
+          <span class="plabel">Step 1, made concrete</span>
+          <div class="tree" data-t="40b(20b(10b,30b),60b(50b,70b))"></div>
+          <div class="psub">bh = 3 &rarr; you cannot do it with fewer than <b>2&sup3; &minus; 1 = 7</b> nodes.
+            Blacks are the skeleton, and rule 2 forces the skeleton to be <b>perfectly</b> balanced in count.</div>
+        </div>
+        <div class="card tint-e frag"><p style="font-size:16px"><b>The trade, in one line.</b> Reds are free slack that costs
+          no structure; blacks are a rigid, perfectly-counted spine. You get to be sloppy — but only by a factor of two.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 8. WHAT c=2 COSTS ==================== -->
+<section class="slide" data-name="Predict the table, then look" data-act="Inventing the rule">
+  <div class="head"><span class="kicker k-r">Predict first</span><h2>Before you look: how much taller <i>is</i> it, really?</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="card grow" style="display:flex;flex-direction:column">
+        <h3>Worst-case height</h3>
+        <table style="margin-top:8px">
+          <thead><tr><th>n</th><th>AVL &asymp; 1.44 log&#8322;n</th><th>RB = 2 log&#8322;(n+1)</th><th>extra hops</th></tr></thead>
+          <tr><td class="c">1,000</td><td class="c">14</td><td class="c">19</td><td class="c" style="color:var(--amber)">+5</td></tr>
+          <tr><td class="c">1,000,000</td><td class="c">28</td><td class="c">39</td><td class="c" style="color:var(--amber)">+11</td></tr>
+          <tr><td class="c">1,000,000,000</td><td class="c">43</td><td class="c">59</td><td class="c" style="color:var(--amber)">+16</td></tr>
+        </table>
+        <p class="tiny" style="margin-top:12px">These are <b>worst cases</b>, not typical heights. Build a red-black tree from random
+          keys and it sits close to <b>log&#8322;n</b> — the gap only opens up under input designed to hurt it.</p>
+      </div>
+      <div class="col" style="flex:0 0 470px">
+        <div class="card tint-v"><h3 style="color:var(--violet)">Now name the thing you bought</h3>
+          <p style="margin-top:8px">You accepted a handful of extra comparisons on <b>lookup</b>. Work out what a rule made of
+            <b>labels</b> — rather than measurements — can do that <span class="mono">|BF| &le; 1</span> never could.</p>
+          <p style="margin-top:9px;color:var(--ink3);font-size:16px">Hint: what is the cheapest possible way to change a node's
+            <b>colour</b>? And how does that compare to changing its <b>parent</b>?</p></div>
+        <div class="card tint-e frag"><h3 style="color:var(--emerald)">The answer, and the whole point of this lab</h3>
+          <p style="margin-top:8px">A colour violation can very often be repaired by <b>flipping bits</b> — writing
+            <i>zero</i> pointers. AVL has no such move: every AVL repair is a rotation, because its invariant is about shape,
+            and the only way to change shape is to move pointers.</p>
+          <div class="chips" style="margin-top:11px">
+            <span class="chip"><span class="dot dot-e"></span>recolour = 3 bit writes</span>
+            <span class="chip"><span class="dot dot-r"></span>rotation = 6 pointer writes</span>
+          </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 9. THE FIVE PROPERTIES ==================== -->
+<section class="slide" data-name="The five properties" data-act="Inventing the rule">
+  <div class="head"><span class="kicker k-c">Same idea, exam language</span><h2>You invented two of these. Here are all five.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="col grow">
+        <div class="ladder">
+          <div class="rung"><span class="rn">1</span><span class="rt">Every node is either <span class="sw r">&#9679;</span>red or <span class="sw b">&#9679;</span>black. <i>One bit.</i></span></div>
+          <div class="rung"><span class="rn">2</span><span class="rt">The <b>root is black</b>. Free to enforce &mdash; painting the root black adds one black to <i>every</i> path equally, so it can't break anything.</span></div>
+          <div class="rung"><span class="rn">3</span><span class="rt">Every <b>NIL leaf is black</b>. The leaves are the <i>null pointers</i>, not the keys.</span></div>
+          <div class="rung done"><span class="rn">4</span><span class="rt"><b>A red node's children are both black.</b> &larr; <i>this one is yours</i></span></div>
+          <div class="rung done"><span class="rn">5</span><span class="rt"><b>Every path from a node down to a NIL crosses the same number of black nodes.</b> &larr; <i>and this one</i></span></div>
+        </div>
+      </div>
+      <div class="col" style="flex:0 0 466px">
+        <div class="card tint-v"><h3 style="color:var(--violet)">How to read them</h3>
+          <p style="margin-top:8px"><b>4 and 5 are load-bearing.</b> 1, 2 and 3 are bookkeeping that make 4 and 5 cheap to check.</p>
+          <p style="margin-top:8px"><b>Property 3 is the one everyone skips</b>, and it shapes your C code: if NIL is a
+            <i>real black node</i>, <span class="mono">x-&gt;parent-&gt;colour</span> is always safe to read and the fixup
+            needs <b>no null checks at all</b>.</p>
+          <p style="margin-top:8px">Notice what is <b>absent</b>: no property mentions height, depth or subtree size.
+            Every one is checkable from a node and its immediate children &mdash; constraint <b>(b)</b> of your brief.</p>
+          <p class="tiny" style="margin-top:8px;color:var(--amber)"><b>Counting convention.</b> "Black-height 3" here counts
+            <b>the node itself (if black) and the NIL</b> &mdash; what you count on paper. CLRS excludes the node, so its
+            numbers run one lower. Say which you are using.</p></div>
+        <div class="card"><p class="tiny">Why <i>red</i> and <i>black</i>? Guibas &amp; Sedgewick, 1978 &mdash; by Sedgewick's own
+          account, because the colour laser printer at Xerox PARC produced a particularly good red.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 10. QUIZ ==================== -->
+<section class="slide" data-name="Quiz: legal or impostor?" data-act="Inventing the rule">
+  <div class="head"><span class="kicker k-a">30-second check</span><h2>Legal red-black tree, or impostor? <span style="font-size:19px;color:var(--ink3);font-weight:700">— name the broken property, then tap</span></h2></div>
+  <div class="body">
+    <div class="quiz">
+      <div class="qcell" data-ans="yes"><span class="qtag">A</span><span class="hintme">tap</span>
+        <div class="tree" data-t="13b(8r(1b,11b),17b(15r,25r))"></div>
+        <div class="qv">&#10003; Legal. Every path: 3 blacks. No red touches a red.</div></div>
+      <div class="qcell" data-ans="no"><span class="qtag">B</span><span class="hintme">tap</span>
+        <div class="tree" data-t="13b(8r(1b,11b),17b(15r(14r,.),25r))"></div>
+        <div class="qv">&#10007; <b>Property 4.</b> 15 and 14 are both red.</div></div>
+      <div class="qcell" data-ans="no"><span class="qtag">C</span><span class="hintme">tap</span>
+        <div class="tree" data-t="13b(8r(1b,11b),17b(15b,25r))"></div>
+        <div class="qv">&#10007; <b>Property 5.</b> Paths through 15 cross 4 blacks; through 1, only 3.</div></div>
+      <div class="qcell" data-ans="no"><span class="qtag">D</span><span class="hintme">tap</span>
+        <div class="tree" data-t="13b(8r(1b,11b),17b(12r,25r))"></div>
+        <div class="qv">&#10007; Colours are flawless &mdash; but <b>12</b> sits right of <b>13</b>. Not even a BST.</div></div>
+    </div>
+    <div class="card tint-a frag">
+      <p><b>Card D is the trap, and it's the same trap as last lab.</b> Red-black = <b>BST ordering</b> <i>plus</i> the colour rules.
+      Colours are checked with your eyes; ordering is checked with an <b>in-order walk</b>, which must come out sorted.
+      Card D reads <span class="mono">1, 8, 11, 13, 12, 17, 25</span> &mdash; busted.
+      Every rotation you write from here on must protect <i>both</i>, and you already know rotations preserve ordering for free.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 11. THINK FIRST — what colour? ==================== -->
+<section class="slide" data-name="What colour is the new node?" data-act="Inventing insertion">
+  <div class="head"><span class="kicker k-r">Think first</span><h2>You do the ordinary BST insert. Then you pick up a pen. Which pen?</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="panel neutral grow">
+        <span class="plabel long">A legal tree. <b>1</b> is about to be attached under <b>5</b>.</span>
+        <div class="tree" data-t="10b(5b,20b)" data-hl="5:pivot"></div>
+        <div class="psub">Walk down, find the empty slot, attach. That part you already know. Now colour it.</div>
+      </div>
+      <div class="col" style="flex:0 0 470px">
+        <div class="card tint-v qcard"><h3 style="color:var(--violet)">1 &middot; Paint it black.</h3>
+          <p style="margin-top:7px;font-size:16px">Count the blacks on the path through the new node, then on
+            <b>any other path</b>. Which property broke &mdash; and how much of the tree has to be reasoned about to fix it?</p></div>
+        <div class="card tint-c qcard"><h3 style="color:var(--cyan)">2 &middot; Paint it red.</h3>
+          <p style="margin-top:7px;font-size:16px">Property 5 counts <b>blacks only</b>. So what exactly did a red insertion
+            do to the black count on <i>any</i> path? Be precise. The answer is a single word.</p></div>
+        <div class="card tint-a qcard"><h3 style="color:var(--amber)">3 &middot; Red isn't free either.</h3>
+          <p style="margin-top:7px;font-size:16px">There is exactly <b>one</b> thing that can go wrong with a red insertion.
+            Name it &mdash; and then count how many nodes you must look at to see the whole problem.</p></div>
+      </div>
+    </div>
+    <div class="card tint-r">
+      <h3 style="color:var(--rose)">Your turn</h3>
+      <p style="margin-top:7px">One of these two choices turns repair into a <b>local</b> problem &mdash; one you can hold in your hand
+        and see all of at once. Pick it, and then write down the <b>exact set of nodes</b> involved in the mess.
+        There are four of them, and every one has a name.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 12. PENS DOWN — red, and the cast ==================== -->
+<section class="slide" data-name="Pens down — red, and the cast" data-act="Inventing insertion">
+  <div class="head"><span class="kicker k-e">Pens down</span><h2>Red. Because red is the colour property&nbsp;5 can't see.</h2></div>
+  <div class="body">
+    <div class="ba">
+      <div class="panel before"><span class="plabel">insert black</span>
+        <div class="tree" data-t="10b(5b(1b,.),20b)" data-hl="1:crit"></div>
+        <div class="psub"><b>4</b> blacks on the path through 1; <b>3</b> on every other path.
+          Property 5 broken <b>globally</b> — you'd have to reason about the whole tree.</div></div>
+      <div class="arrowcol"><div class="glyph" style="animation:none">vs</div><div class="op">local<br>beats<br>global</div></div>
+      <div class="panel after"><span class="plabel">insert red</span>
+        <div class="tree" data-t="10b(5b(1r,.),20b)" data-hl="1:good"></div>
+        <div class="psub"><b>3</b> blacks on every path, still. Property 5 <b>never noticed</b>.
+          And 5 is black, so nothing else broke either &mdash; this insert is <b>already finished</b>.</div></div>
+    </div>
+    <div class="row frag" style="gap:14px">
+      <div class="card tint-v grow"><h3 style="color:var(--violet)">The only thing red can break</h3>
+        <p style="margin-top:7px">Property 4 &mdash; and <b>only</b> if the parent happens to be red too. That is the entire
+          failure mode: one <b>red-red edge</b>, at a known location, involving four nodes you can name.</p>
+        <div class="chips" style="margin-top:11px">
+          <span class="chip"><span class="dot dot-c"></span><b>Z</b> the new node</span>
+          <span class="chip"><span class="dot dot-r"></span><b>P</b> its parent</span>
+          <span class="chip"><span class="dot dot-a"></span><b>G</b> the grandparent</span>
+          <span class="chip"><span class="dot dot-v"></span><b>U</b> the uncle — P's sibling</span>
+        </div></div>
+      <div class="card tint-a grow"><h3 style="color:var(--amber)">Two free deductions &mdash; make them yourself</h3>
+        <p style="margin-top:7px"><b>(i)</b> If <b>P is black</b>, you are done. Nothing broke. <i>Most insertions end here</i> and cost
+          nothing at all.</p>
+        <p style="margin-top:8px"><b>(ii)</b> If P <i>is</i> red, then <b>G must be black</b> &mdash; because the tree was legal a
+          moment ago, and a red P could not have had a red parent. You never have to check this. <b>It is free information</b>,
+          and the whole repair leans on it.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 13. DERIVE: ASK THE UNCLE ==================== -->
+<section class="slide" data-name="Derive the one question" data-act="Inventing insertion">
+  <div class="head"><span class="kicker k-c">Follow the consequences</span><h2>Try the cheap fix first. Watch where it fails.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="col grow">
+        <div class="ladder">
+          <div class="rung"><span class="rn">1</span><span class="rt">You have a red-red edge <b>P&ndash;Z</b>. Your cheapest tool writes zero pointers: <b>recolour</b>. Try it.</span></div>
+          <div class="rung frag"><span class="rn">2</span><span class="rt">Paint <b>P black</b>. Red-red gone. But every path through P just <b>gained</b> a black. Property 5 is now broken.</span></div>
+          <div class="rung frag"><span class="rn">3</span><span class="rt">So give one back: paint <b>G red</b>. Legal &mdash; you proved G was black. Paths through P are square again.</span></div>
+          <div class="rung dead frag"><span class="rn">&#10007;</span><span class="rt">But paths through <b>U</b> went through G too. <b>They lost a black and got nothing back.</b>
+            Unless U also turns black &mdash; and you can only <i>afford</i> to blacken U if U is currently <b>red</b>.</span></div>
+        </div>
+        <div class="card tint-v frag" style="margin-top:4px">
+          <h3 style="color:var(--violet)">Which is why the entire algorithm is one question</h3>
+          <div class="math big" style="margin-top:10px">what colour is the uncle?</div>
+          <p style="margin-top:11px">Uncle <b>red</b> &rarr; the cheap fix works. Recolour, write no pointers, and climb.<br>
+            Uncle <b>black</b> &rarr; there is no spare black to take. The black must be <b>moved</b> instead &mdash;
+            and moving is what a <b>rotation</b> is for.</p>
+        </div>
+      </div>
+      <div class="panel neutral" style="flex:0 0 396px">
+        <span class="plabel long">The four nodes, and nothing else</span>
+        <div class="tree" data-t="Gb(Pr(Zr,#),Ur)" data-hl="Z:new,P:crit,G:pivot" data-path="P-Z"></div>
+        <div class="psub">This is the <b>whole</b> problem. Not the tree — <i>this</i>. Four nodes, one bad edge.
+          <span class="mono">&#9633;</span> are NIL leaves: real, black, and they count.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 14. FLASHCARDS — name the case ==================== -->
+<section class="slide" data-name="Flashcards — name the case" data-act="Inventing insertion">
+  <div class="head"><span class="kicker k-v">Classify before you're taught</span><h2>Three shapes. Ask the uncle, then read the geometry.</h2></div>
+  <div class="body">
+    <div class="card tint-v">
+      <p><b>How to classify, in two questions.</b> <b>(1)</b> What colour is <b>U</b>? If red, you're done classifying.
+      <b>(2)</b> If U is black, walk <b>G &rarr; P &rarr; Z</b> and watch the directions: two of the same way is a
+      <b>line</b>; a change of direction is an <b>elbow</b>. You met that exact distinction last lab, under different names.
+      Say your answer out loud, <i>then</i> tap.</p>
+    </div>
+    <div class="quiz three">
+      <div class="qcell fcell" data-ans="c-1"><span class="qtag">A</span><span class="hintme">tap to name</span>
+        <div class="tree" data-t="Gb(Pr(Zr,#),Ur)" data-hl="Z:new,P:crit"></div>
+        <div class="qv"><span class="cn">Case 1</span> &middot; uncle <b>red</b><br>Recolour. <b>Zero</b> pointers. Then climb.</div></div>
+      <div class="qcell fcell" data-ans="c-3"><span class="qtag">B</span><span class="hintme">tap to name</span>
+        <div class="tree" data-t="Gb(Pr(Zr,#),#)" data-hl="Z:new,P:crit"></div>
+        <div class="qv"><span class="cn">Case 3</span> &middot; uncle black, <b>line</b><br>Recolour + <b>one</b> rotation at G. Done.</div></div>
+      <div class="qcell fcell" data-ans="c-2"><span class="qtag">C</span><span class="hintme">tap to name</span>
+        <div class="tree" data-t="Gb(Pr(#,Zr),#)" data-hl="Z:new,P:crit"></div>
+        <div class="qv"><span class="cn">Case 2</span> &middot; uncle black, <b>elbow</b><br>Rotate at <b>P</b> to straighten &rarr; becomes Case 3.</div></div>
+    </div>
+    <div class="card frag"><p><b>Card C is last lab wearing a hat.</b> That elbow is the AVL <b>LR</b> shape, and the cure is identical:
+      you cannot fix an elbow with one rotation, so you <b>straighten it first</b> and then apply the straight-line fix.
+      Different invariant, same geometry. The tree does not care what you're measuring.</p></div>
+  </div>
+</section>
+
+<!-- ==================== 15. CASE 1 ==================== -->
+<section class="slide" data-name="Case 1 — red uncle: recolour and climb" data-act="Inventing insertion">
+  <div class="head"><span class="kicker k-e">Case 1 of 3</span><h2>Uncle red &rarr; push G's blackness <span style="color:var(--emerald)">down</span>.</h2></div>
+  <div class="body">
+    <div class="ba">
+      <div class="panel before"><span class="plabel">before</span>
+        <div class="tree" data-t="Gb(Pr(Zr,#),Ur)" data-hl="Z:new,P:crit" data-path="P-Z"></div>
+        <div class="psub">Both of G's children are red &mdash; so G was certainly black.</div></div>
+      <div class="arrowcol"><div class="glyph" style="animation:none">&#9679;</div><div class="op">3 bit flips<br>0 pointers</div></div>
+      <div class="panel after"><span class="plabel">after</span>
+        <div class="tree" data-t="Gr(Pb(Zr,#),Ub)" data-hl="G:crit,P:move,U:move"></div>
+        <div class="psub">P&rarr;black, U&rarr;black, G&rarr;red. Set <b>Z = G</b> and go round again.</div></div>
+    </div>
+    <div class="row frag" style="gap:14px">
+      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Check property 5 yourself &mdash; it survives untouched</h3>
+        <p style="margin-top:7px">Any path entering this subtree used to cross <b>G(black)</b> and then a red child.
+          Now it crosses <b>G(red)</b> and then a black child. <b>Same count, both sides.</b> One black simply slid down
+          a level, onto both children at once.</p>
+        <p style="margin-top:9px">This is the move AVL structurally cannot have: a rebalance that costs <b>three bits</b>
+          and touches not one pointer.</p></div>
+      <div class="card tint-a grow"><h3 style="color:var(--amber)">Why this is the case that loops</h3>
+        <p style="margin-top:7px">G is now <b>red</b>. If G's own parent is also red, you have the identical problem again &mdash;
+          just <b>two levels higher</b>. So set <span class="mono">z = G</span> and repeat.</p>
+        <p style="margin-top:9px">Two levels per iteration, height &le; 2log&#8322;(n+1) &rarr; at most about
+          <b>log&#8322;n</b> iterations, and if you ever climb clean out of the top, you simply
+          <b>paint the root black</b> &mdash; which property 2 says is always free.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 16. CASES 2 & 3 ==================== -->
+<section class="slide" data-name="Cases 2 and 3 — black uncle: rotate" data-act="Inventing insertion">
+  <div class="head"><span class="kicker k-r">Cases 2 and 3 of 3</span><h2>Uncle black &rarr; there's no spare black. <span style="color:var(--rose)">Move</span> one instead.</h2></div>
+  <div class="body">
+    <div class="ba" style="grid-template-columns:1fr 88px 1fr 88px 1fr">
+      <div class="panel before"><span class="plabel">Case 2 &middot; elbow</span>
+        <div class="tree" data-t="Gb(Pr(#,Zr),#)" data-hl="Z:new,P:crit" data-path="P-Z"></div>
+        <div class="psub">Z is P's <b>inner</b> child. Rotate at <b>P</b>, away from Z.</div></div>
+      <div class="arrowcol"><div class="glyph">&#8635;</div><div class="op">rotateLeft(P)<br><i>no recolour</i></div></div>
+      <div class="panel neutral"><span class="plabel">Case 3 &middot; line</span>
+        <div class="tree" data-t="Gb(Zr(Pr,#),#)" data-hl="P:new,Z:crit"></div>
+        <div class="psub">Now G, Z, P run <b>straight</b>. Z and P swapped roles &mdash; that's all case 2 ever does.</div></div>
+      <div class="arrowcol"><div class="glyph">&#8634;</div><div class="op">recolour,<br>rotateRight(G)</div></div>
+      <div class="panel after"><span class="plabel">done &mdash; loop ends</span>
+        <div class="tree" data-t="Zb(Pr,Gr(#,#))" data-hl="Z:good"></div>
+        <div class="psub">Subtree root is <b>black</b>, so it cannot clash with anything above it. <b>Ever.</b></div></div>
+    </div>
+    <div class="row frag" style="gap:14px">
+      <div class="card tint-r grow"><h3 style="color:var(--rose)">Why recolouring is off the table here</h3>
+        <p style="margin-top:7px">The cheap fix needed to take a black off G and hand it to <b>both</b> children.
+          U is <b>already black</b> — there is nothing to hand it. Blackening P while G stays put would rob every path
+          through U. So the black has to <b>change position</b>, and changing position is precisely what a rotation is.</p></div>
+      <div class="card tint-v grow"><h3 style="color:var(--violet)">Case 3, in the order you must do it</h3>
+        <p style="margin-top:7px"><b>1.</b> Paint <b>P black</b>. &nbsp;<b>2.</b> Paint <b>G red</b>. &nbsp;<b>3.</b> Rotate at <b>G</b>, towards the light side.</p>
+        <p style="margin-top:9px">P rises into G's old spot wearing G's old colour, and G drops down beside U as a red sibling.
+          Both of them now hang under a <b>black</b> root, so property 4 holds and property 5 never moved.
+          <b>Rotation without the recolour fixes nothing</b> — that is trap #3, later.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 17. COUNT THE ROTATIONS ==================== -->
+<section class="slide" data-name="Count the rotations yourself" data-act="Inventing insertion">
+  <div class="head"><span class="kicker k-a">Prove the bound</span><h2>Trace every route through the algorithm. Count rotations. What's the worst?</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="col grow">
+        <div class="card tint-e"><h3 style="color:var(--emerald)">The three exits</h3>
+          <table style="margin-top:8px;font-size:15.5px">
+            <thead><tr><th>case</th><th>rotations</th><th>then what</th></tr></thead>
+            <tr><td class="c" style="color:var(--emerald)">1</td><td class="c">0</td><td><b>loops</b> — climbs two levels and re-tests</td></tr>
+            <tr><td class="c" style="color:var(--amber)">2</td><td class="c">1</td><td>always falls straight into case 3</td></tr>
+            <tr><td class="c" style="color:var(--violet)">3</td><td class="c">1</td><td><b>terminates</b> — subtree root is black</td></tr>
+          </table>
+          <p class="tiny" style="margin-top:10px">Case 1 is the only one that repeats, and it is the one that <b>never rotates</b>.
+            The worst possible route is: case 1, case 1, … case 1, then case 2, then case 3.</p></div>
+        <div class="math big frag">at most <b>2</b> rotations per insert &mdash; ever</div>
+      </div>
+      <div class="col" style="flex:0 0 486px">
+        <div class="card tint-c"><h3 style="color:var(--cyan)">The insert cheat sheet</h3>
+          <div class="code" style="margin-top:9px;font-size:13.5px"><span class="kw">while</span> P is <span class="fn">RED</span>:
+    <span class="cm">// G is black — guaranteed, never check it</span>
+    <span class="kw">if</span> U is <span class="fn">RED</span>:                 <span class="cm">// case 1</span>
+        P,U &rarr; BLACK;  G &rarr; RED
+        Z = G;  <span class="kw">continue</span>
+    <span class="kw">if</span> Z is the <span class="nu">inner</span> child:    <span class="cm">// case 2</span>
+        Z = P;  rotate(Z) <span class="cm">// straighten</span>
+    P &rarr; BLACK;  G &rarr; RED         <span class="cm">// case 3</span>
+    rotate(G);  <span class="kw">break</span>
+root &rarr; BLACK                     <span class="cm">// always, free</span></div></div>
+        <div class="card tint-r frag"><h3 style="color:var(--rose)">Now be honest about the comparison</h3>
+          <p style="margin-top:6px">AVL insert is <b>also</b> &le; 2 rotations. "AVL rotates more" is only reliably true
+            for <b>deletion</b>. The real insert-side win is different: <b>case 1 repairs the tree without writing a
+            single pointer</b>, and AVL has no equivalent move.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 18. HOW THE DRILLS WORK ==================== -->
+<section class="slide" data-name="How the drills work" data-act="Insertion drills">
+  <div class="head"><span class="kicker k-v">Your turn now</span><h2>Five flashcards. Same four steps every single time.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:12px">
+      <div class="card tint-r grow"><h3 style="color:var(--rose)">1 &middot; Insert like a plain BST</h3>
+        <p style="margin-top:8px">Walk down, attach at the empty slot, paint it <b>red</b>. No thinking required —
+          this part is the BST you wrote in week two.</p></div>
+      <div class="card tint-a grow"><h3 style="color:var(--amber)">2 &middot; Is the parent red?</h3>
+        <p style="margin-top:8px">If <b>no</b>, you are finished. Put the pen down. If <b>yes</b>, mark
+          <b>Z</b>, <b>P</b>, <b>G</b> and <b>U</b> on your drawing before you do anything else.</p></div>
+      <div class="card tint-c grow"><h3 style="color:var(--cyan)">3 &middot; Ask the uncle</h3>
+        <p style="margin-top:8px">Red uncle &rarr; case 1, recolour, climb. Black uncle &rarr; check line vs elbow,
+          then case 3 or case 2-then-3.</p></div>
+      <div class="card tint-e grow"><h3 style="color:var(--emerald)">4 &middot; Verify all five</h3>
+        <p style="margin-top:8px">Root black. No red-red. <b>Count blacks down every path</b> — they must match.
+          Then read in-order and confirm it comes out <b>sorted</b>.</p></div>
+    </div>
+    <div class="card tint-v">
+      <p><b>House rules.</b> Paper out, pen down, <b>two minutes</b>, no talking. Hit <kbd>S</kbd> to start the clock.
+      Two hints per card if you're truly stuck — but a hint taken before minute one is a hint you didn't need.
+      The worked solution is always the <b>next</b> slide, so nobody presses <kbd>&rarr;</kbd> until pens are down.
+      <b>Redraw the whole tree every time.</b> Doing rotations in your head is how subtrees quietly disappear.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 19. DRILL 1 CARD ==================== -->
+<section class="slide card-slide" data-name="DRILL 1 — card" data-act="Insertion drills">
+  <div class="head"><span class="kicker k-r">Flashcard</span><h2>Drill 1 &mdash; warm-up</h2></div>
+  <div class="body">
+    <div class="task grow">
+      <div class="tasknum"><span class="n">1</span><span class="l">DRILL</span></div>
+      <div class="panel neutral grow"><span class="plabel long">A legal red-black tree. Now <b>insert 1</b>.</span>
+        <div class="tree" data-t="10b(5r,20r)"></div></div>
+      <div class="col" style="flex:0 0 348px">
+        <div class="card tint-r"><h3 style="color:var(--rose)">Answer these four</h3>
+          <p style="margin-top:8px;font-size:16.5px">1. Where does 1 attach, and what colour?<br>
+            2. Name Z, P, G and U.<br>
+            3. Which case? Why?<br>
+            4. Redraw the finished tree.</p></div>
+        <div class="timer"><button class="btn primary" data-timer="120">Start 2:00</button><span class="tface">2:00</span></div>
+        <button class="btn" data-hint="1">Hint 1</button>
+        <div class="hintbox" data-hintbox="1">The uncle is a <b>real node</b> here, not a NIL. Go and look at its colour.</div>
+        <button class="btn" data-hint="2">Hint 2</button>
+        <div class="hintbox" data-hintbox="2">Case 1 leaves <b>G</b> red. But G is the <b>root</b> here. What does property 2 say?</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 20. DRILL 1 SOLUTION ==================== -->
+<section class="slide" data-name="Drill 1 — solution" data-act="Insertion drills">
+  <div class="head"><span class="kicker k-e">Solution</span><h2>Drill 1 &mdash; red uncle, so nothing moves at all</h2></div>
+  <div class="body">
+    <div class="ba" style="grid-template-columns:1fr 90px 1fr 90px 1fr">
+      <div class="panel before"><span class="plabel">1 &middot; attach, red</span>
+        <div class="tree" data-t="10b(5r(1r,.),20r)" data-hl="1:new,5:crit" data-path="5-1" data-tag="1:Z,5:P,10:G,20:U"></div>
+        <div class="psub">P = <b>5</b>, red &rarr; broken. U = <b>20</b>, and 20 is <b>red</b>.</div></div>
+      <div class="arrowcol"><div class="glyph" style="animation:none">&#9679;</div><div class="op">case 1<br>recolour</div></div>
+      <div class="panel neutral"><span class="plabel">2 &middot; push G's black down</span>
+        <div class="tree" data-t="10r(5b(1r,.),20b)" data-hl="10:crit,5:move,20:move"></div>
+        <div class="psub">5&rarr;black, 20&rarr;black, 10&rarr;red. Now Z = 10 &mdash; which is the <b>root</b>.</div></div>
+      <div class="arrowcol"><div class="glyph" style="animation:none">&#9632;</div><div class="op">property 2</div></div>
+      <div class="panel after"><span class="plabel">3 &middot; paint the root black</span>
+        <div class="tree" data-t="10b(5b(1r,.),20b)" data-o="bh" data-hl="10:good"></div>
+        <div class="psub">Every path: <b>3</b> blacks. In-order <span class="mono">1 5 10 20</span>. <b>Zero pointers written.</b></div></div>
+    </div>
+    <div class="card tint-v frag"><p><b>Notice what just happened to the whole tree.</b> Black-height went from 2 to <b>3</b> —
+      every path gained a black at once. That is the <i>only</i> way a red-black tree ever gets taller in blacks:
+      a case-1 recolour that climbs all the way out of the top. Every other repair keeps the black-height
+      exactly where it was. <b>The tree grows in level jumps, never gradually</b> — which is precisely why it stays balanced
+      without anyone ever measuring it.</p></div>
+  </div>
+</section>
+
+<!-- ==================== 21. DRILL 2 CARD ==================== -->
+<section class="slide card-slide" data-name="DRILL 2 — card" data-act="Insertion drills">
+  <div class="head"><span class="kicker k-r">Flashcard</span><h2>Drill 2 &mdash; the uncle who isn't there</h2></div>
+  <div class="body">
+    <div class="task grow">
+      <div class="tasknum"><span class="n">2</span><span class="l">DRILL</span></div>
+      <div class="panel neutral grow"><span class="plabel long">Also legal. Now <b>insert 1</b>.</span>
+        <div class="tree" data-t="10b(5r,#)"></div></div>
+      <div class="col" style="flex:0 0 348px">
+        <div class="card tint-r"><h3 style="color:var(--rose)">Answer these four</h3>
+          <p style="margin-top:8px;font-size:16.5px">1. Who is the uncle, and what colour is it?<br>
+            2. Line or elbow?<br>
+            3. Which node do you rotate <b>at</b>?<br>
+            4. Redraw &mdash; colours included.</p></div>
+        <div class="timer"><button class="btn primary" data-timer="120">Start 2:00</button><span class="tface">2:00</span></div>
+        <button class="btn" data-hint="1">Hint 1</button>
+        <div class="hintbox" data-hintbox="1">10's right child is <b>NIL</b>. Property 3: NIL is a <b>black node</b>. That is your uncle.</div>
+        <button class="btn" data-hint="2">Hint 2</button>
+        <div class="hintbox" data-hintbox="2">Walk G&rarr;P&rarr;Z: <b>left, then left</b>. Never rotate at P when it's already straight.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 22. DRILL 2 SOLUTION ==================== -->
+<section class="slide" data-name="Drill 2 — solution" data-act="Insertion drills">
+  <div class="head"><span class="kicker k-e">Solution</span><h2>Drill 2 &mdash; black uncle, straight line, one rotation</h2></div>
+  <div class="body">
+    <div class="ba">
+      <div class="panel before"><span class="plabel">Before</span>
+        <div class="tree" data-t="10b(5r(1r,#),#)" data-hl="1:new,5:crit" data-path="5-1" data-tag="1:Z,5:P,10:G"></div>
+        <div class="psub">U is the NIL square to the right of 10 &mdash; <b>black</b>. G&rarr;P&rarr;Z is left, left: a <b>line</b> &rarr; <b>case 3</b>.</div></div>
+      <div class="arrowcol"><div class="glyph">&#8634;</div><div class="op">P&rarr;black, G&rarr;red<br>rotateRight(10)</div></div>
+      <div class="panel after"><span class="plabel">After</span>
+        <div class="tree" data-t="5b(1r,10r)" data-o="bh" data-hl="5:move"></div>
+        <div class="psub">Every path: <b>2</b> blacks, same as before. In-order <span class="mono">1 5 10</span>. &#10003;</div></div>
+    </div>
+    <div class="row frag" style="gap:14px">
+      <div class="card tint-a grow"><h3 style="color:var(--amber)">Do the recolour <i>and</i> the rotation</h3>
+        <p style="margin-top:7px">Rotating alone would give you <span class="mono">5r(1r, 10b)</span> — the red-red edge is
+          <b>still there</b>, just rotated. The recolour is what actually kills it; the rotation is what stops the recolour
+          from unbalancing the black counts. <b>Neither one works alone.</b></p></div>
+      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Black-height did <i>not</i> change</h3>
+        <p style="margin-top:7px">2 before, 2 after. Case 3 is a pure local repair: it swaps a black between G and P
+          and rearranges three pointers. Compare drill 1, where the black-height jumped. Knowing which repairs move it
+          and which don't is how you sanity-check your own work in an exam.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 23. DRILL 3 CARD ==================== -->
+<section class="slide card-slide" data-name="DRILL 3 — card" data-act="Insertion drills">
+  <div class="head"><span class="kicker k-r">Flashcard</span><h2>Drill 3 &mdash; it bends</h2></div>
+  <div class="body">
+    <div class="task grow">
+      <div class="tasknum"><span class="n">3</span><span class="l">DRILL</span></div>
+      <div class="panel neutral grow"><span class="plabel long">Same starting tree. This time <b>insert 7</b>.</span>
+        <div class="tree" data-t="10b(5r,#)"></div></div>
+      <div class="col" style="flex:0 0 348px">
+        <div class="card tint-r"><h3 style="color:var(--rose)">Answer these four</h3>
+          <p style="margin-top:8px;font-size:16.5px">1. Where does <b>7</b> land? Check the BST rule twice.<br>
+            2. Line or elbow this time?<br>
+            3. How many rotations, and at which nodes?<br>
+            4. Redraw.</p></div>
+        <div class="timer"><button class="btn primary" data-timer="120">Start 2:00</button><span class="tface">2:00</span></div>
+        <button class="btn" data-hint="1">Hint 1</button>
+        <div class="hintbox" data-hintbox="1">7 &lt; 10 so go left; 7 &gt; 5 so go right. Z is P's <b>inner</b> child.</div>
+        <button class="btn" data-hint="2">Hint 2</button>
+        <div class="hintbox" data-hintbox="2">You cannot fix an elbow with one rotation. <b>Straighten first</b>, at P — exactly like AVL's LR.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 24. DRILL 3 SOLUTION ==================== -->
+<section class="slide" data-name="Drill 3 — solution" data-act="Insertion drills">
+  <div class="head"><span class="kicker k-e">Solution</span><h2>Drill 3 &mdash; case 2 straightens it, case 3 finishes it</h2></div>
+  <div class="body">
+    <div class="ba" style="grid-template-columns:1fr 92px 1fr 92px 1fr">
+      <div class="panel before"><span class="plabel">1 &middot; the elbow</span>
+        <div class="tree" data-t="10b(5r(#,7r),#)" data-hl="7:new,5:crit" data-path="5-7" data-tag="7:Z,5:P,10:G"></div>
+        <div class="psub">G&rarr;P&rarr;Z reads <b>left, then right</b>. Elbow &rarr; <b>case 2</b>. No recolouring yet.</div></div>
+      <div class="arrowcol"><div class="glyph">&#8635;</div><div class="op">rotateLeft(5)</div></div>
+      <div class="panel neutral"><span class="plabel">2 &middot; now it's a line</span>
+        <div class="tree" data-t="10b(7r(5r,#),#)" data-hl="5:new,7:crit" data-path="7-5" data-tag="5:Z,7:P,10:G"></div>
+        <div class="psub"><b>Z and P swapped names.</b> That is the only thing case 2 ever accomplishes.</div></div>
+      <div class="arrowcol"><div class="glyph">&#8634;</div><div class="op">P&rarr;black, G&rarr;red<br>rotateRight(10)</div></div>
+      <div class="panel after"><span class="plabel">3 &middot; case 3, done</span>
+        <div class="tree" data-t="7b(5r,10r)" data-o="bh" data-hl="7:good"></div>
+        <div class="psub">In-order <span class="mono">5 7 10</span>. Two rotations &mdash; the worst an insert can ever cost.</div></div>
+    </div>
+    <div class="card tint-c frag"><p><b>Compare drills 2 and 3 side by side.</b> Same starting tree, one key different, and the
+      finished shapes are structurally identical — <span class="mono">black(red, red)</span>. The elbow cost you exactly
+      <b>one extra rotation</b> to normalise, and then the identical case-3 machinery ran. This is why you never memorise
+      case 2's outcome separately: <b>case 2 is not a fix, it is a translation</b> into the case you already know.</p></div>
+  </div>
+</section>
+
+<!-- ==================== 25. DRILL 4 CARD — BOSS ==================== -->
+<section class="slide card-slide" data-name="DRILL 4 — BOSS card" data-act="Insertion drills">
+  <div class="head"><span class="kicker k-r">Boss fight</span><h2>Drill 4 &mdash; the repair that climbs</h2></div>
+  <div class="body">
+    <div class="task grow">
+      <div class="tasknum boss"><span class="n">4</span><span class="l">BOSS</span></div>
+      <div class="panel neutral grow"><span class="plabel long">Legal red-black tree. <b>Insert 5.</b> Take your time.</span>
+        <div class="tree" data-t="50b(30r(20b(10r,25r),40b),70b)"></div></div>
+      <div class="col" style="flex:0 0 348px">
+        <div class="card tint-r"><h3 style="color:var(--rose)">Answer these four</h3>
+          <p style="margin-top:8px;font-size:16.5px">1. Fix the <b>first</b> violation. Which case?<br>
+            2. Now look again. <b>Are you finished?</b><br>
+            3. Fix whatever you find. Which case?<br>
+            4. Total rotations for the whole insert?</p></div>
+        <div class="timer"><button class="btn primary" data-timer="180">Start 3:00</button><span class="tface">3:00</span></div>
+        <button class="btn" data-hint="1">Hint 1</button>
+        <div class="hintbox" data-hintbox="1">Case 1 doesn't end anything. It <b>moves the problem two levels up</b>. Look at 30's parent afterwards.</div>
+        <button class="btn" data-hint="2">Hint 2</button>
+        <div class="hintbox" data-hintbox="2">Second round: the new Z is <b>20</b>, P is <b>30</b>, G is <b>50</b>. Now go and check U.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 26. BOSS SOLUTION 1 ==================== -->
+<section class="slide" data-name="Boss — round 1 of 2" data-act="Insertion drills">
+  <div class="head"><span class="kicker k-a">Solution &middot; round 1</span><h2>Red uncle at the bottom &rarr; recolour and climb.</h2></div>
+  <div class="body">
+    <div class="ba">
+      <div class="panel before"><span class="plabel">5 attaches under 10</span>
+        <div class="tree" data-t="50b(30r(20b(10r(5r,#),25r),40b),70b)" data-hl="5:new,10:crit" data-path="10-5" data-tag="5:Z,10:P,20:G,25:U"></div>
+        <div class="psub">P = <b>10</b> red. U = <b>25</b>, also <b>red</b> &rarr; <b>case 1</b>.</div></div>
+      <div class="arrowcol"><div class="glyph" style="animation:none">&#9679;</div><div class="op">3 bit flips<br>0 pointers</div></div>
+      <div class="panel neutral"><span class="plabel">recoloured &mdash; and <i>not</i> finished</span>
+        <div class="tree" data-t="50b(30r(20r(10b(5r,#),25b),40b),70b)" data-hl="20:crit,30:crit" data-path="30-20"></div>
+        <div class="psub">10&rarr;black, 25&rarr;black, 20&rarr;red. Z is now <b>20</b> &mdash; and its parent <b>30 is red</b>.
+          <b>A brand new red-red edge, two levels higher.</b></div></div>
+    </div>
+    <div class="card tint-r frag"><p><b>This is the trap the boss fight exists for.</b> You fixed a violation and created another one.
+      That is not a mistake — it is <i>exactly</i> what case 1 is designed to do. It converts a red-red edge at depth <i>d</i>
+      into a red-red edge at depth <i>d</i>&minus;2, and pays for the conversion with three bit flips.
+      <b>Do not put your pen down after a case 1.</b> Look up, re-mark Z, P, G, U, and ask the uncle again.</p></div>
+  </div>
+</section>
+
+<!-- ==================== 27. BOSS SOLUTION 2 ==================== -->
+<section class="slide" data-name="Boss — round 2 of 2" data-act="Insertion drills">
+  <div class="head"><span class="kicker k-e">Solution &middot; round 2</span><h2>New uncle, new answer: black. So this time we rotate.</h2></div>
+  <div class="body">
+    <div class="ba">
+      <div class="panel before"><span class="plabel">re-mark the cast</span>
+        <div class="tree" data-t="50b(30r(20r(10b(5r,#),25b),40b),70b)" data-hl="20:new,30:crit" data-path="30-20" data-tag="20:Z,30:P,50:G,70:U"></div>
+        <div class="psub">U = <b>70</b>, <b>black</b>. G&rarr;P&rarr;Z is left, left &rarr; a <b>line</b> &rarr; <b>case 3</b>.</div></div>
+      <div class="arrowcol"><div class="glyph">&#8634;</div><div class="op">30&rarr;black, 50&rarr;red<br>rotateRight(50)</div></div>
+      <div class="panel after"><span class="plabel">finished &mdash; verify all five</span>
+        <div class="tree" data-t="30b(20r(10b(5r,#),25b),50r(40b,70b))" data-o="bh" data-hl="30:good"></div>
+        <div class="psub">Every path: <b>3</b> blacks. No red-red. Root black.
+          In-order <span class="mono">5 10 20 25 30 40 50 70</span>. &#10003;</div></div>
+    </div>
+    <div class="row frag" style="gap:14px">
+      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Total cost of that insert</h3>
+        <div class="ledger" style="margin-top:9px">
+          <div class="lrow"><span class="lk">Rotations</span><span class="lv ok">1</span></div>
+          <div class="lrow"><span class="lk">Recolours</span><span class="lv ok">6 bit flips</span></div>
+          <div class="lrow"><span class="lk">Nodes whose <b>parent pointer</b> changed</span><span class="lv ok">3</span></div>
+        </div>
+        <p class="tiny" style="margin-top:10px">Look at what happened to <b>40</b>: it was 30's right child and became 50's left child.
+          The orphan hand-off, same as AVL. If your node count changed, that's where you lost one.</p></div>
+      <div class="card tint-v grow"><h3 style="color:var(--violet)">The pattern you should now be able to state</h3>
+        <p style="margin-top:7px">The repair <b>climbed</b> while it could recolour for free, and <b>stopped dead</b> the
+          moment it had to rotate. That is the whole design in one sentence: <b>cheap repairs are allowed to propagate,
+          expensive repairs are not</b>. AVL has it backwards — its only repair is the expensive one, and on delete
+          it propagates.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 28. THINK FIRST — deletion ==================== -->
+<section class="slide" data-name="You cannot invent a black node" data-act="Inventing deletion">
+  <div class="head"><span class="kicker k-r">Think first</span><h2>Deleting red is free. Deleting black is a debt. Work out who pays.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="panel neutral grow">
+        <span class="plabel long">A perfectly balanced, entirely black tree</span>
+        <div class="tree" data-t="30b(20b(10b,25b),40b(35b,50b))" data-o="bh" data-hl="10:gone"></div>
+        <div class="psub">Black-height 4 on every path. <b>10</b> is about to be removed.</div>
+      </div>
+      <div class="col" style="flex:0 0 470px">
+        <div class="card tint-e qcard"><h3 style="color:var(--emerald)">1 &middot; First, the easy one.</h3>
+          <p style="margin-top:7px;font-size:16px">If <b>10</b> had been <b>red</b>, what would deleting it break?
+            Count blacks on every path before and after. Say why in one sentence.</p></div>
+        <div class="card tint-a qcard"><h3 style="color:var(--amber)">2 &middot; Now delete it as drawn. State the deficit.</h3>
+          <p style="margin-top:7px;font-size:16px">Paths that used to go through 10 now cross <b>how many fewer</b> blacks
+            than paths on the right? The answer is an exact number.</p></div>
+        <div class="card tint-v qcard"><h3 style="color:var(--violet)">3 &middot; Where can a replacement black <i>possibly</i> come from?</h3>
+          <p style="margin-top:7px;font-size:16px">You cannot conjure one out of nothing. List every source.
+            There are exactly <b>three</b> &mdash; and one of them isn't really a fix.</p></div>
+      </div>
+    </div>
+    <div class="card tint-r">
+      <h3 style="color:var(--rose)">Your turn</h3>
+      <p style="margin-top:7px">Find those three sources and you have <b>derived the entire delete algorithm</b> — including
+        why the textbook lists four cases, why only one of them loops, and why the loop is the one that costs nothing.
+        Ten minutes. Argue about it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 29. PENS DOWN — the debt ==================== -->
+<section class="slide" data-name="Pens down — the three sources" data-act="Inventing deletion">
+  <div class="head"><span class="kicker k-e">Pens down</span><h2>Three answers. Two of them pay the debt; the third passes it on.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="col grow">
+        <div class="ladder">
+          <div class="rung dense done"><span class="rn">A</span><span class="rt"><b>The node standing in the gap is already red.</b>
+            Paint it black. Debt paid on the spot, zero rotations. <i>This is why most deletions cost nothing.</i></span></div>
+          <div class="rung dense done frag"><span class="rn">B</span><span class="rt"><b>There is a red node on the sibling's side.</b>
+            Rotate it across into the starving path and recolour. That side can spare it &mdash; reds aren't counted, so losing
+            one costs it nothing. Debt paid. <b>Terminates.</b></span></div>
+          <div class="rung dense frag"><span class="rn">C</span><span class="rt"><b>Nobody nearby has a red to spare.</b> You can't pay &mdash; so
+            <b>make the sibling's side equally poor</b>: paint the sibling red. Now <i>both</i> sides of the parent are one
+            short, which is to say the <b>parent</b> is one short. <b>The debt moved up a level. Loop.</b></span></div>
+          <div class="rung dense done frag"><span class="rn">&#8593;</span><span class="rt">And if the debt climbs all the way to the <b>root</b>?
+            Then every path in the tree is one short <i>equally</i> &mdash; which is not a violation at all.
+            <b>Drop the debt.</b> The whole tree simply lost a black level.</span></div>
+        </div>
+      </div>
+      <div class="col" style="flex:0 0 462px;gap:10px">
+        <div class="card tint-v dense"><h3 style="color:var(--violet)">The bookkeeping trick, and why it exists</h3>
+          <p style="margin-top:7px">While you carry that debt the tree is illegal and awkward to reason about. So we
+            <b>pretend</b> the node in the gap holds <b>an extra unit of blackness</b> &mdash; it is "<b>doubly black</b>".</p>
+          <p style="margin-top:8px">Property 5 is then true <i>by construction</i> while you work, and the fixup's only job
+            is to <b>discharge</b> that unit. An accounting fiction, not a new colour &mdash; no such thing exists in your
+            <span class="mono">struct</span>.</p></div>
+        <div class="card tint-c frag dense"><h3 style="color:var(--cyan)">Same algorithm as insert, one question later</h3>
+          <p style="margin-top:7px">Insert asks: <b>what colour is the uncle?</b><br>
+            Delete asks: <b>what colour is the sibling &mdash; and its two children?</b></p>
+          <p style="margin-top:7px">The whole difference in difficulty: one extra level of case analysis, because you are
+            shopping for a black rather than giving one away.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 30. THE FOUR CASES ==================== -->
+<section class="slide" data-name="The four cases, and where they came from" data-act="Inventing deletion">
+  <div class="head"><span class="kicker k-a">Read the last column first</span><h2>Two real answers. Two normalisers.</h2></div>
+  <div class="body">
+    <div class="card grow" style="display:flex;flex-direction:column">
+      <table class="tbl-compact">
+        <thead><tr><th style="width:52px">case</th><th style="width:27%">condition &mdash; <b>w</b> is x's sibling</th><th>what you do</th><th style="width:24%">what it really is</th></tr></thead>
+        <tr><td class="c" style="color:var(--rose)">1</td><td><b>w is red</b></td>
+          <td>Rotate at the parent, swap w's and the parent's colours.</td>
+          <td><b>Pre-processing.</b> Happens <b>at most once</b>, then you re-classify.</td></tr>
+        <tr><td class="c" style="color:var(--emerald)">2</td><td>w black, <b>both</b> its children black</td>
+          <td>Paint <b>w red</b>. Move the debt to the parent. <b>Loop.</b></td>
+          <td><b>Source C.</b> Nobody can pay &mdash; so pass it up. <b>Zero rotations.</b></td></tr>
+        <tr><td class="c" style="color:var(--amber)">3</td><td>w black, <b>inner</b> child red, outer black</td>
+          <td>Rotate at <b>w</b> to swing that red to the outside, swap two colours.</td>
+          <td><b>Normaliser.</b> Turns itself into case 4. The elbow, again.</td></tr>
+        <tr><td class="c" style="color:var(--cyan)">4</td><td>w black, <b>outer</b> child red</td>
+          <td>Rotate at the parent; recolour w, the parent, the outer nephew. <b>Done.</b></td>
+          <td><b>Source B.</b> Borrow the red, hand it over as a black. <b>Terminates.</b></td></tr>
+      </table>
+      <p class="tiny" style="margin-top:9px">"Inner" and "outer" are relative to x: if x is a <b>left</b> child, w's <b>right</b> child is the outer one.
+        Mirror the table when x is a right child &mdash; swap every <span class="mono">left</span> and <span class="mono">right</span>, change nothing else.</p>
+    </div>
+    <div class="row frag" style="gap:14px">
+      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Count the rotations yourself</h3>
+        <p style="margin-top:6px">Case 1 fires <b>once</b>. Case 3 rotates once and becomes case 4. Case 4 rotates once and <b>stops</b>.
+          Case 2 is the only one that repeats &mdash; and it <b>never rotates</b>.</p>
+        <div class="math" style="margin-top:9px">at most <b>3</b> rotations per delete</div>
+        <p class="tiny" style="margin-top:8px">Compare AVL: <b>O(log n)</b>. <i>That</i> is the row you came here for.</p></div>
+      <div class="card tint-c grow"><h3 style="color:var(--cyan)">The elbow, for the third time this lab</h3>
+        <p style="margin-top:6px">AVL had <b>LR/RL</b>. Insert had <b>case 2</b>. Delete has <b>case 3</b>. All the identical move:
+          <b>a single rotation cannot fix a shape that changes direction</b>, so you spend one rotation straightening it,
+          then run the case you already know.</p>
+        <p style="margin-top:8px">If you remember one structural idea from this unit, remember that one.
+          It is not three rules &mdash; it is one rule, three times.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 31. DRILL 5 CARD — BOSS ==================== -->
+<section class="slide card-slide" data-name="DRILL 5 — BOSS card" data-act="Inventing deletion">
+  <div class="head"><span class="kicker k-r">Boss fight</span><h2>Drill 5 &mdash; delete from a perfect tree</h2></div>
+  <div class="body">
+    <div class="task grow">
+      <div class="tasknum boss"><span class="n">5</span><span class="l">BOSS</span></div>
+      <div class="panel neutral grow"><span class="plabel long">Every node black, black-height 4. <b>Delete 10.</b></span>
+        <div class="tree" data-t="30b(20b(10b,25b),40b(35b,50b))"></div></div>
+      <div class="col" style="flex:0 0 348px">
+        <div class="card tint-r"><h3 style="color:var(--rose)">Answer these four</h3>
+          <p style="margin-top:8px;font-size:16.5px">1. Who is <b>w</b>, and what colour are its children?<br>
+            2. Which case? Apply it.<br>
+            3. Where is the debt now? <b>Repeat.</b><br>
+            4. <b>How many pointers moved in total?</b></p></div>
+        <div class="timer"><button class="btn primary" data-timer="180">Start 3:00</button><span class="tface">3:00</span></div>
+        <button class="btn" data-hint="1">Hint 1</button>
+        <div class="hintbox" data-hintbox="1">There is not a single red node anywhere in this tree. Re-read source <b>C</b>. Nobody can pay you.</div>
+        <button class="btn" data-hint="2">Hint 2</button>
+        <div class="hintbox" data-hintbox="2">Case 2 fires, then fires <b>again</b> one level up. Question 4's answer is a number you may not believe.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 32. DRILL 5 SOLUTION ==================== -->
+<section class="slide" data-name="Drill 5 — solution" data-act="Inventing deletion">
+  <div class="head"><span class="kicker k-e">Solution</span><h2>Two rounds of case 2. <span style="color:var(--emerald)">Zero</span> pointers moved.</h2></div>
+  <div class="body">
+    <div class="ba" style="grid-template-columns:1fr 92px 1fr 92px 1fr">
+      <div class="panel before"><span class="plabel">1 &middot; the debt appears</span>
+        <div class="tree" data-t="30b(20b(#,25b),40b(35b,50b))" data-hl="20:crit,25:pivot" data-tag="25:w"></div>
+        <div class="psub">x is the NIL where 10 was &mdash; <b>doubly black</b>. w = <b>25</b>, both children black &rarr; <b>case 2</b>.</div></div>
+      <div class="arrowcol"><div class="glyph" style="animation:none">&#9679;</div><div class="op">w &rarr; red<br>debt up</div></div>
+      <div class="panel neutral"><span class="plabel">2 &middot; the debt is now at 20</span>
+        <div class="tree" data-t="30b(20b(#,25r),40b(35b,50b))" data-hl="30:crit,40:pivot" data-tag="40:w"></div>
+        <div class="psub">Both of 20's sides are equally short, so <b>20</b> carries it now. New w = <b>40</b>,
+          children black &rarr; <b>case 2 again</b>.</div></div>
+      <div class="arrowcol"><div class="glyph" style="animation:none">&#8593;</div><div class="op">w &rarr; red<br>debt hits root</div></div>
+      <div class="panel after"><span class="plabel">3 &middot; drop it</span>
+        <div class="tree" data-t="30b(20b(#,25r),40r(35b,50b))" data-o="bh" data-hl="30:good"></div>
+        <div class="psub">The debt reached the <b>root</b> &mdash; every path short by the same amount, so no violation.
+          Black-height 4 &rarr; <b>3</b>, uniformly. Legal.</div></div>
+    </div>
+    <div class="row frag" style="gap:14px">
+      <div class="card tint-e grow"><h3 style="color:var(--emerald)">The receipt</h3>
+        <div class="ledger" style="margin-top:9px">
+          <div class="lrow"><span class="lk">Rotations</span><span class="lv ok">0</span></div>
+          <div class="lrow"><span class="lk">Pointer writes</span><span class="lv ok">0</span></div>
+          <div class="lrow"><span class="lk">Bit flips</span><span class="lv ok">2</span></div>
+        </div>
+        <p style="margin-top:11px;font-size:16px">Now do the same deletion on the AVL tree of the same shape and count
+          <i>its</i> pointer writes. <b>That comparison is the entire lab in one number.</b></p></div>
+      <div class="card tint-v grow"><h3 style="color:var(--violet)">Why the whole tree got shorter, and why that's correct</h3>
+        <p style="margin-top:7px">You removed a black node, so the tree genuinely has one fewer black level to give.
+          Case 2 didn't <i>lose</i> anything — it <b>spread the loss evenly</b> until it became invisible.</p>
+        <p style="margin-top:9px">This is the exact mirror of drill 1, where a case-1 recolour climbed out of the top and the
+          black-height went <b>up</b> by one. Red-black trees change height only in whole levels, only at the root,
+          and only by recolouring. <b>They never measure themselves and they never need to.</b></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 33. MASTER CHEAT SHEET ==================== -->
+<section class="slide" data-name="Master cheat sheet" data-act="Wrap-up">
+  <div class="head"><span class="kicker k-v">Take a photo of this one</span><h2>Everything, on one slide.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:12px">
+      <div class="col grow">
+        <div class="card tint-v"><h3 style="color:var(--violet)">The five properties</h3>
+          <p style="margin-top:7px;font-size:15.5px"><b>1.</b> Every node is red or black.<br>
+            <b>2.</b> The root is black.<br>
+            <b>3.</b> Every NIL leaf is black.<br>
+            <b>4.</b> A red node's children are both black.<br>
+            <b>5.</b> All paths from a node to its NILs cross the same number of blacks.</p>
+          <p class="tiny" style="margin-top:9px">4 and 5 do the work. 1&ndash;3 make them cheap to check.
+            Together: <span class="mono">h &le; 2 log&#8322;(n+1)</span>.</p></div>
+        <div class="card tint-c"><h3 style="color:var(--cyan)">Insert &mdash; ask the <b>uncle</b></h3>
+          <table style="margin-top:6px;font-size:14.5px">
+            <tr><td class="c" style="color:var(--emerald);width:44px">1</td><td>U red</td><td><b>recolour</b> P,U&rarr;B, G&rarr;R; z=G, loop</td></tr>
+            <tr><td class="c" style="color:var(--amber)">2</td><td>U black, elbow</td><td><b>rotate at P</b> &rarr; becomes case 3</td></tr>
+            <tr><td class="c" style="color:var(--violet)">3</td><td>U black, line</td><td>P&rarr;B, G&rarr;R, <b>rotate at G</b>; stop</td></tr>
+          </table>
+          <p class="tiny" style="margin-top:8px">New node is always <b>red</b>. Root &rarr; black at the end, always.
+            <b>&le; 2 rotations.</b></p></div>
+      </div>
+      <div class="col grow">
+        <div class="card tint-a"><h3 style="color:var(--amber)">Delete &mdash; ask the <b>sibling</b> w</h3>
+          <table style="margin-top:6px;font-size:14.5px">
+            <tr><td class="c" style="color:var(--rose);width:44px">1</td><td>w red</td><td>rotate at parent, recolour; re-classify</td></tr>
+            <tr><td class="c" style="color:var(--emerald)">2</td><td>w black, kids black</td><td>w&rarr;R, <b>debt to parent</b>, loop</td></tr>
+            <tr><td class="c" style="color:var(--amber)">3</td><td>w black, inner red</td><td>rotate at w &rarr; becomes case 4</td></tr>
+            <tr><td class="c" style="color:var(--cyan)">4</td><td>w black, outer red</td><td>rotate at parent, recolour; <b>stop</b></td></tr>
+          </table>
+          <p class="tiny" style="margin-top:8px">Red node leaving = free. Debt at the root = drop it.
+            <b>&le; 3 rotations.</b></p></div>
+        <div class="card tint-e"><h3 style="color:var(--emerald)">Costs</h3>
+          <div class="chips" style="margin-top:9px">
+            <span class="chip"><span class="dot dot-e"></span>search <b>O(log n)</b></span>
+            <span class="chip"><span class="dot dot-e"></span>insert <b>O(log n)</b>, &le;2 rot</span>
+            <span class="chip"><span class="dot dot-e"></span>delete <b>O(log n)</b>, &le;3 rot</span>
+            <span class="chip"><span class="dot dot-b"></span>height &le; <b>2 log&#8322;(n+1)</b></span>
+            <span class="chip"><span class="dot dot-v"></span><b>1 bit</b> per node</span>
+          </div>
+          <p class="tiny" style="margin-top:10px">Black-height changes <b>only</b> at the root, <b>only</b> by recolouring,
+            and <b>only</b> in whole levels.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 34. THE HONEST COMPARISON ==================== -->
+<section class="slide" data-name="AVL vs red-black — honestly" data-act="Wrap-up">
+  <div class="head"><span class="kicker k-c">Say this, not the myth</span><h2>The comparison, with the marketing removed.</h2></div>
+  <div class="body">
+    <div class="card grow" style="display:flex;flex-direction:column">
+      <table class="tbl-compact">
+        <thead><tr><th style="width:25%">&nbsp;</th><th>AVL</th><th>Red-black</th></tr></thead>
+        <tr><td>Invariant</td><td>|height(L) &minus; height(R)| &le; 1, every node</td><td>equal black counts on all paths; no red-red edge</td></tr>
+        <tr><td>Metadata per node</td><td class="c">an int (or 2 bits)</td><td class="c" style="color:var(--emerald)">1 bit</td></tr>
+        <tr><td>Worst-case height</td><td class="c">&asymp; 1.44 log&#8322;n</td><td class="c">2 log&#8322;(n+1)</td></tr>
+        <tr><td>Rotations per <b>insert</b></td><td class="c">&le; 2</td><td class="c">&le; 2</td></tr>
+        <tr><td>Rotations per <b>delete</b></td><td class="c" style="color:var(--rose)">O(log n)</td><td class="c" style="color:var(--emerald)">&le; 3</td></tr>
+        <tr><td>Repair without touching a pointer</td><td style="color:var(--rose)">never &mdash; every fix is a rotation</td><td style="color:var(--emerald)">usually &mdash; recolouring handles most cases</td></tr>
+        <tr><td>Lookups</td><td style="color:var(--emerald)">faster (shallower tree)</td><td>slightly slower</td></tr>
+        <tr><td>Best fit</td><td>read-heavy workloads</td><td style="color:var(--emerald)">write-heavy workloads</td></tr>
+        <tr><td>Where you'll find it</td><td>read-dominated in-memory indexes</td><td>Linux kernel (CFS, epoll, VMA lookup), C++ <span class="mono">std::map</span>, Java <span class="mono">TreeMap</span></td></tr>
+      </table>
+    </div>
+    <div class="row" style="gap:14px">
+      <div class="card tint-r grow"><h3 style="color:var(--rose)">The row that is <i>not</i> a difference</h3>
+        <p style="margin-top:6px">Both rotate <b>at most twice per insertion</b>. "AVL rotates more" is only reliably true for
+          <b>deletion</b>, and for total restructuring across a long mixed run. Don't repeat the myth in its strong form.</p></div>
+      <div class="card tint-v grow"><h3 style="color:var(--violet)">If you're asked this in an interview</h3>
+        <p style="margin-top:6px">"Why does the kernel use red-black rather than AVL?" The answer is <b>not</b> "it's faster".
+          It is: <b>bounded rebalancing cost per single operation, and cheaper repairs under contention, paid for with a
+          slightly deeper tree.</b> Say it in that order.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 35. TRAPS ==================== -->
+<section class="slide" data-name="Five ways to lose marks" data-act="Wrap-up">
+  <div class="head"><span class="kicker k-r">Learn from other people's pain</span><h2>The five mistakes, ranked by how often I see them.</h2></div>
+  <div class="body">
+    <div class="col grow" style="gap:8px">
+      <div class="card tint-r dense"><h3 style="color:var(--rose)">1 &middot; Putting the pen down after a case 1</h3>
+        <p style="margin-top:4px">Case 1 <b>does not terminate</b> &mdash; it hands you the same problem two levels up.
+          Re-mark Z, P, G, U and ask the uncle again. Drill 4 exists to burn this in.</p></div>
+      <div class="card tint-a dense"><h3 style="color:var(--amber)">2 &middot; Rotating without recolouring &mdash; or the reverse</h3>
+        <p style="margin-top:4px">In case 3 the rotation moves the black; the recolour kills the red-red.
+          Do one alone and the tree is still broken, just differently. One move, not two.</p></div>
+      <div class="card tint-c dense"><h3 style="color:var(--cyan)">3 &middot; Inserting the new node black</h3>
+        <p style="margin-top:4px">It "looks safer". It turns a four-node local repair into a whole-tree problem with no
+          local fix at all. New nodes are <b>always</b> red.</p></div>
+      <div class="card tint-e dense"><h3 style="color:var(--emerald)">4 &middot; Inventing cases that cannot exist</h3>
+        <p style="margin-top:4px">If P is red, <b>G is black</b> &mdash; the tree was legal a moment ago. Students burn
+          minutes on "what if G is red too", which never happens. Use your free information.</p></div>
+      <div class="card tint-v dense"><h3 style="color:var(--violet)">5 &middot; <span class="mono">NULL</span> instead of a sentinel</h3>
+        <p style="margin-top:4px">The delete fixup reads <span class="mono">w-&gt;left-&gt;colour</span> without blinking; with
+          <span class="mono">NULL</span> leaves that segfaults, and you will "fix" it with null checks until the logic is
+          unreadable. Property 3 says NIL is a black node &mdash; <b>build one</b>. And never forget the final
+          <span class="mono">root-&gt;colour = BLACK</span>.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 36. FROM BOARD TO C ==================== -->
+<section class="slide" data-name="From the board to C" data-act="Wrap-up">
+  <div class="head"><span class="kicker k-a">Two decisions before you write a line</span><h2>Both of them fall straight out of the properties.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="col grow" style="gap:10px">
+        <div class="card tint-c dense"><h3 style="color:var(--cyan)">1 &middot; Store a <b>parent</b> pointer</h3>
+          <p style="margin-top:5px">Every fixup walks <b>upwards</b>: node, parent, grandparent, uncle.
+            Your AVL code walked <i>down</i> instead.</p></div>
+        <div class="card tint-v dense"><h3 style="color:var(--violet)">2 &middot; Make NIL a <b>real shared node</b></h3>
+          <p style="margin-top:5px">Property 3, taken literally: allocate <b>one</b> black node; point every empty child at it.
+            Now <span class="mono">x-&gt;parent-&gt;colour</span> is always safe and the fixup needs <b>no</b> null checks.</p></div>
+        <div class="code fill" style="font-size:12px">typedef <span class="kw">enum</span> { RED, BLACK } Colour;
+typedef <span class="kw">struct</span> Node {
+    <span class="kw">int</span>          key;
+    Colour       colour;
+    <span class="kw">struct</span> Node *left, *right, *parent;
+} Node;
+typedef <span class="kw">struct</span> { Node *root, *nil; } RBTree;
+
+<span class="cm">/* the sentinel points at itself, so an accidental</span>
+<span class="cm">   nil-&gt;left reads back black instead of crashing. */</span>
+t-&gt;nil-&gt;colour = BLACK;
+t-&gt;nil-&gt;left = t-&gt;nil-&gt;right = t-&gt;nil-&gt;parent = t-&gt;nil;
+t-&gt;root = t-&gt;nil;</div>
+      </div>
+      <div class="col grow" style="gap:10px">
+        <div class="code fill" style="font-size:12px"><span class="cm">/* x's right child y takes x's place. */</span>
+<span class="kw">static void</span> <span class="fn">left_rotate</span>(RBTree *t, Node *x)
+{
+    Node *y = x-&gt;right;
+    x-&gt;right = y-&gt;left;              <span class="cm">// 1. re-home the orphan</span>
+    <span class="kw">if</span> (y-&gt;left != t-&gt;nil)
+        y-&gt;left-&gt;parent = x;
+
+    y-&gt;parent = x-&gt;parent;           <span class="cm">// 2. link y to x's parent</span>
+    <span class="kw">if</span>      (x-&gt;parent == t-&gt;nil)      t-&gt;root = y;
+    <span class="kw">else if</span> (x == x-&gt;parent-&gt;left)   x-&gt;parent-&gt;left  = y;
+    <span class="kw">else</span>                            x-&gt;parent-&gt;right = y;
+
+    y-&gt;left   = x;                   <span class="cm">// 3. put x below y</span>
+    x-&gt;parent = y;
+}</div>
+        <div class="card tint-a dense"><h3 style="color:var(--amber)">Count the writes: <b>six</b>, not four</h3>
+          <p style="margin-top:5px">Three child links and three <b>parent</b> back-links. Forget the back-links and it
+            still <i>looks</i> right &mdash; until the fixup walks upward and falls off the tree.</p>
+          <p style="margin-top:7px"><b><span class="mono">right_rotate</span> is not a second algorithm.</b> Write
+            <span class="mono">left_rotate</span>, then swap every <span class="mono">left</span> and
+            <span class="mono">right</span>. If they differ otherwise, one is wrong.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 37. THE VALIDATOR ==================== -->
+<section class="slide" data-name="Write the validator first" data-act="Wrap-up">
+  <div class="head"><span class="kicker k-r">Highest leverage in this lab</span><h2>A broken tree still answers every search correctly.</h2></div>
+  <div class="body">
+    <div class="row grow" style="gap:14px">
+      <div class="col grow">
+        <div class="code fill" style="font-size:12.5px"><span class="cm">/* returns 1 if legal; black-height via *bh */</span>
+<span class="kw">static int</span> <span class="fn">check</span>(RBTree *t, Node *n, <span class="kw">int</span> *bh, <span class="kw">long</span> lo, <span class="kw">long</span> hi)
+{
+    <span class="kw">if</span> (n == t-&gt;nil) { *bh = <span class="nu">1</span>; <span class="kw">return</span> <span class="nu">1</span>; }
+    <span class="kw">if</span> (n-&gt;key &lt;= lo || n-&gt;key &gt;= hi)  <span class="cm">// BST order</span>
+        <span class="kw">return</span> <span class="nu">0</span>;
+    <span class="kw">if</span> (n-&gt;colour == RED &amp;&amp;            <span class="cm">// property 4</span>
+        (n-&gt;left-&gt;colour == RED || n-&gt;right-&gt;colour == RED))
+        <span class="kw">return</span> <span class="nu">0</span>;
+
+    <span class="kw">int</span> lb, rb;
+    <span class="kw">if</span> (!<span class="fn">check</span>(t, n-&gt;left,  &amp;lb, lo, n-&gt;key)) <span class="kw">return</span> <span class="nu">0</span>;
+    <span class="kw">if</span> (!<span class="fn">check</span>(t, n-&gt;right, &amp;rb, n-&gt;key, hi)) <span class="kw">return</span> <span class="nu">0</span>;
+
+    <span class="kw">if</span> (lb != rb) <span class="kw">return</span> <span class="nu">0</span>;            <span class="cm">// property 5</span>
+    *bh = lb + (n-&gt;colour == BLACK);
+    <span class="kw">return</span> <span class="nu">1</span>;
+}
+
+<span class="kw">int</span> <span class="fn">rb_valid</span>(RBTree *t)
+{
+    <span class="kw">int</span> bh;
+    <span class="kw">if</span> (t-&gt;root-&gt;colour != BLACK) <span class="kw">return</span> <span class="nu">0</span>;   <span class="cm">// property 2</span>
+    <span class="kw">if</span> (t-&gt;nil-&gt;colour  != BLACK) <span class="kw">return</span> <span class="nu">0</span>;   <span class="cm">// property 3</span>
+    <span class="kw">return</span> <span class="fn">check</span>(t, t-&gt;root, &amp;bh, LONG_MIN, LONG_MAX);
+}</div>
+      </div>
+      <div class="col" style="flex:0 0 470px">
+        <div class="card tint-r dense"><h3 style="color:var(--rose)">Why this comes <i>before</i> delete</h3>
+          <p style="margin-top:6px">A red-black tree can be structurally wrong for thousands of operations and still return
+            <b>correct answers to every search</b>. Nothing observable from the outside will tell you.
+            Only a property check catches it.</p></div>
+        <div class="card tint-e dense grow"><h3 style="color:var(--emerald)">Then assert it after <i>every</i> operation</h3>
+          <div class="code" style="margin-top:8px;font-size:12.5px"><span class="kw">for</span> (<span class="kw">int</span> op = <span class="nu">0</span>; op &lt; <span class="nu">500000</span>; op++) {
+    <span class="kw">int</span> k = rand() % N;
+    <span class="cm">/* insert or delete, mirrored into a</span>
+<span class="cm">       plain char present[N] array       */</span>
+    assert(<span class="fn">rb_valid</span>(t));   <span class="cm">// every single op</span>
+}</div>
+          <p style="margin-top:8px;font-size:15px">Deliberately expensive, deliberately worth it: it turns
+            <i>"the tree broke at some point"</i> into <b>"it broke on <i>this</i> op with <i>this</i> key"</b>.</p>
+          <p class="tiny" style="margin-top:7px">Build with
+            <span class="mono">gcc -Wall -Wextra -fsanitize=address,undefined</span>.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 38. OUTRO ==================== -->
+<section class="slide" data-name="Wrap-up" data-act="Wrap-up">
+  <div class="hero">
+    <div class="chips"><span class="kicker k-e">That's the lab</span></div>
+    <h1>One bit.<br><span class="grad">Two rules. The rest is consequences.</span></h1>
+    <p class="sub">You didn't memorise five properties &mdash; you derived two and inherited three. You didn't memorise
+      seven cases &mdash; you asked the uncle, asked the sibling, and straightened the elbow. All of it from one question:
+      <b>how much balance did we actually need?</b></p>
+    <div class="row" style="gap:12px;margin-top:4px">
+      <div class="card tint-v grow dense"><h3 style="color:var(--violet)">Homework &mdash; predict before you run</h3>
+        <p style="margin-top:6px"><b>1.</b> Insert <span class="mono">1&hellip;7</span> into an empty red-black tree. Predict the
+          rotation count first, then draw every step.<br>
+          <b>2.</b> Black-height after inserting <span class="mono">1&hellip;1000</span> in order? Predict, then measure.<br>
+          <b>3.</b> Delete <b>25</b> from the drill-5 result. Which case fires now, and why a different one?</p></div>
+      <div class="card tint-c grow dense"><h3 style="color:var(--cyan)">Then prove it to yourself in C</h3>
+        <p style="margin-top:6px">Implement <span class="mono">rb_create</span>, <span class="mono">rb_search</span>,
+          <span class="mono">rb_insert</span>, <span class="mono">rb_valid</span>. <b>Do not start deletion</b> until the
+          validator survives 10&#8309; random insertions. Then add <span class="mono">rb_delete</span> and instrument both
+          trees: total rotations, total recolours, and the <b>max rotations in any single operation</b>. That last column
+          is what this lab was about.</p></div>
+    </div>
+    <p class="tiny">Press <kbd>M</kbd> to jump back to any drill &middot; <kbd>L</kbd> for the laser pointer &middot; <kbd>T</kbd> to flip the theme.</p>
+  </div>
+</section>
+
+</div></div>
+
+<div id="menu"><h3>Jump to a slide</h3><div id="mbody"></div></div>
+
+<canvas id="laser"></canvas>
+
+<div id="chrome">
+  <div class="cbtn" id="btnPrev" title="Previous (&larr;)">&#8249;</div>
+  <div class="cbtn" id="btnNext" title="Next (&rarr;)">&#8250;</div>
+  <div id="counter" title="Slide menu (M)">1 / 38</div>
+  <div id="slidename"></div>
+  <div class="cbtn" id="btnLaser" title="Laser pointer (L)">&#9673;</div>
+  <div class="cbtn" id="btnTheme" title="Toggle theme (T)">&#9681;</div>
+  <div class="cbtn" id="btnMenu" title="Menu (M)">&#9776;</div>
+  <div class="cbtn" id="btnFull" title="Fullscreen (F)">&#9974;</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   1. TREE PARSER
+      "30b(20r(10b,#),40b)"
+        <value><colour>   colour: b = black (default), r = red
+        '.'  = absent child, drawn as nothing
+        '#'  = NIL leaf, drawn as the little black square it is
+   ============================================================ */
+function parseTree(s){
+  s=(s||"").trim(); var i=0;
+  function node(){
+    if(i>=s.length) return null;
+    if(s[i]==='.'){ i++; return null; }
+    var st=i;
+    while(i<s.length && "(),".indexOf(s[i])===-1) i++;
+    var raw=s.slice(st,i).trim();
+    if(!raw) return null;
+
+    var n;
+    if(raw==='#'){
+      n={v:"",c:"b",nil:true,l:null,r:null};
+    }else{
+      /* a trailing r/b is the colour bit, provided something is left over */
+      var m=/^(.+?)([rbRB])$/.exec(raw);
+      n = (m && m[1].length)
+        ? {v:m[1], c:m[2].toLowerCase(), nil:false, l:null, r:null}
+        : {v:raw,  c:"b",                nil:false, l:null, r:null};
+    }
+    if(s[i]==='('){
+      i++; n.l=node();
+      if(s[i]===','){ i++; n.r=node(); }
+      if(s[i]===')') i++;
+    }
+    return n;
+  }
+  return node();
+}
+function isNil(n){ return !n || n.nil; }
+function isTri(v){ return /^T\d*$/i.test(v); }
+
+/* Black-height, the convention this deck counts on the board:
+   blacks on any path from n down to a NIL, counting n itself if
+   it is black, and counting the NIL. (CLRS excludes n; every
+   caption here includes it, so the badges must too.) */
+function blackHeight(n){
+  if(isNil(n)) return 1;                 /* the NIL is black, and it counts */
+  return blackHeight(n.l) + (n.c==="b" ? 1 : 0);
+}
+
+/* ============================================================
+   2. SVG RENDERER
+   ============================================================ */
+var R=21, NILR=13, GX=54, GY=76, PAD=32, SVGNS="http://www.w3.org/2000/svg";
+function el(tag,attrs){
+  var e=document.createElementNS(SVGNS,tag);
+  for(var k in attrs) e.setAttribute(k,attrs[k]);
+  return e;
+}
+function kvAttr(host,name){
+  var out={}, raw=(host.getAttribute(name)||"").split(",");
+  raw.forEach(function(p){ p=p.trim(); if(!p) return;
+    var kv=p.split(":"); if(kv.length===2) out[kv[0].trim()]=kv[1].trim(); });
+  return out;
+}
+function setAttr(host,name){
+  var out={}, raw=(host.getAttribute(name)||"").split(",");
+  raw.forEach(function(p){ p=p.trim(); if(p) out[p]=1; });
+  return out;
+}
+
+function renderTree(host){
+  var root=parseTree(host.getAttribute("data-t"));
+  if(!root) return;
+
+  var opts  = (host.getAttribute("data-o")||"");
+  var showBF= opts.indexOf("bf")>-1;
+  var showBH= opts.indexOf("bh")>-1;
+
+  var hl  = kvAttr(host,"data-hl");
+  var tag = kvAttr(host,"data-tag");
+  var hot = setAttr(host,"data-path");
+  var cool= setAttr(host,"data-path2");
+
+  /* in-order x, depth y — guarantees zero overlap */
+  var xi=0, nodes=[];
+  (function walk(n,d){ if(!n) return;
+    walk(n.l,d+1); n._x=xi++; n._d=d; nodes.push(n); walk(n.r,d+1);
+  })(root,0);
+
+  var maxX=0, maxD=0;
+  nodes.forEach(function(n){ if(n._x>maxX) maxX=n._x; if(n._d>maxD) maxD=n._d; });
+  var W=maxX*GX+PAD*2, H=maxD*GY+PAD*2+10;
+  nodes.forEach(function(n){ n._px=PAD+n._x*GX; n._py=PAD+n._d*GY; });
+
+  /* optional rotation arc:  data-spin="30-20:cw" */
+  var spin=null, sp=(host.getAttribute("data-spin")||"").trim();
+  if(sp){
+    var half=sp.split(":"), ends=half[0].split("-"), A=null, B=null;
+    nodes.forEach(function(n){
+      if(n.v===ends[0].trim()) A=n;
+      if(ends[1] && n.v===ends[1].trim()) B=n;
+    });
+    if(A&&B){
+      var dx=A._px-B._px, dy=A._py-B._py;
+      spin={ cx:(A._px+B._px)/2, cy:(A._py+B._py)/2,
+             r:Math.sqrt(dx*dx+dy*dy)/2+38,
+             cw:(half[1]||"cw").trim()!=="ccw" };
+    }
+  }
+
+  var minX=0, minY=0, maxPX=W, maxPY=H;
+  /* role tags hang off the left of a node — make room or they clip */
+  for(var tk in tag){ minX=Math.min(minX,-(tag[tk].length*9+36)); break; }
+  if(showBF||showBH) maxPY=Math.max(maxPY,H+4);
+  if(spin){
+    minX=Math.min(minX, spin.cx-spin.r-16); maxPX=Math.max(maxPX, spin.cx+spin.r+16);
+    minY=Math.min(minY, spin.cy-spin.r-16); maxPY=Math.max(maxPY, spin.cy+spin.r+16);
+  }
+  var natW=maxPX-minX, natH=maxPY-minY;
+  var VW=Math.max(natW,300), VH=Math.max(natH,250);
+  var ox=minX-(VW-natW)/2, oy=minY-(VH-natH)/2;
+  var svg=el("svg",{viewBox:ox+" "+oy+" "+VW+" "+VH,preserveAspectRatio:"xMidYMid meet"});
+
+  if(spin){
+    var rad=function(t){ return t*Math.PI/180; };
+    var t0=spin.cw?-150:-30, t1=spin.cw?t0+265:t0-265;
+    var x0=spin.cx+spin.r*Math.cos(rad(t0)), y0=spin.cy+spin.r*Math.sin(rad(t0));
+    var x1=spin.cx+spin.r*Math.cos(rad(t1)), y1=spin.cy+spin.r*Math.sin(rad(t1));
+    svg.appendChild(el("path",{d:"M "+x0+" "+y0+" A "+spin.r+" "+spin.r+" 0 1 "+
+      (spin.cw?1:0)+" "+x1+" "+y1,"class":"spin"}));
+    var tan=spin.cw?t1+90:t1-90;
+    var ux=Math.cos(rad(tan)), uy=Math.sin(rad(tan)), L=17, Wd=10;
+    svg.appendChild(el("polygon",{points:
+      (x1+ux*L)+","+(y1+uy*L)+" "+(x1-uy*Wd)+","+(y1+ux*Wd)+" "+(x1+uy*Wd)+","+(y1-ux*Wd),
+      "class":"spinhead"}));
+  }
+
+  /* edges first so nodes paint on top */
+  nodes.forEach(function(n){
+    [n.l,n.r].forEach(function(c){
+      if(!c) return;
+      var key=n.v+"-"+c.v, cls="edge";
+      if(hot[key])  cls+=" hot";
+      if(cool[key]) cls+=" cool";
+      svg.appendChild(el("line",{x1:n._px,y1:n._py,x2:c._px,y2:c._py,"class":cls}));
+    });
+  });
+
+  /* nodes */
+  nodes.forEach(function(n){
+    var mark = n.nil ? null : hl[n.v];
+    var g=el("g",{"class":"n "+(n.c==="r"?"rb-r":"rb-b")+(mark?" n-"+mark:"")});
+
+    if(n.nil){
+      g.setAttribute("class","n rb-nil");
+      g.appendChild(el("rect",{x:n._px-NILR/2,y:n._py-NILR/2,
+        width:NILR,height:NILR,rx:3,"class":"nilsq"}));
+      svg.appendChild(g);
+      return;
+    }
+
+    if(mark==="crit"||mark==="dbl")
+      g.appendChild(el("circle",{cx:n._px,cy:n._py,r:24,"class":"ring"}));
+    if(mark==="dbl")
+      g.appendChild(el("circle",{cx:n._px,cy:n._py,r:R+5,"class":"dblring"}));
+
+    if(isTri(n.v)){
+      var p=(n._px)+","+(n._py-R+2)+" "+(n._px-R-5)+","+(n._py+R-2)+" "+(n._px+R+5)+","+(n._py+R-2);
+      g.appendChild(el("polygon",{points:p,"class":"tri"}));
+      var tt=el("text",{x:n._px,y:n._py+7,"class":"trit"}); tt.textContent=n.v; g.appendChild(tt);
+    }else{
+      g.appendChild(el("circle",{cx:n._px,cy:n._py,r:R,"class":"nc"}));
+      var t=el("text",{x:n._px,y:n._py,"class":"nt"}); t.textContent=n.v; g.appendChild(t);
+
+      if(showBF){
+        var b=(function bal(x){ 
+          function h(y){ return isNil(y) ? 0 : 1+Math.max(h(y.l),h(y.r)); }
+          return h(x.l)-h(x.r);
+        })(n);
+        var bad=Math.abs(b)>1, bx=n._px+R-1, by=n._py-R-2;
+        g.appendChild(el("rect",{x:bx-13,y:by-9,width:28,height:18,rx:7,
+          fill:"var(--card)",stroke:bad?"var(--rose)":"var(--emerald)","stroke-width":1.8}));
+        var bt=el("text",{x:bx+1,y:by,"class":"bfb",fill:bad?"var(--rose)":"var(--emerald)"});
+        bt.textContent=(b>0?"+":"")+b; g.appendChild(bt);
+      }
+
+      if(showBH){
+        var hx=n._px+R-1, hy=n._py-R-2;
+        g.appendChild(el("rect",{x:hx-13,y:hy-9,width:28,height:18,rx:7,
+          fill:"var(--card)",stroke:"var(--violet)","stroke-width":1.8}));
+        var ht=el("text",{x:hx+1,y:hy,"class":"bhb",fill:"var(--violet)"});
+        ht.textContent="bh"+blackHeight(n); g.appendChild(ht);
+      }
+
+      if(tag[n.v]){
+        var lbl=tag[n.v], w=Math.max(22,lbl.length*9+12);
+        var tx=n._px-R-9-w/2, ty=n._py-R+4;
+        g.appendChild(el("rect",{x:tx-w/2,y:ty-10,width:w,height:20,rx:8,"class":"tagbg"}));
+        var lt=el("text",{x:tx,y:ty,"class":"tagtx"}); lt.textContent=lbl; g.appendChild(lt);
+      }
+    }
+    svg.appendChild(g);
+  });
+
+  host.innerHTML="";
+  host.appendChild(svg);
+}
+
+/* ============================================================
+   3. DECK NAVIGATION
+   ============================================================ */
+var stage=document.getElementById("stage");
+var slides=[].slice.call(document.querySelectorAll(".slide"));
+var idx=0, fi=0, frags=[];
+
+function collectFrags(){ frags=[].slice.call(slides[idx].querySelectorAll(".frag")); }
+
+function paint(){
+  slides.forEach(function(s,i){ s.classList.toggle("on", i===idx); });
+  collectFrags();
+  frags.forEach(function(f,i){ f.classList.toggle("shown", i<fi); });
+  document.getElementById("counter").textContent=(idx+1)+" / "+slides.length;
+  document.getElementById("slidename").textContent=slides[idx].getAttribute("data-name")||"";
+  document.getElementById("prog").style.width=((idx)/(slides.length-1)*100)+"%";
+  stopTimer(); resetTimers();
+  var m=document.querySelectorAll(".mitem");
+  for(var i=0;i<m.length;i++) m[i].classList.toggle("cur", +m[i].getAttribute("data-i")===idx);
+}
+function go(n,showAll){
+  if(n<0||n>=slides.length) return;
+  idx=n; collectFrags();
+  fi = showAll ? frags.length : 0;
+  paint();
+}
+function next(){
+  if(fi<frags.length){ fi++; frags[fi-1].classList.add("shown"); return; }
+  go(idx+1,false);
+}
+function prev(){
+  if(fi>0){ fi--; frags[fi].classList.remove("shown"); return; }
+  go(idx-1,true);
+}
+
+/* ============================================================
+   4. TIMER  (flashcard slides)
+   ============================================================ */
+var tHandle=null, tFace=null;
+function fmt(s){ var m=Math.floor(s/60), r=s%60; return m+":"+(r<10?"0":"")+r; }
+function stopTimer(){
+  if(tHandle){ clearInterval(tHandle); tHandle=null; }
+  if(tFace){ tFace.classList.remove("low"); tFace=null; }
+}
+/* leaving a card slide resets its clock, so the next class starts clean */
+function resetTimers(){
+  [].slice.call(document.querySelectorAll("[data-timer]")).forEach(function(b){
+    var secs=+b.getAttribute("data-timer");
+    b.textContent="Start "+fmt(secs);
+    var f=b.parentNode.querySelector(".tface");
+    if(f){ f.textContent=fmt(secs); f.classList.remove("low"); }
+  });
+}
+function startTimer(btn){
+  stopTimer();
+  var secs=+btn.getAttribute("data-timer");
+  var face=btn.parentNode.querySelector(".tface");
+  tFace=face; face.textContent=fmt(secs); face.classList.remove("low");
+  btn.textContent="Restart";
+  tHandle=setInterval(function(){
+    secs--;
+    face.textContent=fmt(Math.max(secs,0));
+    if(secs<=15) face.classList.add("low");
+    if(secs<=0){ clearInterval(tHandle); tHandle=null; face.textContent="TIME"; }
+  },1000);
+}
+
+/* ============================================================
+   5. WIRING
+   ============================================================ */
+document.addEventListener("click",function(e){
+  var t=e.target;
+
+  var tb=t.closest("[data-timer]");
+  if(tb){ startTimer(tb); return; }
+
+  var hb=t.closest("[data-hint]");
+  if(hb){
+    var n=hb.getAttribute("data-hint");
+    var box=hb.closest(".slide").querySelector('[data-hintbox="'+n+'"]');
+    if(box) box.classList.toggle("on");
+    return;
+  }
+
+  var q=t.closest(".qcell");
+  if(q){ q.classList.toggle("rev");
+    var ans=q.getAttribute("data-ans"); if(ans) q.classList.add(ans); return; }
+
+  var mi=t.closest(".mitem");
+  if(mi){ go(+mi.getAttribute("data-i"),false); closeMenu(); return; }
+});
+
+document.getElementById("btnNext").onclick=next;
+document.getElementById("btnPrev").onclick=prev;
+document.getElementById("btnTheme").onclick=toggleTheme;
+document.getElementById("btnLaser").onclick=function(){ setLaser(!laserOn); };
+document.getElementById("btnMenu").onclick=toggleMenu;
+document.getElementById("counter").onclick=toggleMenu;
+document.getElementById("btnFull").onclick=function(){
+  if(document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen();
+};
+
+document.addEventListener("keydown",function(e){
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  var k=e.key;
+  if(k==="ArrowRight"||k===" "||k==="PageDown"||k==="n"){ e.preventDefault(); next(); }
+  else if(k==="ArrowLeft"||k==="PageUp"||k==="p"){ e.preventDefault(); prev(); }
+  else if(k==="ArrowDown"){ e.preventDefault(); go(idx+1,false); }
+  else if(k==="ArrowUp"){ e.preventDefault(); go(idx-1,false); }
+  else if(k==="Home"){ e.preventDefault(); go(0,false); }
+  else if(k==="End"){ e.preventDefault(); go(slides.length-1,true); }
+  else if(k==="t"||k==="T"){ toggleTheme(); }
+  else if(k==="l"||k==="L"){ setLaser(!laserOn); }
+  else if(k==="m"||k==="M"){ toggleMenu(); }
+  else if(k==="Escape"){ closeMenu(); setLaser(false); }
+  else if(k==="f"||k==="F"){ document.getElementById("btnFull").click(); }
+  else if(k==="s"||k==="S"){
+    var b=slides[idx].querySelector("[data-timer]"); if(b) startTimer(b);
+  }
+});
+
+/* ---------- theme ---------- */
+function toggleTheme(){
+  var cur=document.documentElement.getAttribute("data-theme");
+  var nx=cur==="dark"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",nx);
+  try{ localStorage.setItem("rb-theme",nx); }catch(err){}
+  document.getElementById("btnTheme").innerHTML = nx==="dark" ? "&#9728;" : "&#9681;";
+}
+(function initTheme(){
+  var saved=null;
+  try{ saved=localStorage.getItem("rb-theme"); }catch(err){}
+  if(!saved && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) saved="dark";
+  if(saved) document.documentElement.setAttribute("data-theme",saved);
+  document.getElementById("btnTheme").innerHTML =
+    document.documentElement.getAttribute("data-theme")==="dark" ? "&#9728;" : "&#9681;";
+})();
+
+/* ---------- menu ---------- */
+function buildMenu(){
+  var body=document.getElementById("mbody"), html="", act=null, open=false;
+  slides.forEach(function(s,i){
+    var a=s.getAttribute("data-act")||"";
+    if(a!==act){
+      if(open) html+="</div>";
+      html+='<div class="macts">'+a+'</div><div class="mgrid">';
+      act=a; open=true;
+    }
+    html+='<div class="mitem" data-i="'+i+'"><span class="mn">'+(i+1)+'</span><span>'+
+          (s.getAttribute("data-name")||"")+'</span></div>';
+  });
+  if(open) html+="</div>";
+  body.innerHTML=html;
+}
+function toggleMenu(){ document.getElementById("menu").classList.toggle("on"); }
+function closeMenu(){ document.getElementById("menu").classList.remove("on"); }
+
+/* ---------- laser pointer (Google-Slides style) ---------- */
+var LIFE=420;                                  /* ms a trail point survives */
+var laserOn=false, lpts=[], lraf=null, lx=-999, ly=-999, lseen=false;
+var lcv=document.getElementById("laser"), lctx=lcv.getContext("2d");
+
+function sizeLaser(){
+  var d=window.devicePixelRatio||1;
+  lcv.width=Math.round(window.innerWidth*d);
+  lcv.height=Math.round(window.innerHeight*d);
+  lcv.style.width=window.innerWidth+"px";
+  lcv.style.height=window.innerHeight+"px";
+  lctx.setTransform(d,0,0,d,0,0);
+}
+function setLaser(on){
+  if(on===laserOn) return;
+  laserOn=on;
+  document.body.classList.toggle("laser",on);
+  document.getElementById("btnLaser").classList.toggle("on",on);
+  if(on){ sizeLaser(); lpts=[]; lraf=requestAnimationFrame(drawLaser); }
+  else{
+    if(lraf) cancelAnimationFrame(lraf);
+    lraf=null; lpts=[];
+    lctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+  }
+}
+function drawLaser(){
+  lraf=requestAnimationFrame(drawLaser);
+  var now=performance.now(), i, a, b, k;
+  while(lpts.length && now-lpts[0].t>LIFE) lpts.shift();
+  lctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+  if(!lseen) return;
+
+  /* comet tail — the newest segment is the fattest and brightest */
+  lctx.lineCap="round"; lctx.lineJoin="round";
+  for(i=1;i<lpts.length;i++){
+    a=lpts[i-1]; b=lpts[i];
+    k=1-(now-b.t)/LIFE; if(k<=0) continue;
+    k*=k;                                      /* fade fast, like a real streak */
+    lctx.beginPath(); lctx.moveTo(a.x,a.y); lctx.lineTo(b.x,b.y);
+    lctx.strokeStyle="rgba(255,64,64,"+(.15*k).toFixed(3)+")";   lctx.lineWidth=16*k+4;  lctx.stroke();
+    lctx.strokeStyle="rgba(255,72,72,"+(.55*k).toFixed(3)+")";   lctx.lineWidth=7*k+1.5; lctx.stroke();
+    lctx.strokeStyle="rgba(255,226,226,"+(.5*k).toFixed(3)+")";  lctx.lineWidth=2.5*k+.5;lctx.stroke();
+  }
+
+  /* the head: white-hot core bleeding into red glow */
+  var g=lctx.createRadialGradient(lx,ly,0,lx,ly,17);
+  g.addColorStop(0,   "rgba(255,255,255,.98)");
+  g.addColorStop(.20, "rgba(255,130,130,.95)");
+  g.addColorStop(.42, "rgba(255,40,40,.55)");
+  g.addColorStop(1,   "rgba(255,0,0,0)");
+  lctx.fillStyle=g;
+  lctx.beginPath(); lctx.arc(lx,ly,17,0,Math.PI*2); lctx.fill();
+}
+document.addEventListener("pointermove",function(e){
+  lx=e.clientX; ly=e.clientY; lseen=true;
+  if(!laserOn) return;
+  var last=lpts[lpts.length-1];
+  if(last && last.x===lx && last.y===ly) return;
+  lpts.push({x:lx,y:ly,t:performance.now()});
+},{passive:true});
+document.addEventListener("mouseleave",function(){ lseen=false; lpts=[]; });
+document.addEventListener("mouseenter",function(){ lseen=true; });
+window.addEventListener("blur",function(){ lseen=false; lpts=[]; });
+
+/* ---------- fit stage to viewport ---------- */
+function fit(){
+  var s=Math.min((window.innerWidth-36)/1280,(window.innerHeight-64)/720);
+  stage.style.transform="scale("+s+")";
+}
+window.addEventListener("resize",function(){ fit(); if(laserOn) sizeLaser(); });
+
+/* ---------- boot ---------- */
+[].slice.call(document.querySelectorAll(".tree")).forEach(renderTree);
+buildMenu();
+fit();
+go(0,false);
+})();
+</script>
+</body>
+</html>

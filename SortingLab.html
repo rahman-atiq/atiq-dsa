@@ -1,0 +1,2591 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sorting Lab</title>
+<script>
+/* applied before first paint so a dark-theme reload never flashes white */
+try{ const t = localStorage.getItem('sortinglab.theme');
+     if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; }catch(e){}
+</script>
+</head><body>
+<style>
+:root{
+  color-scheme:light;
+  --paper:#F4F6F7; --panel:#FFFFFF; --ink:#222B31; --mut:#5C6B75; --line:#D9E1E5;
+  --accent:#D96F24; --accent-soft:rgba(217,111,36,.14);
+  --link:#3E7BC4; --ok:#2E9E5B; --bad:#CE4A43; --pivot:#7E5BB5;
+  --pill:#33424E; --pill-ink:#F2F6F8;
+  --bar:#8FA5B3; --bar-edge:#5C6B75;
+  --code-bg:#1D242B; --code-ink:#D5DEE5; --code-dim:#6C7B87; --code-on:rgba(233,138,62,.22); --code-on-edge:#E98A3E;
+  --btn:#FFFFFF; --btn-line:#C9D3D9;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#12171B; --panel:#1A2127; --ink:#E1E8ED; --mut:#8CA0AC; --line:#2B353D;
+  --accent:#E98A3E; --accent-soft:rgba(233,138,62,.16);
+  --link:#6FA5DF; --ok:#48B478; --bad:#E0655E; --pivot:#B195E0;
+  --pill:#D7E2E9; --pill-ink:#16202B;
+  --bar:#4E626F; --bar-edge:#8CA0AC;
+  --code-bg:#141A20; --btn:#212A31; --btn-line:#39454E;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#12171B; --panel:#1A2127; --ink:#E1E8ED; --mut:#8CA0AC; --line:#2B353D;
+  --accent:#E98A3E; --accent-soft:rgba(233,138,62,.16);
+  --link:#6FA5DF; --ok:#48B478; --bad:#E0655E; --pivot:#B195E0;
+  --pill:#D7E2E9; --pill-ink:#16202B;
+  --bar:#4E626F; --bar-edge:#8CA0AC;
+  --code-bg:#141A20; --btn:#212A31; --btn-line:#39454E;
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --paper:#F4F6F7; --panel:#FFFFFF; --ink:#222B31; --mut:#5C6B75; --line:#D9E1E5;
+  --accent:#D96F24; --accent-soft:rgba(217,111,36,.14);
+  --link:#3E7BC4; --ok:#2E9E5B; --bad:#CE4A43; --pivot:#7E5BB5;
+  --pill:#33424E; --pill-ink:#F2F6F8;
+  --bar:#8FA5B3; --bar-edge:#5C6B75;
+  --code-bg:#1D242B; --btn:#FFFFFF; --btn-line:#C9D3D9;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.app{max-width:1520px;margin:0 auto;padding:14px 18px 40px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 22px;padding:4px 2px 12px}
+.brand{font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:-.02em}
+.brand .cursor{color:var(--accent)}
+.brand .sub{font-family:var(--sans);font-weight:400;font-size:12.5px;color:var(--mut);margin-left:10px;letter-spacing:0}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.tabs button{font-family:var(--mono);font-size:12px;padding:6px 11px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut)}
+.tabs button:hover{border-color:var(--mut)}
+.tabs button.on{background:var(--pill);color:var(--pill-ink);border-color:var(--pill);font-weight:700}
+/* theme switcher — deliberately NOT inside .tabs, so it stays live mid-run */
+.themeBtn{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut);display:inline-flex;align-items:center;gap:6px}
+.themeBtn:hover{border-color:var(--mut);color:var(--ink)}
+.themeBtn .ic{font-size:12.5px;line-height:1}
+.work{display:grid;grid-template-columns:248px minmax(0,1fr) 392px;gap:14px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+/* ---- input + operations rail ---- */
+.rail{display:flex;flex-direction:column;gap:12px}
+.inputs{padding:10px}
+.inputs h3,.ops h3,.histwrap h3{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut);margin:0 0 6px;font-weight:600}
+.ops h3{margin:12px 0 6px}
+.inputs select,.inputs input[type=text],.inputs input[type=number]{width:100%;font-family:var(--mono);font-size:12.5px;padding:5px 7px;border:1px solid var(--btn-line);border-radius:4px;background:var(--paper);color:var(--ink)}
+.inputs .row{display:flex;gap:6px;margin-top:6px}
+.inputs .row > *{flex:1}
+.inputs .row button{border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;padding:5px 7px;font-size:12px}
+.inputs .row button:hover{border-color:var(--link)}
+.chk{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11.5px;color:var(--mut)}
+.chk input{accent-color:var(--accent)}
+.ops{padding:4px 10px 12px}
+.ops .grp{display:flex;flex-direction:column;gap:5px}
+/* label + hint share a row when both fit; the hint drops to its own right-aligned
+   line instead of squeezing the label into a three-line stack */
+.ops button{text-align:left;font-size:12.5px;line-height:1.3;padding:6px 9px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:1px 8px;align-items:baseline;width:100%}
+.ops button:hover{border-color:var(--link)}
+.ops button > span:first-child{flex:1 1 auto;min-width:0}
+.ops button .hint{flex:0 1 auto;min-width:0;margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ops button.bug{border-color:color-mix(in srgb,var(--bad) 45%,var(--btn-line))}
+.ops button.bug:hover{border-color:var(--bad)}
+.ops button.util{color:var(--mut)}
+body.running .ops button,body.running .tabs button,body.running .inputs button,body.running .inputs select{opacity:.45;pointer-events:none}
+.histwrap{padding:10px}
+.hist{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.h-item{font-size:11.5px;border-left:2px solid var(--line);padding:1px 0 1px 8px}
+.h-item code{font-family:var(--mono);font-size:11.5px;color:var(--ink);display:block}
+.h-sum{color:var(--link);font-family:var(--mono);font-size:10.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.h-bad{color:var(--bad)}
+/* ---- canvas ---- */
+.canvas-wrap{min-width:0}
+.canvas-scroll{overflow-x:auto;padding:4px}
+svg{display:block}
+.stats{display:flex;flex-wrap:wrap;gap:4px 8px;padding:8px 12px;border-top:1px solid var(--line)}
+.stat{font-family:var(--mono);font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:4px;padding:3px 8px}
+.stat b{color:var(--ink);font-size:12.5px}
+.stat.hot b{color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:5px 14px;padding:8px 12px;border-top:1px solid var(--line);font-size:11px;color:var(--mut)}
+.legend .k{display:inline-flex;align-items:center;gap:5px}
+.legend .sw{width:10px;height:10px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+/* svg parts */
+.el{transition:transform .35s cubic-bezier(.4,1.4,.5,1)}
+.el .bar{fill:var(--bar);stroke:var(--bar-edge);stroke-width:1}
+.el .v{font-family:var(--mono);font-size:13px;font-weight:700;fill:var(--ink)}
+.el .oid{font-family:var(--mono);font-size:8.5px;fill:var(--mut)}
+.el.cmp .bar{fill:var(--accent);stroke:var(--accent)}
+.el.cmp .v{fill:var(--accent)}
+.el.swap .bar{fill:var(--accent);stroke:var(--ink);stroke-width:2}
+.el.min .bar{stroke:var(--link);stroke-width:2.6}
+.el.min .v{fill:var(--link)}
+.el.done .bar{fill:color-mix(in srgb,var(--ok) 34%,transparent);stroke:var(--ok)}
+.el.pre .bar{fill:color-mix(in srgb,var(--link) 26%,transparent);stroke:var(--link)}
+.el.held .bar{fill:var(--accent);stroke:var(--ink);stroke-width:1.6}
+.el.cmp .oid,.el.swap .oid,.el.held .oid{fill:#fff;opacity:.8}
+.el.held .v{fill:#fff}
+.el .keyLbl{font-family:var(--mono);font-size:8.5px;fill:#fff;opacity:.85}
+.el.out .bar{fill:color-mix(in srgb,var(--bad) 30%,transparent);stroke:var(--bad)}
+.el.pivot .bar{fill:var(--pivot);stroke:var(--ink);stroke-width:1.6}
+.el.pivot .v{fill:var(--pivot)}
+.el.pivot .oid{fill:#fff;opacity:.85}
+.rangeBand{fill:var(--accent-soft);stroke:color-mix(in srgb,var(--accent) 45%,transparent);stroke-width:1;stroke-dasharray:4 3}
+.splitLine{stroke:var(--accent);stroke-width:1.4;stroke-dasharray:3 3;opacity:.75}
+.rangeLbl{font-family:var(--mono);font-size:10px;fill:var(--accent);font-weight:700}
+.hole{fill:none;stroke:var(--mut);stroke-dasharray:4 3;stroke-width:1.2}
+.axis{stroke:var(--line);stroke-width:1.2}
+.idx{font-family:var(--mono);font-size:10px;fill:var(--mut)}
+.zoneLbl{font-family:var(--mono);font-size:10px;fill:var(--ok);font-weight:700}
+.zoneLbl.pre{fill:var(--link)}
+.pill rect{fill:var(--pill)}
+.pill text{font-family:var(--mono);font-size:10px;font-weight:700;fill:var(--pill-ink)}
+.pill.t rect{fill:var(--accent)}
+.pill.t text{fill:#fff}
+.pill line{stroke:var(--pill);stroke-width:1.3}
+.pill.t line{stroke:var(--accent)}
+.hintTxt{font-family:var(--sans);font-size:13px;fill:var(--mut)}
+.tnode circle{fill:var(--panel);stroke:var(--ink);stroke-width:1.4}
+.tnode text{font-family:var(--mono);font-size:12px;font-weight:700;fill:var(--ink)}
+.tnode .ti{font-family:var(--mono);font-size:8px;font-weight:400;fill:var(--mut)}
+.tnode.cmp circle{stroke:var(--accent);stroke-width:2.4}
+.tnode.swap circle{fill:var(--accent);stroke:var(--ink);stroke-width:2}
+.tnode.min circle{stroke:var(--link);stroke-width:2.6}
+.tnode.done circle{fill:color-mix(in srgb,var(--ok) 30%,transparent);stroke:var(--ok);stroke-dasharray:3 2}
+.tnode.done text{fill:var(--mut)}
+.tedge{stroke:var(--line);stroke-width:1.4;fill:none}
+.tcap{font-family:var(--mono);font-size:10px;fill:var(--mut)}
+.cell rect{fill:var(--panel);stroke:var(--line);stroke-width:1}
+.cell text{font-family:var(--mono);font-size:12px;fill:var(--ink);font-weight:700}
+.cell .lab{font-size:9px;fill:var(--mut);font-weight:400}
+.cell.on rect{stroke:var(--accent);stroke-width:2.2;fill:var(--accent-soft)}
+.cell.fill rect{fill:color-mix(in srgb,var(--ok) 24%,transparent);stroke:var(--ok)}
+.rowLbl{font-family:var(--mono);font-size:10.5px;fill:var(--mut)}
+/* ---- recursion tree (quick / merge) ---- */
+.rt .rbox{fill:var(--panel);stroke:var(--line);stroke-width:1}
+.rt .rval{font-family:var(--mono);font-size:10px;font-weight:700;fill:var(--ink)}
+.rt.open .rbox{stroke:color-mix(in srgb,var(--accent) 55%,var(--line));stroke-width:1.4}
+.rt.live .rbox{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2.2}
+.rt.live .rval{fill:var(--accent)}
+.rt.done .rbox{fill:color-mix(in srgb,var(--ok) 18%,transparent);stroke:color-mix(in srgb,var(--ok) 65%,var(--line))}
+.rt.done .rval{fill:var(--mut);font-weight:400}
+.rt.base .rbox{stroke-dasharray:3 2}
+.rt .rpiv{fill:var(--pivot)}
+.rt .rmid{stroke:var(--accent);stroke-width:1.2;stroke-dasharray:2 2;opacity:.7}
+.rt .rempty{font-family:var(--mono);font-size:9px;fill:var(--mut)}
+.rtedge{stroke:var(--line);stroke-width:1.3;fill:none}
+.rtdep{font-family:var(--mono);font-size:9px;fill:var(--mut)}
+.rtcap{font-family:var(--mono);font-size:9.5px;fill:var(--mut)}
+/* the tree's colour key only makes sense in the two recursive modes */
+.legend .rk{display:none}
+body.rec .legend .rk{display:inline-flex}
+/* ---- board (scoreboard / race) ---- */
+.board{padding:12px 14px;overflow-x:auto}
+.board h2{font-size:13px;margin:14px 0 8px;letter-spacing:.02em}
+.board h2:first-child{margin-top:2px}
+.board p{font-size:12.5px;color:var(--mut);margin:0 0 10px}
+table.sc{border-collapse:collapse;font-size:12px;width:100%;min-width:660px}
+table.sc th,table.sc td{border:1px solid var(--line);padding:4px 8px;text-align:center;white-space:nowrap}
+table.sc th{background:var(--paper);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+table.sc td:first-child,table.sc th:first-child{text-align:left;font-family:var(--mono);font-size:11.5px}
+table.sc td.g{color:var(--ok);font-weight:700}
+table.sc td.r{color:var(--bad)}
+table.sc td.num{font-family:var(--mono)}
+table.sc tr.win td{background:var(--accent-soft)}
+.raceBtn{border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;padding:6px 12px;font-size:12.5px;font-family:var(--mono)}
+.raceBtn:hover{border-color:var(--link)}
+.nb{border-left:2px solid var(--link);padding:8px 10px;background:var(--paper);border-radius:0 4px 4px 0}
+.board p.nb{margin:0 0 12px}
+.nb b{color:var(--ink)}
+/* ---- scenario cards ---- */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;margin-bottom:10px}
+.card{border:1px solid var(--line);border-radius:6px;padding:10px 11px;background:var(--panel)}
+.card .lbl{font-family:var(--mono);font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.card .q{font-size:12.5px;color:var(--ink);margin-bottom:8px;line-height:1.4}
+.opt{display:block;width:100%;text-align:left;border:1px solid var(--btn-line);background:var(--btn);color:var(--ink);border-radius:4px;padding:5px 8px;font-size:12px;font-family:var(--mono);margin-bottom:4px;cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--link)}
+.opt:disabled{cursor:default;opacity:.5}
+.opt.ok{border-color:var(--ok);color:var(--ok);opacity:1;font-weight:700}
+.opt.no{border-color:var(--bad);color:var(--bad);opacity:1}
+.card .why{font-size:12px;color:var(--mut);line-height:1.45;margin-top:7px;border-top:1px dashed var(--line);padding-top:7px}
+.card .why b{color:var(--ink)}
+/* ---- code pane ---- */
+.codepane{display:flex;flex-direction:column;overflow:hidden}
+.code-head{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12.5px;font-weight:700}
+.facts{display:flex;flex-wrap:wrap;gap:4px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.facts span{font-family:var(--mono);font-size:10px;border:1px solid var(--line);border-radius:3px;padding:2px 6px;color:var(--mut)}
+.facts span b{color:var(--ink);font-weight:700}
+.facts span.y{border-color:color-mix(in srgb,var(--ok) 50%,var(--line));color:var(--ok)}
+.facts span.n{border-color:color-mix(in srgb,var(--bad) 50%,var(--line));color:var(--bad)}
+.facts:empty{display:none}
+pre.code{margin:0;background:var(--code-bg);color:var(--code-ink);font-family:var(--mono);font-size:11px;line-height:1.55;padding:10px 0;overflow:auto;max-height:340px;min-height:150px}
+pre.code .cl{padding:0 14px;white-space:pre}
+pre.code .cl.dim{color:var(--code-dim)}
+pre.code .cl.on{background:var(--code-on);box-shadow:inset 3px 0 0 var(--code-on-edge)}
+.note{padding:10px 12px;font-size:12.5px;min-height:62px;color:var(--ink);border-top:1px solid var(--line);background:var(--accent-soft)}
+.lesson{padding:9px 12px;font-size:11.5px;color:var(--mut);border-top:1px solid var(--line)}
+.lesson b{color:var(--ink)}
+.stepbar{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line);align-items:center;flex-wrap:wrap}
+.stepbar button{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px}
+.stepbar button:disabled{opacity:.4;cursor:default}
+.stepbar button.primary{background:var(--pill);color:var(--pill-ink);border-color:var(--pill);font-weight:700}
+.stepcount{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--mut)}
+.kbd-hint{padding:0 12px 10px;font-size:10.5px;color:var(--mut)}
+@media (max-width:1150px){
+  .work{grid-template-columns:1fr}
+  .canvas-wrap{order:1}.codepane{order:2}.rail{order:3}
+  .tabs{margin-left:0}
+  pre.code{max-height:280px}
+}
+@media (prefers-reduced-motion: reduce){.el{transition:none}}
+</style>
+<div class="app">
+  <header class="top">
+    <div class="brand">sorting_lab<span class="cursor">_</span><span class="sub">step through every sort in Module IV — comparison by comparison, swap by swap</span></div>
+    <nav class="tabs" id="tabs" aria-label="algorithm family"></nav>
+    <button class="themeBtn" id="themeBtn" title="switch theme: auto → light → dark"></button>
+  </header>
+  <main class="work">
+    <aside class="rail">
+      <div class="panel inputs">
+        <h3>Input array</h3>
+        <select id="preset"></select>
+        <div class="row">
+          <input id="size" type="number" min="3" max="16" value="8" title="size for generated inputs">
+          <button id="regen">generate</button>
+        </div>
+        <div class="row">
+          <input id="custom" type="text" placeholder="5 1 4 2 8" title="type your own, space separated">
+          <button id="apply">use</button>
+        </div>
+        <div class="row">
+          <button id="restore" title="put the working array back to the input">↺ restore input</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="autoRestore" checked>restore input before each run</label>
+        <div class="row" id="valRow" style="display:none">
+          <input id="val" type="number" value="42" title="value for priority-queue insert">
+        </div>
+      </div>
+      <div class="panel ops" id="ops"></div>
+      <div class="panel histwrap">
+        <h3>History</h3>
+        <div class="hist" id="hist"></div>
+      </div>
+    </aside>
+    <section class="panel canvas-wrap">
+      <div class="canvas-scroll" id="canvasScroll">
+        <svg id="svg" role="img" aria-label="sorting diagram">
+          <g id="gTree"></g>
+          <g id="gAxis"></g>
+          <g id="gEls"></g>
+          <g id="gPills"></g>
+          <g id="gAux"></g>
+          <g id="gRec"></g>
+        </svg>
+      </div>
+      <div class="board" id="board" style="display:none"></div>
+      <div class="stats" id="stats"></div>
+      <div class="legend" id="legend">
+        <span class="k"><span class="sw" style="background:var(--bar)"></span>unsorted</span>
+        <span class="k"><span class="sw" style="background:var(--accent)"></span>being compared / swapped</span>
+        <span class="k"><span class="sw" style="background:color-mix(in srgb,var(--link) 26%,transparent);border-color:var(--link)"></span>sorted, but not final</span>
+        <span class="k"><span class="sw" style="background:color-mix(in srgb,var(--ok) 34%,transparent);border-color:var(--ok)"></span>final position</span>
+        <span class="k"><span class="sw" style="border:1px dashed var(--mut);background:none"></span>hole (slot being overwritten)</span>
+        <span class="k"><span class="sw" style="background:var(--pivot)"></span>pivot</span>
+        <span class="k"><span class="sw" style="background:var(--accent-soft);border-style:dashed;border-color:var(--accent)"></span>slice owned by the current recursive call</span>
+        <span class="k" style="font-family:var(--mono)">#n = original index (watch it for stability)</span>
+        <span class="k rk"><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>tree: call executing now</span>
+        <span class="k rk"><span class="sw" style="background:none;border-color:var(--accent)"></span>call on the stack, waiting to return</span>
+        <span class="k rk"><span class="sw" style="background:color-mix(in srgb,var(--ok) 18%,transparent);border-color:var(--ok)"></span>call that has returned</span>
+      </div>
+    </section>
+    <aside class="panel codepane">
+      <div class="code-head" id="opName">pick an algorithm ←</div>
+      <div class="facts" id="facts"></div>
+      <pre class="code" id="code"></pre>
+      <div class="note" id="note">Pick an input on the left, then click an algorithm. Its C code shows up here and you execute it one line at a time — every comparison, every swap, every counter.</div>
+      <div class="lesson" id="lesson"></div>
+      <div class="stepbar">
+        <button id="btnPrev" disabled>⟨ Prev</button>
+        <button id="btnNext" class="primary" disabled>Next ⟩</button>
+        <button id="btnRun" disabled>Run ▶▶</button>
+        <button id="btnEnd" disabled>Finish ⇥</button>
+        <span class="stepcount" id="stepCount"></span>
+      </div>
+      <div class="kbd-hint">keyboard: → next step · ← previous step · space = run/pause</div>
+    </aside>
+  </main>
+</div>
+<script>
+'use strict';
+/* ============================================================
+   SORTING LAB — companion to 04-sorting-algorithms-granular-plan.md
+   Same shape as LinkedListLab.html: pure state + generator step
+   scripts that yield [codeLine, explanation].
+   ============================================================ */
+
+const MODES = {
+  bubble:    { label:'Bubble family' },
+  cocktail:  { label:'Cocktail' },
+  insertion: { label:'Insertion', lift:true },
+  selection: { label:'Selection' },
+  heap:      { label:'Heap sort', tree:true },
+  pq:        { label:'Priority queue', tree:true, own:true },
+  quick:     { label:'Quick sort', rec:true },
+  merge:     { label:'Merge sort', aux:true, rec:true },
+  counting:  { label:'Counting', aux:true },
+  board:     { label:'⌗ Scoreboard', board:true },
+};
+let mode = 'bubble';
+
+/* ---------- state ---------- */
+function elems(vals){ return vals.map((v,i) => ({ v:v, id:i, k:i })); }
+function cp(s,e){ return { v:e.v, id:e.id, k:s.kseq++ }; }
+function freshState(vals){
+  return {
+    a: elems(vals),
+    kseq: vals.length,
+    cmp:0, swp:0, wr:0, pass:0,
+    marks:{},          /* index -> 'cmp' | 'swap' | 'min' */
+    ptrs:{},           /* pointer name -> index */
+    notes:{},          /* extra pointer-ish scalars shown as text */
+    sortedL:0, lKind:'done', sortedR:0,
+    cell:{},           /* index -> 'done' | 'pre', for the divide-and-conquer sorts */
+    range:null,        /* {lo,hi,mid} slice the current recursive call owns */
+    callStack:[],
+    rtree:null,        /* recursion tree root — one node per call, built as the run goes */
+    rpath:[],          /* child-indices from the root down to the call currently executing */
+    auxKind:null, L:null, R:null, Li:null, Rj:null,
+    held:null,         /* {v,id} lifted out of the array */
+    hole:null,         /* index whose slot is currently vacant */
+    heapSize:null,
+    count:null, prefix:false, output:null, outMark:null, cntMark:null,
+    out:'',            /* text output line */
+    doneMsg:null
+  };
+}
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+let INPUT = [5,1,4,2,8];
+let S  = freshState(INPUT);
+let PQ = freshState([]);
+const cur = () => MODES[mode].own ? PQ : S;
+function setCur(s){ if (MODES[mode].own) PQ = s; else S = s; }
+
+/* ---------- array helpers ---------- */
+const vals = s => s.a.filter(e => e).map(e => e.v);
+function swap(s,i,j){ const t = s.a[i]; s.a[i] = s.a[j]; s.a[j] = t; s.swp++; s.wr += 2; }
+function isSorted(a){ for (let i=1;i<a.length;i++) if (a[i-1].v > a[i].v) return false; return true; }
+/* did equal keys keep their original relative order? */
+function stableOK(a){
+  for (let i=1;i<a.length;i++)
+    for (let j=0;j<i;j++)
+      if (a[j].v === a[i].v && a[j].id > a[i].id) return false;
+  return true;
+}
+function hasDups(a){ const seen={}; for (const e of a){ if (seen[e.v]) return true; seen[e.v]=1; } return false; }
+function inversions(a){
+  let c = 0;
+  for (let i=0;i<a.length;i++) for (let j=i+1;j<a.length;j++) if (a[i].v > a[j].v) c++;
+  return c;
+}
+function fmt(s){ return s.a.map(e => e ? e.v : '_').join(' '); }
+
+/* ---------- recursion tree bookkeeping ----------
+   One node per call, pushed/popped in lockstep with s.callStack. Nodes are plain
+   JSON (no parent links) so clone() survives — the walk down is s.rpath, a list of
+   child indices. A frame that never returns (blown stack) just never gets popped,
+   which is exactly what you want to see in the trap runs. */
+function rtAt(s, path){ let n = s.rtree; for (let i=0;i<path.length && n;i++) n = n.kids[path[i]]; return n; }
+function rtEnter(s, lo, hi){
+  const node = { lo:lo, hi:hi, st:'open', mid:null, piv:null, bnd:null, kids:[] };
+  if (!s.rtree){ s.rtree = node; s.rpath = []; return; }
+  const par = rtAt(s, s.rpath);
+  if (!par) return;
+  par.kids.push(node);
+  s.rpath = s.rpath.concat(par.kids.length - 1);
+}
+function rtSet(s, patch){ const n = rtAt(s, s.rpath); if (n) Object.assign(n, patch); }
+function rtExit(s, st){
+  const n = rtAt(s, s.rpath);
+  if (n) n.st = st || 'done';
+  s.rpath = s.rpath.slice(0, -1);
+}
+function rtStats(node, d, acc){
+  if (!node) return acc;
+  acc.calls++; acc.deep = Math.max(acc.deep, d);
+  node.kids.forEach(k => rtStats(k, d+1, acc));
+  return acc;
+}
+/* split C source into lines (drop the leading newline of the template literal) */
+function C(src){ return src.replace(/^\n/,'').split('\n'); }
+
+/* ---------- presets ---------- */
+const PRESETS = [
+  { id:'p1', label:'5 1 4 2 8  — the bubble trace',        a:[5,1,4,2,8] },
+  { id:'p2', label:'2 3 4 5 1  — one turtle, four passes', a:[2,3,4,5,1] },
+  { id:'p3', label:'7 4 5 2  — insertion / 5 inversions',  a:[7,4,5,2] },
+  { id:'p4', label:'4 3 2 1  — reverse (worst case)',      a:[4,3,2,1] },
+  { id:'p5', label:'4 10 3 5 1  — the heap trace',         a:[4,10,3,5,1] },
+  { id:'p6', label:'4 2 2 5 3 3 1 0  — counting sort',     a:[4,2,2,5,3,3,1,0] },
+  { id:'p7', label:'4 4 1  — instability counterexample',  a:[4,4,1] },
+  { id:'g1', label:'random',        gen:n => Array.from({length:n},()=>1+Math.floor(Math.random()*20)) },
+  { id:'g2', label:'sorted (best case)',    gen:n => Array.from({length:n},(_,i)=>2+i*2) },
+  { id:'g3', label:'reverse (worst case)',  gen:n => Array.from({length:n},(_,i)=>2+(n-1-i)*2) },
+  { id:'g4', label:'nearly sorted',  gen:n => { const a = Array.from({length:n},(_,i)=>2+i*2);
+                                                for (let k=0;k<Math.max(1,n>>2);k++){ const i=Math.floor(Math.random()*(n-1)); const t=a[i];a[i]=a[i+1];a[i+1]=t; } return a; } },
+  { id:'g5', label:'few unique (stability)', gen:n => Array.from({length:n},()=>1+Math.floor(Math.random()*3)) },
+  { id:'g6', label:'small keys 0–5 (counting)', gen:n => Array.from({length:n},()=>Math.floor(Math.random()*6)) },
+];
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+let run = null, timer = null;
+const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const MAXH = 170, LIFT = 74, PADX = 34, ZONE = 22;
+function geo(s){
+  const n = Math.max(s.a.length, 1);
+  const bw  = n > 12 ? 34 : n > 9 ? 40 : 48;
+  const gap = n > 12 ? 8  : 12;
+  const W = Math.max(660, PADX*2 + n*(bw+gap) - gap);
+  return { n, bw, gap, W, x:i => PADX + i*(bw+gap) };
+}
+function heights(s){
+  const vs = s.a.filter(e=>e).map(e=>e.v).concat(s.held ? [s.held.v] : []);
+  const hi = Math.max(1, ...vs), lo = Math.min(0, ...vs);
+  return v => 20 + ((v - lo) / ((hi - lo) || 1)) * (MAXH - 20);
+}
+
+function render(){
+  const s = cur(), cfg = MODES[mode];
+  if (cfg.board){ $('#svg').style.display = 'none'; $('#board').style.display = 'block'; $('#legend').style.display='none'; return; }
+  $('#svg').style.display = 'block'; $('#board').style.display = 'none'; $('#legend').style.display='flex';
+
+  const g = geo(s), H = heights(s), n = g.n;
+  /* --- vertical section layout --- */
+  let y = 8, treeH = 0;
+  if (cfg.tree && s.a.length){
+    const levels = Math.floor(Math.log2(s.a.length)) + 1;
+    treeH = 78 + (levels-1)*58;
+  }
+  /* ZONE is a clear band for the "sorted / not final" captions; the lift band
+     above the bars is only reserved when an algorithm actually lifts a key out */
+  const zoneY  = y + treeH + 14;
+  const lift   = (cfg.lift || s.held) ? LIFT : 12;
+  const barsTop = y + treeH + ZONE;
+  const BY = barsTop + lift + MAXH;          /* baseline */
+  const pillRows = Math.max(1, Object.keys(s.ptrs).length ? 1 : 0) + 1;
+  const auxTop = BY + 24 + pillRows*22 + 8;
+  const auxH = cfg.aux ? (mode === 'merge' ? 152 : 168) : 0;
+  const outY = auxTop + auxH + 18;
+  /* the recursion tree lives at the bottom: it grows a row deeper mid-run, and
+     down here that never shoves the bars around */
+  const recTop = auxTop + auxH + (s.out ? 26 : 8);
+  const showRec = cfg.rec && s.rtree;
+  const recH = showRec ? RCAP + (rtStats(s.rtree, 0, {calls:0,deep:0}).deep + 1) * RROW + 6 : 0;
+  const totalH = recTop + recH;
+
+  const svg = $('#svg');
+  svg.setAttribute('viewBox', `0 0 ${g.W} ${totalH}`);
+  svg.setAttribute('width', g.W); svg.setAttribute('height', totalH);
+
+  /* --- keyed bar groups (so swaps slide) --- */
+  const layer = $('#gEls');
+  const existing = {};
+  [...layer.children].forEach(node => existing[node.dataset.eid] = node);
+  const place = [];   /* {e, x, y, cls} */
+  s.a.forEach((e,i) => {
+    if (!e) return;
+    let cls = '';
+    if (s.marks[i]) cls = s.marks[i];
+    else if (s.cell && s.cell[i]) cls = s.cell[i];
+    else if (i < s.sortedL) cls = s.lKind === 'pre' ? 'pre' : 'done';
+    else if (i >= n - s.sortedR) cls = 'done';
+    place.push({ e, x:g.x(i), y:0, cls, i });
+  });
+  if (s.held) place.push({ e:s.held, x:g.x(s.hole == null ? 0 : s.hole), y:-lift, cls:'held', i:null });
+
+  const showIds = hasDups(s.a.filter(e=>e));
+  place.forEach(p => {
+    const key = p.e.k == null ? 'i' + p.e.id : p.e.k;
+    let node = existing[key];
+    if (!node){
+      node = document.createElementNS(NS,'g');
+      node.dataset.eid = key;
+      layer.appendChild(node);
+    } else delete existing[key];
+    const h = H(p.e.v);
+    node.setAttribute('class', 'el ' + p.cls);
+    node.setAttribute('transform', `translate(${p.x},${p.y})`);
+    /* the lifted key draws its value INSIDE the bar — above it is the caption band */
+    const held = p.cls === 'held';
+    node.innerHTML =
+        `<rect class="bar" x="0" y="${BY-h}" width="${g.bw}" height="${h}" rx="2"/>`
+      + `<text class="v" x="${g.bw/2}" y="${held ? BY-h+15 : BY-h-6}" text-anchor="middle">${esc(p.e.v)}</text>`
+      + (held && h > 34 ? `<text class="keyLbl" x="${g.bw/2}" y="${BY-h+27}" text-anchor="middle">key</text>` : '')
+      + (showIds ? `<text class="oid" x="${g.bw/2}" y="${BY-6}" text-anchor="middle">#${p.e.id}</text>` : '');
+  });
+  Object.values(existing).forEach(node => node.remove());
+
+  /* --- baseline, holes, index labels, zone labels --- */
+  let ax = '';
+  if (s.range && s.a.length){
+    const lo = Math.max(0, s.range.lo), hi = Math.min(n-1, s.range.hi);
+    if (hi >= lo){
+      const x0 = g.x(lo) - 6, x1 = g.x(hi) + g.bw + 6;
+      ax += `<rect class="rangeBand" x="${x0}" y="${barsTop}" width="${x1-x0}" height="${BY-barsTop+7}" rx="4"/>`;
+      ax += `<text class="rangeLbl" x="${x0+5}" y="${zoneY}">a[${s.range.lo}..${s.range.hi}]</text>`;
+      if (s.range.mid != null && s.range.mid >= lo && s.range.mid < hi){
+        const xm = g.x(s.range.mid) + g.bw + g.gap/2;
+        ax += `<line class="splitLine" x1="${xm}" y1="${barsTop}" x2="${xm}" y2="${BY+7}"/>`;
+      }
+    }
+  }
+  ax += `<line class="axis" x1="${PADX-10}" y1="${BY}" x2="${g.W-PADX+10}" y2="${BY}"/>`;
+  s.a.forEach((e,i) => {
+    if (!e) ax += `<rect class="hole" x="${g.x(i)}" y="${BY-40}" width="${g.bw}" height="40" rx="2"/>`;
+    ax += `<text class="idx" x="${g.x(i)+g.bw/2}" y="${BY+15}" text-anchor="middle">${i}</text>`;
+  });
+  if (s.sortedR)
+    ax += `<text class="zoneLbl" x="${g.W-PADX}" y="${zoneY}" text-anchor="end">sorted, final ▸</text>`;
+  if (s.sortedL)
+    ax += `<text class="zoneLbl ${s.lKind==='pre'?'pre':''}" x="${PADX}" y="${zoneY}">◂ ${s.lKind==='pre'?'sorted so far (not final)':'sorted, final'}</text>`;
+  if (!s.a.length)
+    ax += `<text class="hintTxt" x="${g.W/2}" y="${BY-60}" text-anchor="middle">empty — insert something, or pick an input on the left.</text>`;
+  $('#gAxis').innerHTML = ax;
+
+  /* --- pointer pills under the array --- */
+  let pl = '';
+  const at = {};
+  Object.entries(s.ptrs).forEach(([k,v]) => { if (v != null && v >= 0 && v < n) (at[v] = at[v] || []).push(k); });
+  Object.entries(at).forEach(([i,list]) => {
+    const cx = g.x(+i) + g.bw/2;
+    list.forEach((name,k) => {
+      const w = name.length*7 + 14, py = BY + 24 + k*22;
+      pl += `<g class="pill t">`
+          + (k === 0 ? `<line x1="${cx}" y1="${BY+18}" x2="${cx}" y2="${py}"/>` : '')
+          + `<rect x="${cx-w/2}" y="${py}" width="${w}" height="17" rx="8.5"/>`
+          + `<text x="${cx}" y="${py+12.5}" text-anchor="middle">${esc(name)}</text></g>`;
+    });
+  });
+  let nx = PADX;
+  Object.entries(s.notes).forEach(([k,v]) => {
+    const t = k + ' = ' + v;
+    pl += `<text class="idx" x="${nx}" y="${BY + 24 + pillRows*22 - 6}">${esc(t)}</text>`;
+    nx += t.length*6.6 + 22;
+  });
+  if (s.out) pl += `<text class="rowLbl" x="${PADX}" y="${outY}">${esc(s.out)}</text>`;
+  $('#gPills').innerHTML = pl;
+
+  /* --- heap tree --- */
+  $('#gTree').innerHTML = cfg.tree ? treeSVG(s, g.W, y) : '';
+
+  /* --- counting-sort aux rows --- */
+  $('#gAux').innerHTML = cfg.aux ? auxSVG(s, g, auxTop) : '';
+
+  /* --- recursion tree for the divide-and-conquer sorts --- */
+  $('#gRec').innerHTML = showRec ? recSVG(s, g, recTop) : '';
+  document.body.classList.toggle('rec', !!showRec);
+}
+
+/* Recursion tree. Each call is a box drawn directly under the slice it owns —
+   x comes from the array geometry, y from the depth — so a node never moves once
+   it exists, and every box lines up with the bars it is responsible for. */
+const RROW = 26, RBOX = 19, RCAP = 32;
+function recSVG(s, g, top){
+  const root = s.rtree;
+  const live = rtAt(s, s.rpath);
+  const st = rtStats(root, 0, { calls:0, deep:0 });
+  const rowY = d => top + RCAP + d*RROW;
+  const span = nd => {
+    if (nd.hi < nd.lo){                       /* empty slice: sits on the boundary */
+      const cx = nd.lo >= g.n ? g.x(g.n-1) + g.bw + g.gap/2 : g.x(Math.max(0,nd.lo)) - g.gap/2;
+      return { x0:cx-9, x1:cx+9, empty:true };
+    }
+    return { x0:g.x(nd.lo) - 4, x1:g.x(Math.min(nd.hi, g.n-1)) + g.bw + 4, empty:false };
+  };
+  let edges = '', boxes = '';
+  const walk = (nd, d) => {
+    const b = span(nd), y = rowY(d), cx = (b.x0 + b.x1)/2;
+    nd.kids.forEach(k => {
+      const kb = span(k), ky = rowY(d+1);
+      edges += `<path class="rtedge" d="M ${cx} ${y+RBOX} L ${(kb.x0+kb.x1)/2} ${ky}"/>`;
+      walk(k, d+1);
+    });
+    let cls = 'rt';
+    if (nd.st === 'done') cls += ' done';
+    else if (nd.st === 'base') cls += ' done base';
+    else cls += (nd === live ? ' live' : ' open');
+    const call = (mode === 'merge' ? 'mergeSort(' : 'quickSort(') + nd.lo + ', ' + nd.hi + ')';
+    let inner = `<rect class="rbox" x="${b.x0}" y="${y}" width="${b.x1-b.x0}" height="${RBOX}" rx="3"/>`;
+    if (b.empty){
+      inner += `<text class="rempty" x="${cx}" y="${y+13}" text-anchor="middle">∅</text>`;
+    } else {
+      const txt = s.a.slice(nd.lo, nd.hi+1).map(e => e ? e.v : '_').join(' ');
+      inner += `<text class="rval" x="${cx}" y="${y+13.5}" text-anchor="middle">${esc(txt)}</text>`;
+      /* the split this call chose: merge cuts blindly at mid, quick cuts wherever
+         the data put the pivot — that difference is the whole lesson */
+      if (nd.mid != null && nd.mid < nd.hi)
+        inner += `<line class="rmid" x1="${g.x(nd.mid)+g.bw+g.gap/2}" y1="${y+2}" x2="${g.x(nd.mid)+g.bw+g.gap/2}" y2="${y+RBOX-2}"/>`;
+      if (nd.bnd != null && nd.bnd < nd.hi)
+        inner += `<line class="rmid" x1="${g.x(nd.bnd)+g.bw+g.gap/2}" y1="${y+2}" x2="${g.x(nd.bnd)+g.bw+g.gap/2}" y2="${y+RBOX-2}"/>`;
+      if (nd.piv != null && nd.piv >= nd.lo && nd.piv <= nd.hi)
+        inner += `<rect class="rpiv" x="${g.x(nd.piv)}" y="${y+RBOX-3.5}" width="${g.bw}" height="3.5" rx="1.5"/>`;
+    }
+    boxes += `<g class="${cls}"><title>${esc(call)}</title>${inner}</g>`;
+  };
+  walk(root, 0);
+  let dep = '';
+  for (let d = 0; d <= st.deep; d++)
+    dep += `<text class="rtdep" x="2" y="${rowY(d)+13}">d${d}</text>`;
+  const ideal = Math.max(1, Math.ceil(Math.log2(Math.max(2, g.n))));
+  const cap1 = `recursion tree — one box per ${mode === 'merge' ? 'mergeSort' : 'quickSort'} call, one row per level of the call stack`;
+  const cap2 = `${st.calls} call${st.calls===1?'':'s'} · deepest ${st.deep} (balanced: ${ideal}) · `
+    + (mode === 'merge' ? 'dashed cut = mid, picked without looking at the data'
+                        : 'purple tick = the pivot: final, and in neither child');
+  return `<text class="rtcap" x="${PADX}" y="${top+11}">${esc(cap1)}</text>`
+       + `<text class="rtcap" x="${PADX}" y="${top+24}">${esc(cap2)}</text>`
+       + edges + boxes + dep;
+}
+
+function treeSVG(s, W, top){
+  const n = s.a.length;
+  if (!n) return `<text class="tcap" x="${PADX}" y="${top+20}">heap is empty</text>`;
+  const hs = s.heapSize == null ? n : s.heapSize;
+  const R = 17;
+  const pos = i => {
+    const d = Math.floor(Math.log2(i+1)), cnt = 1 << d, k = i - (cnt - 1);
+    return { x: W * (k + 0.5) / cnt, y: top + 46 + d*58 };
+  };
+  let out = '', edges = '';
+  for (let i=0;i<n;i++){
+    const p = pos(i);
+    for (const c of [2*i+1, 2*i+2]){
+      if (c < n){ const q = pos(c); edges += `<path class="tedge" d="M ${p.x} ${p.y+R} L ${q.x} ${q.y-R}"/>`; }
+    }
+  }
+  for (let i=0;i<n;i++){
+    const p = pos(i), e = s.a[i];
+    if (!e) continue;
+    let cls = s.marks[i] || (i >= hs ? 'done' : '');
+    out += `<g class="tnode ${cls}"><circle cx="${p.x}" cy="${p.y}" r="${R}"/>`
+         + `<text x="${p.x}" y="${p.y+4}" text-anchor="middle">${esc(e.v)}</text>`
+         + `<text class="ti" x="${p.x}" y="${p.y-R-4}" text-anchor="middle">[${i}]</text></g>`;
+  }
+  const cap = s.heapSize != null && s.heapSize < n
+    ? `heap = indices 0..${s.heapSize-1}   ·   faded nodes are already sorted and out of the heap`
+    : `array read as a complete binary tree:  left(i)=2i+1  right(i)=2i+2  parent(i)=(i-1)/2`;
+  return `<text class="tcap" x="${PADX}" y="${top+12}">${esc(cap)}</text>` + edges + out;
+}
+
+function auxSVG(s, g, top){
+  if (s.auxKind === 'merge'){
+    if (!s.L) return `<text class="tcap" x="${PADX}" y="${top+16}">L[] and R[] — the two copies a merge works from — appear once a merge starts</text>`;
+    const cw = 40, cg = 6, ids = hasDups(s.a.filter(e=>e));
+    const row = (arr, cursor, label, y) => {
+      let o = `<text class="rowLbl" x="${PADX}" y="${y-8}">${esc(label)}</text>`;
+      arr.forEach((e,idx) => {
+        const x = PADX + idx*(cw+cg);
+        const cls = cursor === idx ? ' on' : (cursor != null && idx < cursor ? ' fill' : '');
+        o += `<g class="cell${cls}"><rect x="${x}" y="${y}" width="${cw}" height="32" rx="3"/>`
+           + `<text x="${x+cw/2}" y="${y+21}" text-anchor="middle">${esc(e.v)}</text>`
+           + `<text class="lab" x="${x+cw/2}" y="${y+44}" text-anchor="middle">${idx}${ids?' #'+e.id:''}</text></g>`;
+      });
+      return o;
+    };
+    return row(s.L, s.Li, 'L[] — copy of the left half (highlighted = i, faded = already merged out)', top + 20)
+         + row(s.R, s.Rj, 'R[] — copy of the right half (highlighted = j)', top + 92);
+  }
+  if (!s.count) return `<text class="tcap" x="${PADX}" y="${top+16}">count[] and output[] appear once counting sort starts</text>`;
+  const cw = 40, cg = 6;
+  let out = '';
+  out += `<text class="rowLbl" x="${PADX}" y="${top+12}">count[] — ${s.prefix ? 'prefix sums: “how many keys are ≤ i” = the slot just past where key i ends' : 'how many times each key appears'}</text>`;
+  s.count.forEach((c,i) => {
+    const x = PADX + i*(cw+cg), y = top + 22;
+    const on = s.cntMark === i ? ' on' : '';
+    out += `<g class="cell${on}"><rect x="${x}" y="${y}" width="${cw}" height="34" rx="3"/>`
+         + `<text x="${x+cw/2}" y="${y+22}" text-anchor="middle">${c}</text>`
+         + `<text class="lab" x="${x+cw/2}" y="${y+46}" text-anchor="middle">key ${i}</text></g>`;
+  });
+  if (s.output){
+    const oy = top + 100;
+    out += `<text class="rowLbl" x="${PADX}" y="${oy-8}">output[] — filled from the RIGHT end of the input, which is the only reason this sort is stable</text>`;
+    s.output.forEach((e,i) => {
+      const x = g.x(i), on = s.outMark === i ? ' on' : (e ? ' fill' : '');
+      out += `<g class="cell${on}"><rect x="${x}" y="${oy}" width="${g.bw}" height="34" rx="3"/>`
+           + (e ? `<text x="${x+g.bw/2}" y="${oy+22}" text-anchor="middle">${esc(e.v)}</text>` : '')
+           + `<text class="lab" x="${x+g.bw/2}" y="${oy+46}" text-anchor="middle">${i}${e && hasDups(s.a.filter(q=>q)) ? ' #'+e.id : ''}</text></g>`;
+    });
+  }
+  return out;
+}
+
+/* ---------- stats bar ---------- */
+function renderStats(){
+  const s = cur(), a = s.a.filter(e=>e);
+  const box = $('#stats');
+  if (MODES[mode].board){ box.innerHTML = ''; return; }
+  const inv = inversions(a);
+  const parts = [
+    ['comparisons', s.cmp, s.cmp>0],
+    ['swaps', s.swp, s.swp>0],
+    ['array writes', s.wr, s.wr>0],
+    ['passes', s.pass, false],
+    ['inversions left', inv, false],
+    ['n', a.length, false],
+  ];
+  let h = parts.map(([k,v,hot]) => `<span class="stat${hot?' hot':''}">${k} <b>${v}</b></span>`).join('');
+  if (!run && a.length){
+    h += isSorted(a)
+      ? `<span class="stat" style="color:var(--ok)">✓ sorted</span>`
+      : `<span class="stat">not sorted yet</span>`;
+    if (hasDups(a))
+      h += stableOK(a)
+        ? `<span class="stat" style="color:var(--ok)">equal keys still in original order — <b>stable</b></span>`
+        : `<span class="stat" style="color:var(--bad)">equal keys reordered — <b>STABILITY BROKEN</b></span>`;
+  }
+  box.innerHTML = h;
+}
+
+/* ---------- code pane ---------- */
+function renderCode(){
+  const pre = $('#code');
+  if (!run){
+    pre.innerHTML = '<div class="cl dim">// pick an algorithm on the left —</div><div class="cl dim">// its C implementation shows up here</div>';
+    return;
+  }
+  pre.innerHTML = run.op.code.map((l,i) =>
+    `<div class="cl${i === run.line ? ' on' : ''}">${esc(l) || ' '}</div>`).join('');
+  const on = pre.querySelector('.on');
+  if (on) on.scrollIntoView({ block:'nearest' });
+}
+function renderFacts(op){
+  const box = $('#facts');
+  if (!op || !op.facts){ box.innerHTML = ''; return; }
+  const f = op.facts;
+  const yn = (v,label) => `<span class="${v?'y':'n'}">${label} <b>${v?'✅':'❌'}</b></span>`;
+  box.innerHTML =
+      `<span>best <b>${f.best}</b></span><span>avg <b>${f.avg}</b></span><span>worst <b>${f.worst}</b></span>`
+    + `<span>space <b>${f.space}</b></span>`
+    + yn(f.stable,'stable') + yn(f.inplace,'in-place') + yn(f.adaptive,'adaptive');
+}
+function note(msg){ $('#note').textContent = msg; }
+function updateBar(){
+  const on = !!run;
+  $('#btnPrev').disabled = !on || run.n === 0;
+  $('#btnNext').disabled = !on;
+  $('#btnRun').disabled  = !on;
+  $('#btnEnd').disabled  = !on;
+  $('#stepCount').textContent = on ? 'step ' + run.n : '';
+}
+function renderAll(){ render(); renderCode(); renderStats(); updateBar(); }
+
+function logHist(txt, s){
+  const a = s.a.filter(e=>e);
+  const d = document.createElement('div');
+  d.className = 'h-item';
+  let sum = a.map(e=>e.v).join(' ');
+  let extra = '';
+  if (hasDups(a) && !stableOK(a)) extra = `<span class="h-sum h-bad">⚠ stability broken</span>`;
+  d.innerHTML = `<code>${esc(txt)}</code><span class="h-sum">${esc(sum)}</span>`
+              + `<span class="h-sum">cmp ${s.cmp} · swaps ${s.swp} · writes ${s.wr}</span>` + extra;
+  $('#hist').prepend(d);
+}
+
+/* ============================================================
+   STEP RUNNER
+   ============================================================ */
+function startOp(op){
+  if (run) finishRun();
+  if (!MODES[mode].own && $('#autoRestore').checked) setCur(freshState(INPUT));
+  const s = cur();
+  const args = { value: parseInt($('#val').value,10) };
+  if (op.needsValue && isNaN(args.value)){ note('Type a value in the box first.'); return; }
+  if (op.check){ const err = op.check(s, args); if (err){ note(err); return; } }
+  /* clear counters for a fresh measurement of this algorithm */
+  s.cmp = 0; s.swp = 0; s.wr = 0; s.pass = 0;
+  s.marks = {}; s.ptrs = {}; s.notes = {}; s.sortedL = 0; s.sortedR = 0; s.out = '';
+  s.held = null; s.hole = null;
+  s.count = null; s.output = null; s.prefix = false; s.outMark = null; s.cntMark = null;
+  s.cell = {}; s.range = null; s.callStack = []; s.auxKind = null; s.L = null; s.R = null;
+  s.rtree = null; s.rpath = [];
+  run = { op, args, snap: clone(s), gen: op.gen(s, args), n:0, line:-1 };
+  document.body.classList.add('running');
+  $('#opName').textContent = op.sig ? op.sig(args) : op.label;
+  renderFacts(op);
+  $('#lesson').innerHTML = op.lesson ? op.lesson : '';
+  note('Press Next ⟩ to execute one line at a time — or Run ▶▶ to autoplay.');
+  renderAll();
+}
+function stepFwd(){
+  if (!run) return;
+  const r = run.gen.next();
+  if (r.done){ finishRun(); return; }
+  run.n++; run.line = r.value[0];
+  note(r.value[1]);
+  renderAll();
+}
+function stepBack(){
+  if (!run || run.n === 0) return;
+  const target = run.n - 1;
+  setCur(clone(run.snap));
+  run.gen = run.op.gen(cur(), run.args);
+  run.n = 0; run.line = -1;
+  let msg = 'Back at the start — nothing executed yet.';
+  for (let i=0;i<target;i++){
+    const r = run.gen.next();
+    if (r.done) break;
+    run.n++; run.line = r.value[0]; msg = r.value[1];
+  }
+  note(msg);
+  renderAll();
+}
+function finishRun(){
+  if (!run) return;
+  stopAuto();
+  let r, guard = 0;
+  while (!(r = run.gen.next()).done && ++guard < 100000){ run.n++; run.line = r.value[0]; }
+  const s = cur();
+  s.marks = {}; s.ptrs = {};
+  const sig = run.op.sig ? run.op.sig(run.args) : run.op.label;
+  logHist(sig, s);
+  const a = s.a.filter(e=>e);
+  let msg = '✓ ' + sig + ' finished — ' + s.cmp + ' comparisons, ' + s.swp + ' swaps, ' + s.wr + ' array writes.';
+  if (a.length && !isSorted(a)) msg += '  ⚠ The array is NOT sorted. That is the point of this one — read the code again.';
+  if (hasDups(a)) msg += stableOK(a)
+    ? '  Equal keys kept their original order: stable ✅'
+    : '  ⚠ Equal keys came out in a different order than they went in — this algorithm is NOT stable.';
+  if (run.op.finishNote) msg += '  ' + run.op.finishNote(s);
+  run = null;
+  document.body.classList.remove('running');
+  note(msg);
+  renderAll();
+}
+function toggleAuto(){
+  if (!run) return;
+  if (timer){ stopAuto(); return; }
+  $('#btnRun').textContent = 'Pause ⏸';
+  timer = setInterval(() => { if (!run){ stopAuto(); return; } stepFwd(); }, 620);
+}
+function stopAuto(){ clearInterval(timer); timer = null; $('#btnRun').textContent = 'Run ▶▶'; }
+
+/* ============================================================
+   THEME
+   ============================================================ */
+/* three states, cycled by one button: auto (follow the OS) → light → dark.
+   "auto" is the absence of data-theme, which is what lets the
+   prefers-color-scheme block in the stylesheet win. */
+const THEMES = ['auto','light','dark'];
+const THEME_ICON = { auto:'◐', light:'☀', dark:'☾' };
+const THEME_KEY = 'sortinglab.theme';
+const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+
+function readTheme(){
+  let t = null;
+  try { t = localStorage.getItem(THEME_KEY); } catch(e){}
+  return THEMES.includes(t) ? t : 'auto';
+}
+function applyTheme(t){
+  if (t === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = t;
+  try { t === 'auto' ? localStorage.removeItem(THEME_KEY) : localStorage.setItem(THEME_KEY, t); } catch(e){}
+  paintThemeBtn(t);
+}
+function paintThemeBtn(t){
+  const b = $('#themeBtn');
+  const resolved = t === 'auto' ? (darkMQ.matches ? 'dark' : 'light') : t;
+  b.innerHTML = `<span class="ic">${THEME_ICON[t]}</span>${t}`;
+  b.setAttribute('aria-label', `theme: ${t}${t === 'auto' ? ' (currently ' + resolved + ')' : ''} — click to change`);
+}
+function cycleTheme(){
+  const next = THEMES[(THEMES.indexOf(readTheme()) + 1) % THEMES.length];
+  applyTheme(next);
+  note('Theme: ' + next + (next === 'auto' ? ' — following your system setting.' : '.'));
+}
+
+/* ============================================================
+   CHROME
+   ============================================================ */
+function setMode(m){
+  if (run) finishRun();
+  mode = m;
+  [...$('#tabs').children].forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  $('#valRow').style.display = m === 'pq' ? 'flex' : 'none';
+  buildOps();
+  $('#opName').textContent = MODES[m].board ? 'the scoreboard' : 'pick an algorithm ←';
+  renderFacts(null);
+  $('#lesson').innerHTML = '';
+  if (m === 'heap' || m === 'pq'){ const s = cur(); if (s.heapSize == null) s.heapSize = s.a.length; }
+  if (m === 'board') renderBoard();
+  note(MODES[m].board
+    ? 'Three weeks of rows in one table — plus a live race of every algorithm on the current input.'
+    : MODES[m].label + ' selected.');
+  renderAll();
+}
+function buildTabs(){
+  $('#tabs').innerHTML = '';
+  Object.entries(MODES).forEach(([m,cfg]) => {
+    const b = document.createElement('button');
+    b.textContent = cfg.label; b.dataset.m = m;
+    b.onclick = () => setMode(m);
+    $('#tabs').appendChild(b);
+  });
+}
+function buildOps(){
+  const wrap = $('#ops');
+  wrap.innerHTML = '';
+  if (MODES[mode].board){
+    const h = document.createElement('h3'); h.textContent = 'Scoreboard'; wrap.appendChild(h);
+    const g = document.createElement('div'); g.className = 'grp'; wrap.appendChild(g);
+    const b = document.createElement('button');
+    b.textContent = '▶ race every algorithm';
+    b.onclick = () => { renderBoard(true); };
+    g.appendChild(b);
+    return;
+  }
+  const groups = [['main','Algorithms'],['aux','Pieces & variants'],['bug','⚠ Traps & bugs']];
+  groups.forEach(([gid,label]) => {
+    const list = (OPS[mode] || []).filter(o => (o.group || 'main') === gid);
+    if (!list.length) return;
+    const h = document.createElement('h3'); h.textContent = label; wrap.appendChild(h);
+    const g = document.createElement('div'); g.className = 'grp'; wrap.appendChild(g);
+    list.forEach(op => {
+      const b = document.createElement('button');
+      if (gid === 'bug') b.className = 'bug';
+      b.innerHTML = `<span>${esc(op.label)}</span>` + (op.hint ? `<span class="hint">${esc(op.hint)}</span>` : '');
+      b.onclick = () => startOp(op);
+      g.appendChild(b);
+    });
+  });
+  if (mode === 'pq'){
+    const h = document.createElement('h3'); h.textContent = 'Utility'; wrap.appendChild(h);
+    const g = document.createElement('div'); g.className = 'grp'; wrap.appendChild(g);
+    const b1 = document.createElement('button'); b1.className='util'; b1.textContent = 'load the input array as a heap';
+    b1.onclick = () => { PQ = freshState(INPUT); PQ.heapSize = PQ.a.length; buildHeapInPlace(PQ); logHist('buildMaxHeap(input)', PQ); renderAll(); };
+    const b2 = document.createElement('button'); b2.className='util'; b2.textContent = 'empty the queue';
+    g.appendChild(b1); g.appendChild(b2);
+    b2.onclick = () => { PQ = freshState([]); PQ.heapSize = 0; renderAll(); };
+  }
+}
+function buildHeapInPlace(s){
+  const n = s.a.length;
+  const sift = (hn,i) => {
+    let largest = i, l = 2*i+1, r = 2*i+2;
+    if (l < hn && s.a[l].v > s.a[largest].v) largest = l;
+    if (r < hn && s.a[r].v > s.a[largest].v) largest = r;
+    if (largest !== i){ swap(s,i,largest); sift(hn,largest); }
+  };
+  for (let i = (n>>1)-1; i>=0; i--) sift(n,i);
+}
+
+/* ---------- input controls ---------- */
+function buildPresets(){
+  const sel = $('#preset');
+  sel.innerHTML = PRESETS.map(p => `<option value="${p.id}">${esc(p.label)}</option>`).join('');
+  sel.onchange = () => applyPreset(sel.value);
+}
+function applyPreset(id){
+  const p = PRESETS.find(x => x.id === id);
+  if (!p) return;
+  const n = Math.min(16, Math.max(3, parseInt($('#size').value,10) || 8));
+  setInput(p.a ? p.a.slice() : p.gen(n));
+}
+function setInput(arr){
+  if (run) finishRun();
+  INPUT = arr.slice(0,16);
+  S = freshState(INPUT);
+  if (MODES[mode].tree) S.heapSize = S.a.length;
+  $('#custom').value = INPUT.join(' ');
+  note('Input set to  ' + INPUT.join(' ') + '  — ' + inversions(S.a) + ' inversion' + (inversions(S.a)===1?'':'s') + ' to remove.');
+  renderAll();
+  if (mode === 'board') renderBoard();
+}
+
+/* ============================================================
+   THE SCOREBOARD + RACE
+   ============================================================ */
+/* name, best, avg, worst, space, stable, in-place, adaptive, comparison?, online? */
+const SCOREBOARD = [
+  ['Bubble (naive)',   'O(n²)','O(n²)','O(n²)','O(1)',1,1,0,1,0],
+  ['Bubble (+flag)',   'O(n)', 'O(n²)','O(n²)','O(1)',1,1,1,1,0],
+  ['Cocktail Shaker',  'O(n)', 'O(n²)','O(n²)','O(1)',1,1,1,1,0],
+  ['Insertion',        'O(n)', 'O(n²)','O(n²)','O(1)',1,1,1,1,1],
+  ['Selection',        'O(n²)','O(n²)','O(n²)','O(1)',0,1,0,1,0],
+  ['Heap',             'O(n log n)','O(n log n)','O(n log n)','O(1)',0,1,0,1,0],
+  ['Quick',            'O(n log n)','O(n log n)','O(n²)','O(log n)',0,1,0,1,0],
+  ['Merge',            'O(n log n)','O(n log n)','O(n log n)','O(n)',1,0,0,1,0],
+  ['Counting',         'O(n+k)','O(n+k)','O(n+k)','O(n+k)',1,0,0,0,0],
+];
+/* Scenario cards — the CO6 judgment drill (plan Session 4, Segment 4).
+   Every option carries its own rebuttal: a wrong pick with a reason is worth
+   more than a right pick with none, so no option is left un-explained. */
+const SCENARIOS = [
+ { tag:'Card 1 — the key range', q:'You must sort <b>1,000,000 integers</b>, and every value is in the range <b>0–100</b>.',
+   opts:[
+    {a:'Quick sort',    why:'Fast, cache-friendly, and still burning ~20 million comparisons you never needed. You were <em>told</em> the key range — an algorithm that ignores free information is the wrong tool, not a slow one.'},
+    {a:'Counting sort', ok:1, why:'k = 101, n = 1,000,000, so k ≪ n and O(n+k) is linear in practice: one pass to count, one to place. It sidesteps the Ω(n log n) comparison bound by never comparing two elements at all.'},
+    {a:'Merge sort',    why:'n log n <em>and</em> a million-element scratch buffer. You pay both prices — time and memory — and gain nothing the input does not already hand you for free.'},
+    {a:'Heap sort',     why:'A worst-case guarantee you were never asked for. Nothing here says “deadline”, and n log n when O(n) is sitting on the table is just slower.'}]},
+
+ { tag:'Card 2 — adaptivity', q:'<b>100,000 records</b>, already <b>nearly sorted</b> — a handful of recent additions sit at the end.',
+   opts:[
+    {a:'Selection sort', why:'Not adaptive, and that is structural. Sorted, nearly sorted or shuffled, it performs exactly n(n−1)/2 comparisons. “Nearly sorted” is information it has no mechanism to use.'},
+    {a:'Heap sort',      why:'n log n whatever you feed it. Here that is a limitation dressed as a guarantee — it does full price work on data that is already almost done.'},
+    {a:'Insertion sort', ok:1, why:'The cost is O(n + inversions). A few late additions means few inversions, so this runs near-linear and beats heap sort in wall-clock time — even though heap sort’s worst-case column looks better on paper.'},
+    {a:'Counting sort',  why:'Needs a small, known integer key range. “Records, nearly sorted” tells you nothing about k — and if the keys are arbitrary ints, the count array dwarfs the data.'}]},
+
+ { tag:'Card 3 — the write budget', q:'A chip where <b>every write burns a limited-lifetime memory cell</b>. Comparisons are free; writes are the scarce resource.',
+   opts:[
+    {a:'Insertion sort', why:'Comparison-cheap and write-expensive — exactly backwards for this hardware. It shifts on nearly every step: O(n²) writes in the worst case.'},
+    {a:'Merge sort',     why:'The worst possible pick. Every level copies the whole array — roughly n log n writes — <em>plus</em> scratch memory you may not have.'},
+    {a:'Quick sort',     why:'Partitioning swaps constantly. Excellent on a CPU, ruinous against a write budget — you are optimizing the one resource that is free.'},
+    {a:'Selection sort', ok:1, why:'At most <b>n−1 writes</b>, the fewest of any comparison sort, and the entire reason this algorithm still ships in 2026. Its O(n²) comparisons cost nothing here, because comparisons do not burn cells.'}]},
+
+ { tag:'Card 4 — the tail risk', q:'A <b>real-time system</b> where a missed deadline is a <b>hard failure</b>, not a slow frame.',
+   opts:[
+    {a:'Quick sort',     why:'The best average speed in the module, and an O(n²) tail. On a hard-deadline system you do not size for the average — you size for the worst, and this worst is unacceptable no matter how rare.'},
+    {a:'Heap sort',      ok:1, why:'O(n log n) worst case, guaranteed, in place. No input degrades it and no adversary can construct one — that guarantee <em>is</em> the product here, and it is exactly what quick sort cannot sell you.'},
+    {a:'Insertion sort', why:'O(n²) worst case. Fine at n = 12, indefensible when you must <em>prove</em> the deadline holds.'},
+    {a:'Counting sort',  why:'Linear, but only when k is small and known. An unstated key range is unbounded time <em>and</em> unbounded memory. You cannot certify what you cannot bound.'}]},
+
+ { tag:'Card 5 — when n is tiny', q:'<b>n = 12</b>, inside a loop that runs <b>a million times</b>.',
+   opts:[
+    {a:'Insertion sort', ok:1, why:'At n = 12 asymptotics are noise — the constant factor is the whole race. Zero setup, no recursion, no allocation, cache-hot data. This is not a compromise: introsort and Timsort both switch to insertion sort for small sub-arrays for exactly this reason.'},
+    {a:'Merge sort',     why:'Allocates a scratch buffer a million times. The allocator costs more than the sorting does.'},
+    {a:'Heap sort',      why:'A guarantee you do not need at n = 12, bought with a heavy constant and terrible cache locality. The “better” complexity loses the actual race.'},
+    {a:'Quick sort',     why:'Recursion overhead and pivot bookkeeping on twelve elements. Real quick sort implementations stop recursing well above this size and hand off to — insertion sort.'}]},
+
+ { tag:'Card 6 — the hard filter', q:'Sort student records by <b>marks</b>. Students with equal marks <b>must stay in roll-number order</b>.',
+   opts:[
+    {a:'Heap sort',      why:'O(n log n), in place, and it will cheerfully scramble students on equal marks. Every complexity column is irrelevant when the output is wrong.'},
+    {a:'Quick sort',     why:'Fast and unstable. Lomuto partitioning flings equal keys across the pivot in whatever order it meets them — the tie order is destroyed by design.'},
+    {a:'Selection sort', why:'Unstable — the long-distance swap jumps an element over equal keys — <em>and</em> O(n²). Wrong on both axes at once.'},
+    {a:'Merge sort',     ok:1, why:'Stability is a <b>hard filter</b>: apply it before you read a single complexity column. Merge is the only stable option offered here, and it holds O(n log n) while doing it. (Insertion and counting sort would also qualify — stability is the requirement, merge sort is just the one that scales.)'}]},
+];
+const SCEN_PICK = {};
+function pickScenario(i, j){ SCEN_PICK[i] = j; renderScenarios(); }
+function resetScenarios(){ Object.keys(SCEN_PICK).forEach(k => delete SCEN_PICK[k]); renderScenarios(); }
+function renderScenarios(){
+  const box = $('#scen');
+  if (!box) return;
+  const answered = Object.keys(SCEN_PICK).length;
+  const right = Object.keys(SCEN_PICK).filter(i => SCENARIOS[i].opts[SCEN_PICK[i]].ok).length;
+  let h = `<div class="cards">`;
+  SCENARIOS.forEach((sc, i) => {
+    const pick = SCEN_PICK[i];
+    const done = pick !== undefined;
+    h += `<div class="card"><div class="lbl">${esc(sc.tag)}</div><div class="q">${sc.q}</div>`;
+    sc.opts.forEach((o, j) => {
+      let cls = 'opt';
+      if (done){
+        if (j === pick) cls += o.ok ? ' ok' : ' no';
+        else if (o.ok)  cls += ' ok';
+      }
+      h += `<button class="${cls}"${done ? ' disabled' : ''} onclick="pickScenario(${i},${j})">`
+         + `${done && o.ok ? '✅ ' : done && j === pick ? '❌ ' : ''}${esc(o.a)}</button>`;
+    });
+    if (done){
+      const o = sc.opts[pick];
+      h += `<div class="why"><b>${o.ok ? 'Defensible.' : 'Not this one.'}</b> ${o.why}`;
+      if (!o.ok) h += `<br><br><b>${esc(sc.opts.find(x=>x.ok).a)}:</b> ${sc.opts.find(x=>x.ok).why}`;
+      h += `</div>`;
+    }
+    h += `</div>`;
+  });
+  h += `</div>`;
+  h += `<p>${answered ? `Defended ${answered}/${SCENARIOS.length} — ${right} on the expected answer. ` : ''}`
+     + `Pick one per card; every option explains itself, including the ones you did not choose. `
+     + `A wrong pick with a real reason is worth more than a right pick with none — read the rebuttals either way.</p>`;
+  if (answered) h += `<button class="raceBtn" onclick="resetScenarios()">↺ clear answers</button>`;
+  box.innerHTML = h;
+}
+
+function raceable(){
+  const out = [];
+  Object.keys(OPS).forEach(m => (OPS[m]||[]).forEach(op => { if (op.race) out.push(op); }));
+  return out;
+}
+function renderBoard(withRace){
+  const b = $('#board');
+  let h = `<h2>The Scoreboard — every algorithm in Module IV</h2>`
+        + `<p>Read it by <em>column</em>, not by row. Heap is the only comparison sort that is O(n log n) in the <em>worst</em> case — that's the guarantee column. Counting is the only ❌ under “comparison?”, and the only one that beats n log n: those two facts are the same fact. Insertion is the only ✅ under “online?” — it can sort a stream, taking each element as it arrives and never needing to see the rest; every other algorithm here must hold the whole array before it can start.</p>`
+        + `<table class="sc"><thead><tr><th>Algorithm</th><th>Best</th><th>Average</th><th>Worst</th><th>Space</th><th>Stable</th><th>In-place</th><th>Adaptive</th><th>Comparison?</th><th>Online?</th></tr></thead><tbody>`;
+  SCOREBOARD.forEach(r => {
+    h += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td>`
+       + [5,6,7,8,9].map(i => `<td class="${r[i]?'g':'r'}">${r[i]?'✅':'❌'}</td>`).join('') + `</tr>`;
+  });
+  h += `</tbody></table>`;
+  h += `<p class="nb" style="margin-top:10px"><b>Reading the notation.</b> Every cell above is Big-O — an upper bound, “grows no faster than”. The three case columns are three <em>separate questions</em> about the same algorithm, not three bounds on one number, so a cell only ever describes the case named in its header. That is why <b>“bubble sort is O(n)” is false</b>: O(n) is the best-case cell, not the algorithm. Where best and worst agree — heap, merge, counting — the bound is tight and the row is a <em>guarantee</em>. Where they disagree — quick sort — the gap between the columns is the risk, and Card 4 below is about paying for it.</p>`;
+  h += `<p style="margin-top:10px">Tables lie by omission: nothing above tells you selection sort does at most <b>n−1 writes</b> — the fewest of any of them. Run the race and watch the write column.</p>`;
+
+  h += `<h2>Live race — current input: <code style="font-family:var(--mono)">${esc(INPUT.join(' '))}</code></h2>`;
+  if (!withRace){
+    h += `<p>Every algorithm, same input, counters on. Press the button in the rail (or here) to run them all to completion.</p>`
+       + `<button class="raceBtn" onclick="renderBoard(true)">▶ race every algorithm</button>`;
+  } else {
+    const rows = [];
+    raceable().forEach(op => {
+      const s = freshState(INPUT);
+      if (op.check){ const err = op.check(s, {}); if (err){ rows.push({ name:op.label, skip:err }); return; } }
+      const g = op.gen(s, {}); let steps = 0, r;
+      while (!(r = g.next()).done && ++steps < 200000){}
+      const a = s.a.filter(e=>e);
+      rows.push({ name:op.label, cmp:s.cmp, swp:s.swp, wr:s.wr, pass:s.pass, steps,
+                  sorted:isSorted(a), stable:!hasDups(a) ? null : stableOK(a) });
+    });
+    const done = rows.filter(r => !r.skip);
+    const minCmp = Math.min(...done.map(r => r.cmp));
+    const minWr  = Math.min(...done.map(r => r.wr));
+    h += `<table class="sc"><thead><tr><th>Algorithm</th><th>Comparisons</th><th>Swaps</th><th>Array writes</th><th>Passes</th><th>Sorted?</th><th>Stable on this input</th></tr></thead><tbody>`;
+    rows.forEach(r => {
+      if (r.skip){ h += `<tr><td>${esc(r.name)}</td><td colspan="6" style="text-align:left;color:var(--mut)">${esc(r.skip)}</td></tr>`; return; }
+      h += `<tr><td>${esc(r.name)}</td>`
+         + `<td class="num${r.cmp===minCmp?' g':''}">${r.cmp}</td><td class="num">${r.swp}</td>`
+         + `<td class="num${r.wr===minWr?' g':''}">${r.wr}</td><td class="num">${r.pass||'—'}</td>`
+         + `<td class="${r.sorted?'g':'r'}">${r.sorted?'✅':'❌'}</td>`
+         + `<td class="${r.stable===null?'':r.stable?'g':'r'}">${r.stable===null?'—':r.stable?'✅':'❌ broken'}</td></tr>`;
+    });
+    h += `</tbody></table>`;
+    h += `<p style="margin-top:10px">Green = the winner of that column on this input. Change the input on the left and race again — the winner changes, and <b>that</b> is the whole module: an algorithm is not good or bad, it is good or bad <em>for an input</em>.</p>`;
+    h += `<p>“Stable on this input” is measured, not asserted: every element carries its original index, and the check asks whether equal keys came out in that order. A “—” just means this input has no duplicate keys, so stability is unobservable.</p>`;
+  }
+
+  h += `<h2>Scenario cards — the defence</h2>`;
+  h += `<p>The scoreboard tells you what each algorithm <em>is</em>. These ask the only question that matters in an exam or a code review: <b>which one, for this input, and why?</b> Two minutes to decide, one minute to defend.</p>`;
+  h += `<div id="scen"></div>`;
+  b.innerHTML = h;
+  renderScenarios();
+}
+
+/* ============================================================
+   ALGORITHMS — C source + step scripts
+   ============================================================ */
+const F = (best,avg,worst,space,stable,inplace,adaptive) =>
+  ({best,avg,worst,space,stable,inplace,adaptive});
+const NEEDDUP = s => hasDups(s.a.filter(e=>e))
+  ? null : 'This demo only shows anything if the input has DUPLICATE keys. Pick “4 4 1”, “few unique”, or the counting-sort array first.';
+
+const OPS = {};
+
+/* ------------------------------------------------ BUBBLE ---- */
+OPS.bubble = [
+{ label:'naive bubble sort', hint:'no optimizations', race:true,
+  sig:()=>'bubbleNaive(a, n)',
+  facts:F('O(n²)','O(n²)','O(n²)','O(1)',1,1,0),
+  lesson:'<b>Why it can never be fast:</b> the inner loop runs the full width every single pass, so it does n(n−1) comparisons no matter what you feed it. It cannot detect that it has finished. Every optimization below attacks exactly that defect.',
+  code:C(`
+void bubbleNaive(int a[], int n) {
+    for (int i = 0; i < n - 1; i++)
+        for (int j = 0; j < n - 1; j++)   /* full width */
+            if (a[j] > a[j + 1])
+                swap(&a[j], &a[j + 1]);
+}`),
+  gen:function*(s){
+    const n = s.a.length;
+    for (let i=0;i<n-1;i++){
+      s.pass++; s.marks = {}; s.ptrs = { i:i };
+      yield [1, 'Pass ' + (i+1) + ' (i = ' + i + '). The inner loop will scan all the way to the end — including the ' + i + ' element' + (i===1?'':'s') + ' we already know are parked.'];
+      for (let j=0;j<n-1;j++){
+        s.ptrs = { i:i, j:j };
+        s.marks = {}; s.marks[j] = 'cmp'; s.marks[j+1] = 'cmp';
+        s.cmp++;
+        const big = s.a[j].v > s.a[j+1].v;
+        yield [3, 'a[' + j + '] = ' + s.a[j].v + '  vs  a[' + (j+1) + '] = ' + s.a[j+1].v + ' → ' + (big ? 'out of order.' : 'already in order, no swap.') + (j >= n-1-i ? '  (…and this pair is inside the sorted tail. Wasted work.)' : '')];
+        if (big){
+          swap(s,j,j+1);
+          s.marks = {}; s.marks[j] = 'swap'; s.marks[j+1] = 'swap';
+          yield [4, 'swap → ' + fmt(s) + '   (swap #' + s.swp + ')'];
+        }
+      }
+      s.sortedR = i+1; s.marks = {};
+      yield [1, 'End of pass ' + (i+1) + ': the largest remaining value has bubbled to index ' + (n-1-i) + '. Comparisons so far: ' + s.cmp + '.'];
+    }
+    s.sortedR = n; s.marks = {}; s.ptrs = {};
+    yield [5, 'Done: ' + s.cmp + ' comparisons — exactly (n−1)² = ' + ((n-1)*(n-1)) + ', regardless of the input. O(n²) in best, average AND worst case.'];
+  } },
+
+{ label:'+ shrinking boundary', hint:'opt 1', race:true,
+  sig:()=>'bubbleShrink(a, n)',
+  facts:F('O(n²)','O(n²)','O(n²)','O(1)',1,1,0),
+  lesson:'<b>Did that change the complexity class, or just the constant?</b> Just the constant. You halved the comparisons — n(n−1)/2 instead of n(n−1) — and the algorithm is still O(n²) in every case. This is the optimization that <em>feels</em> biggest and asymptotically means nothing.',
+  code:C(`
+void bubbleShrink(int a[], int n) {
+    for (int i = 0; i < n - 1; i++)
+        for (int j = 0; j < n - i - 1; j++)  /* skip tail */
+            if (a[j] > a[j + 1])
+                swap(&a[j], &a[j + 1]);
+}`),
+  gen:function*(s){
+    const n = s.a.length;
+    for (let i=0;i<n-1;i++){
+      s.pass++; s.marks = {}; s.ptrs = { i:i };
+      yield [1, 'Pass ' + (i+1) + ': inner loop now stops at j < ' + (n-i-1) + ' — the last ' + i + ' slot' + (i===1?'':'s') + ' are provably done, so we skip them.'];
+      for (let j=0;j<n-i-1;j++){
+        s.ptrs = { i:i, j:j };
+        s.marks = {}; s.marks[j] = 'cmp'; s.marks[j+1] = 'cmp';
+        s.cmp++;
+        const big = s.a[j].v > s.a[j+1].v;
+        yield [3, 'a[' + j + '] = ' + s.a[j].v + '  vs  a[' + (j+1) + '] = ' + s.a[j+1].v + ' → ' + (big ? 'swap needed.' : 'in order.')];
+        if (big){
+          swap(s,j,j+1);
+          s.marks = {}; s.marks[j] = 'swap'; s.marks[j+1] = 'swap';
+          yield [4, 'swap → ' + fmt(s)];
+        }
+      }
+      s.sortedR = i+1; s.marks = {};
+      yield [1, 'Pass ' + (i+1) + ' done. Comparisons so far: ' + s.cmp + '.'];
+    }
+    s.sortedR = n; s.marks = {}; s.ptrs = {};
+    yield [5, 'Total ' + s.cmp + ' comparisons = n(n−1)/2. Half of naive — and still O(n²). Asymptotic analysis does not care how clever you feel.'];
+  } },
+
+{ label:'+ early-exit flag', hint:'opt 2 — best case O(n)', race:true,
+  sig:()=>'bubbleFlag(a, n)',
+  facts:F('O(n)','O(n²)','O(n²)','O(1)',1,1,1),
+  lesson:'<b>This one-line hack DOES change the complexity class.</b> On already-sorted input the flag stays 0 after one pass and the function returns after n−1 comparisons: best case O(n), and bubble sort becomes <em>adaptive</em>. But careful — “bubble sort is O(n)” is false. Best case ≠ the algorithm’s complexity, and that conflation is a guaranteed exam trap.',
+  code:C(`
+void bubbleFlag(int a[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        int swapped = 0;
+        for (int j = 0; j < n - i - 1; j++)
+            if (a[j] > a[j + 1]) {
+                swap(&a[j], &a[j + 1]);
+                swapped = 1;
+            }
+        if (!swapped) break;      /* nothing moved */
+    }
+}`),
+  gen:function*(s){
+    const n = s.a.length;
+    for (let i=0;i<n-1;i++){
+      s.pass++; s.marks = {}; s.ptrs = { i:i };
+      let swapped = 0;
+      s.notes = { swapped:0 };
+      yield [2, 'Pass ' + (i+1) + ': swapped = 0. If this pass moves nothing, the array was already sorted and we can stop.'];
+      for (let j=0;j<n-i-1;j++){
+        s.ptrs = { i:i, j:j };
+        s.marks = {}; s.marks[j] = 'cmp'; s.marks[j+1] = 'cmp';
+        s.cmp++;
+        const big = s.a[j].v > s.a[j+1].v;
+        yield [4, 'a[' + j + '] = ' + s.a[j].v + '  vs  a[' + (j+1) + '] = ' + s.a[j+1].v + ' → ' + (big ? 'swap needed.' : 'in order.')];
+        if (big){
+          swap(s,j,j+1);
+          s.marks = {}; s.marks[j] = 'swap'; s.marks[j+1] = 'swap';
+          yield [5, 'swap → ' + fmt(s)];
+          swapped = 1; s.notes = { swapped:1 };
+          yield [6, 'swapped = 1 — this pass was not wasted, so we will need another one.'];
+        }
+      }
+      s.sortedR = i+1; s.marks = {};
+      if (!swapped){
+        yield [8, 'swapped is still 0 — a whole pass with no movement means the array is sorted. break out, skipping every remaining pass.'];
+        s.sortedR = n; s.ptrs = {}; s.notes = {};
+        yield [9, 'Finished after only ' + s.pass + ' pass' + (s.pass===1?'':'es') + ' and ' + s.cmp + ' comparisons. On sorted input this is n−1 comparisons: O(n).'];
+        return;
+      }
+      yield [8, 'swapped = 1 → keep going. ' + s.cmp + ' comparisons so far.'];
+    }
+    s.sortedR = n; s.marks = {}; s.ptrs = {}; s.notes = {};
+    yield [10, 'Done in ' + s.pass + ' passes, ' + s.cmp + ' comparisons.'];
+  } },
+
+{ label:'+ last-swap boundary', hint:'opt 3', race:true,
+  sig:()=>'bubbleLastSwap(a, n)',
+  facts:F('O(n)','O(n²)','O(n²)','O(1)',1,1,1),
+  lesson:'<b>Constant factor again — but a good one.</b> Everything past the final swap of a pass is already in order, so the next boundary jumps there instead of moving one slot. On nearly-sorted data it can retire several positions per pass. Still O(n²) worst case.',
+  code:C(`
+void bubbleLastSwap(int a[], int n) {
+    int end = n - 1;
+    while (end > 0) {
+        int lastSwap = 0;
+        for (int j = 0; j < end; j++)
+            if (a[j] > a[j + 1]) {
+                swap(&a[j], &a[j + 1]);
+                lastSwap = j;     /* rest is settled */
+            }
+        end = lastSwap;
+    }
+}`),
+  gen:function*(s){
+    const n = s.a.length;
+    let end = n-1;
+    s.notes = { end:end };
+    yield [1, 'end = ' + end + ' — the last index the inner loop is allowed to touch.'];
+    while (end > 0){
+      s.pass++;
+      let last = 0;
+      s.notes = { end:end, lastSwap:0 };
+      yield [3, 'Pass ' + s.pass + ': lastSwap = 0. We will remember where the final swap happened.'];
+      for (let j=0;j<end;j++){
+        s.ptrs = { j:j };
+        s.marks = {}; s.marks[j] = 'cmp'; s.marks[j+1] = 'cmp';
+        s.cmp++;
+        const big = s.a[j].v > s.a[j+1].v;
+        yield [5, 'a[' + j + '] = ' + s.a[j].v + '  vs  a[' + (j+1) + '] = ' + s.a[j+1].v + ' → ' + (big ? 'swap.' : 'in order.')];
+        if (big){
+          swap(s,j,j+1);
+          s.marks = {}; s.marks[j]='swap'; s.marks[j+1]='swap';
+          last = j; s.notes = { end:end, lastSwap:last };
+          yield [7, 'swap → ' + fmt(s) + '.  lastSwap = ' + j + '.'];
+        }
+      }
+      const jumped = end - last;
+      end = last;
+      s.sortedR = n - 1 - end;
+      s.marks = {}; s.notes = { end:end, lastSwap:last };
+      yield [9, 'end = lastSwap = ' + end + ' — we just retired ' + jumped + ' position' + (jumped===1?'':'s') + ' in one go. The plain version would have retired exactly 1.'];
+    }
+    s.sortedR = n; s.ptrs = {}; s.notes = {};
+    yield [11, 'end reached 0 — sorted. ' + s.cmp + ' comparisons, ' + s.pass + ' passes.'];
+  } },
+
+{ label:'the >= keystroke', group:'bug', hint:'breaks stability',
+  sig:()=>'bubbleSort with a[j] >= a[j+1]',
+  check:NEEDDUP,
+  facts:F('O(n²)','O(n²)','O(n²)','O(1)',0,1,0),
+  lesson:'<b>One character.</b> Bubble sort is stable only because the test is a strict <code>&gt;</code>, so equal elements are never swapped past each other. Change it to <code>&gt;=</code> and the output is still correctly sorted — and the original order of equal keys is silently destroyed. Watch the #n labels.',
+  code:C(`
+void bubbleSort(int a[], int n) {          /* stability destroyed */
+    for (int i = 0; i < n - 1; i++)
+        for (int j = 0; j < n - i - 1; j++)
+            if (a[j] >= a[j + 1])   /* was:  >  */
+                swap(&a[j], &a[j + 1]);
+}`),
+  gen:function*(s){
+    const n = s.a.length;
+    for (let i=0;i<n-1;i++){
+      s.pass++;
+      for (let j=0;j<n-i-1;j++){
+        s.ptrs = { i:i, j:j };
+        s.marks = {}; s.marks[j]='cmp'; s.marks[j+1]='cmp';
+        s.cmp++;
+        const eq = s.a[j].v === s.a[j+1].v;
+        const big = s.a[j].v >= s.a[j+1].v;
+        yield [3, 'a[' + j + '] = ' + s.a[j].v + '  vs  a[' + (j+1) + '] = ' + s.a[j+1].v + (eq ? ' → EQUAL. With >= this counts as “out of order” and we are about to swap two identical keys for no reason.' : (big ? ' → swap.' : ' → in order.'))];
+        if (big){
+          swap(s,j,j+1);
+          s.marks = {}; s.marks[j]='swap'; s.marks[j+1]='swap';
+          yield [4, eq ? 'Swapped two EQUAL keys — #' + s.a[j].id + ' and #' + s.a[j+1].id + ' just changed places. Nothing about the numbers changed; the record order did.' : 'swap → ' + fmt(s)];
+        }
+      }
+      s.sortedR = i+1; s.marks = {};
+      yield [1, 'End of pass ' + (i+1) + '.'];
+    }
+    s.sortedR = n; s.ptrs = {};
+    yield [5, 'Sorted — and every pair of equal keys has been flipped. If those numbers were marks and the payload was a student name, you just shuffled the result sheet.'];
+  } },
+];
+
+/* ---------------------------------------------- COCKTAIL ---- */
+OPS.cocktail = [
+{ label:'cocktail shaker sort', hint:'bidirectional', race:true,
+  sig:()=>'cocktailShaker(a, n)',
+  facts:F('O(n)','O(n²)','O(n²)','O(1)',1,1,1),
+  lesson:'<b>Turtles and rabbits.</b> A rabbit (big value near the front) reaches home in one bubble pass. A turtle (small value near the back) crawls exactly one slot left per pass — that is why bubble sort is slow. The backward pass drags the turtle all the way home in one go. Same O(n²) class, dramatically better constant. Try it on <code>2 3 4 5 1</code> and compare the pass count against plain bubble.',
+  code:C(`
+void cocktailShaker(int a[], int n) {
+    int start = 0, end = n - 1, swapped = 1;
+    while (swapped) {
+        swapped = 0;
+        for (int j = start; j < end; j++)   /* forward */
+            if (a[j] > a[j + 1]) {
+                swap(&a[j], &a[j + 1]);
+                swapped = 1;
+            }
+        if (!swapped) break;
+        end--;
+        swapped = 0;
+        for (int j = end; j > start; j--)   /* backward */
+            if (a[j - 1] > a[j]) {
+                swap(&a[j - 1], &a[j]);
+                swapped = 1;
+            }
+        start++;
+    }
+}`),
+  gen:function*(s){
+    const n = s.a.length;
+    let start = 0, end = n-1, swapped = 1;
+    s.notes = { start:start, end:end };
+    yield [1, 'Two boundaries, not one: start = 0 and end = ' + end + '. Tracking only one of them is the bug that eats this algorithm.'];
+    while (swapped){
+      s.pass++;
+      swapped = 0;
+      yield [4, 'Forward sweep #' + s.pass + ': j runs ' + start + ' → ' + (end-1) + '. The biggest value in the window gets bubbled to index ' + end + '.'];
+      for (let j=start;j<end;j++){
+        s.ptrs = { j:j }; s.marks = {}; s.marks[j]='cmp'; s.marks[j+1]='cmp'; s.cmp++;
+        const big = s.a[j].v > s.a[j+1].v;
+        yield [5, 'a[' + j + '] = ' + s.a[j].v + '  vs  a[' + (j+1) + '] = ' + s.a[j+1].v + ' → ' + (big?'swap.':'in order.')];
+        if (big){ swap(s,j,j+1); swapped = 1; s.marks={}; s.marks[j]='swap'; s.marks[j+1]='swap';
+          yield [6, 'swap → ' + fmt(s)]; }
+      }
+      s.marks = {};
+      if (!swapped){
+        yield [9, 'Nothing moved in the whole forward sweep — the array is sorted. break.'];
+        break;
+      }
+      end--; s.sortedR = n-1-end;
+      s.notes = { start:start, end:end };
+      yield [10, 'end-- → ' + end + '. Index ' + (end+1) + ' now holds its final value.'];
+      yield [12, 'Backward sweep: j runs ' + end + ' → ' + (start+1) + '. This is the pass that kills turtles — a small value at the far right walks all the way home in ONE sweep.'];
+      swapped = 0;
+      for (let j=end;j>start;j--){
+        s.ptrs = { j:j }; s.marks = {}; s.marks[j-1]='cmp'; s.marks[j]='cmp'; s.cmp++;
+        const big = s.a[j-1].v > s.a[j].v;
+        yield [13, 'a[' + (j-1) + '] = ' + s.a[j-1].v + '  vs  a[' + j + '] = ' + s.a[j].v + ' → ' + (big?'swap left.':'in order.')];
+        if (big){ swap(s,j-1,j); swapped = 1; s.marks={}; s.marks[j-1]='swap'; s.marks[j]='swap';
+          yield [14, 'swap → ' + fmt(s)]; }
+      }
+      start++; s.sortedL = start; s.lKind = 'done';
+      s.marks = {}; s.notes = { start:start, end:end };
+      yield [17, 'start++ → ' + start + '. Index ' + (start-1) + ' now holds its final value. The sorted region grows from BOTH ends.'];
+    }
+    s.sortedL = 0; s.sortedR = n; s.ptrs = {}; s.notes = {};
+    yield [19, 'Done: ' + s.cmp + ' comparisons in ' + s.pass + ' round trip' + (s.pass===1?'':'s') + '.'];
+  } },
+];
+
+/* --------------------------------------------- INSERTION ---- */
+OPS.insertion = [
+{ label:'insertion sort (shifting)', hint:'the correct form', race:true,
+  sig:()=>'insertionSort(a, n)',
+  facts:F('O(n)','O(n²)','O(n²)','O(1)',1,1,1),
+  lesson:'<b>The loop invariant:</b> after iteration i, a[0..i] is sorted — though not necessarily in final position. That is why the left region is blue, not green. <b>Shifts = inversions.</b> Count the inversions in the input (the stats bar shows them) and compare with the final write count: they match, and that is the whole average-case argument — a random array has n(n−1)/4 inversions, so insertion sort does about n²/4 shifts on average, half the worst case.',
+  code:C(`
+void insertionSort(int a[], int n) {
+    for (int i = 1; i < n; i++) {
+        int key = a[i];
+        int j = i - 1;
+        while (j >= 0 && a[j] > key) {  /* strict > */
+            a[j + 1] = a[j];      /* ONE assignment */
+            j--;
+        }
+        a[j + 1] = key;
+    }
+}`),
+  gen:function*(s){
+    const n = s.a.length;
+    const inv0 = inversions(s.a);
+    s.sortedL = 1; s.lKind = 'pre';
+    for (let i=1;i<n;i++){
+      s.pass++;
+      s.ptrs = { i:i }; s.marks = {}; s.marks[i] = 'cmp';
+      yield [1, 'i = ' + i + '. a[0..' + (i-1) + '] is already sorted among itself. Now insert a[' + i + '] = ' + s.a[i].v + ' into it, like a playing card into your hand.'];
+      const key = s.a[i];
+      s.held = { v:key.v, id:key.id, k:key.k };
+      s.a[i] = null; s.hole = i;
+      s.marks = {};
+      yield [2, 'key = a[' + i + '] = ' + key.v + ' — lifted out. Its slot is now a hole we are free to overwrite.'];
+      let j = i-1;
+      s.ptrs = { i:i, j:j };
+      yield [3, 'j = ' + j + ' — start scanning left from the element just below the hole.'];
+      while (j >= 0 && s.a[j].v > s.held.v){
+        s.cmp++;
+        s.marks = {}; s.marks[j] = 'cmp';
+        yield [4, 'a[' + j + '] = ' + s.a[j].v + ' > key = ' + s.held.v + ' → it must move right one slot to make room.'];
+        s.a[j+1] = s.a[j]; s.a[j] = null; s.hole = j; s.wr++;
+        s.marks = {}; s.marks[j+1] = 'swap';
+        yield [5, 'a[' + (j+1) + '] = a[' + j + ']. ONE assignment — this is a shift, not a swap. A swap here would cost three. (shift #' + s.wr + ')'];
+        j--;
+        s.ptrs = { i:i, j:j };
+        yield [6, 'j-- → ' + j + '.'];
+      }
+      if (j >= 0) s.cmp++;      /* j >= 0 short-circuits, so no key comparison happens when we run off the end */
+      s.marks = {};
+      yield [4, j < 0
+        ? 'j < 0 — we ran off the left end, so key ' + s.held.v + ' is smaller than everything. It belongs at index 0. (The && short-circuits: a[j] is never even read.)'
+        : 'a[' + j + '] = ' + s.a[j].v + ' is NOT greater than key = ' + s.held.v + ' → stop. Note the test is a strict >, so an EQUAL element also stops the scan — that is exactly why insertion sort is stable.'];
+      s.a[j+1] = { v:s.held.v, id:s.held.id, k:s.held.k }; s.held = null; s.hole = null; s.wr++;
+      s.sortedL = i+1; s.lKind = 'pre';
+      s.marks = {}; s.marks[j+1] = 'swap';
+      yield [8, 'a[' + (j+1) + '] = key → ' + fmt(s) + '.  Invariant restored: a[0..' + i + '] is sorted.'];
+    }
+    s.sortedL = 0; s.sortedR = n; s.ptrs = {}; s.marks = {};
+    yield [10, 'Done. ' + s.wr + ' writes, and the input had ' + inv0 + ' inversion' + (inv0===1?'':'s') + ' — the shift count is (inversions + n−1 final placements). Every shift kills exactly one inversion; that equality IS the average-case proof.'];
+  },
+  finishNote:s => 'Insertion sort is also the only algorithm in this module that is ONLINE — it can sort a stream, inserting each element as it arrives.' },
+
+{ label:'insertion sort with swaps', group:'bug', hint:'correct but wasteful',
+  sig:()=>'insertionSwaps(a, n)', race:true,
+  facts:F('O(n)','O(n²)','O(n²)','O(1)',1,1,1),
+  lesson:'<b>Not wrong — just wasteful.</b> This produces exactly the right answer with exactly the same comparisons. But one swap is <em>three</em> assignments (two of them array writes) where a shift is <em>one</em>. Asymptotically identical, ~2× the memory traffic: you have written a slower bubble sort in disguise. Race it against the shifting version and read the “array writes” column — the gap widens as the array grows.',
+  code:C(`
+void insertionSwaps(int a[], int n) {  /* 3 assignments */
+    for (int i = 1; i < n; i++)
+        for (int j = i; j > 0 && a[j - 1] > a[j]; j--)
+            swap(&a[j - 1], &a[j]);
+}`),
+  gen:function*(s){
+    const n = s.a.length;
+    s.sortedL = 1; s.lKind = 'pre';
+    for (let i=1;i<n;i++){
+      s.pass++;
+      s.ptrs = { i:i }; s.marks = {}; s.marks[i]='cmp';
+      yield [1, 'i = ' + i + ': bubble a[' + i + '] = ' + s.a[i].v + ' leftwards until it fits.'];
+      let j = i;
+      while (j > 0){
+        s.cmp++;
+        s.ptrs = { i:i, j:j }; s.marks = {}; s.marks[j-1]='cmp'; s.marks[j]='cmp';
+        const big = s.a[j-1].v > s.a[j].v;
+        yield [2, 'a[' + (j-1) + '] = ' + s.a[j-1].v + ' vs a[' + j + '] = ' + s.a[j].v + ' → ' + (big ? 'still out of order, swap.' : 'it fits here, stop.')];
+        if (!big) break;
+        swap(s,j-1,j);
+        s.marks = {}; s.marks[j-1]='swap'; s.marks[j]='swap';
+        yield [3, 'swap → ' + fmt(s) + '. That cost THREE assignments — temp = a[j-1]; a[j-1] = a[j]; a[j] = temp — two of them array writes. The shifting version pays ONE. Array writes so far: ' + s.wr + '.'];
+        j--;
+      }
+      s.sortedL = i+1;
+    }
+    s.sortedL = 0; s.sortedR = n; s.ptrs = {}; s.marks = {};
+    yield [4, 'Correct answer, ' + s.wr + ' writes. The shifting form does roughly a third of that for the same comparisons.'];
+  } },
+];
+
+/* --------------------------------------------- SELECTION ---- */
+OPS.selection = [
+{ label:'selection sort', hint:'fewest writes of all', race:true,
+  sig:()=>'selectionSort(a, n)',
+  facts:F('O(n²)','O(n²)','O(n²)','O(1)',0,1,0),
+  lesson:'<b>Its one virtue:</b> at most n−1 swaps — the fewest writes any comparison sort can do. That is the whole reason it exists: EEPROM/flash cells have limited write cycles, so O(n) writes beats O(n²) writes even when everything else is worse. <b>Its fatal flaw:</b> the comparison count is n(n−1)/2 <em>always</em>. Feed it a sorted array and it does exactly the same work — no early exit is possible, it is not adaptive, and its best case is O(n²).',
+  code:C(`
+void selectionSort(int a[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        int min = i;
+        for (int j = i + 1; j < n; j++)
+            if (a[j] < a[min])
+                min = j;
+        if (min != i)
+            swap(&a[i], &a[min]);  /* LONG-RANGE swap */
+    }
+}`),
+  gen:function*(s){
+    const n = s.a.length;
+    for (let i=0;i<n-1;i++){
+      s.pass++;
+      let min = i;
+      s.ptrs = { i:i, min:min }; s.marks = {}; s.marks[min] = 'min';
+      yield [2, 'i = ' + i + '. Assume the first unsorted element, a[' + i + '] = ' + s.a[i].v + ', is the minimum — then go prove otherwise.'];
+      for (let j=i+1;j<n;j++){
+        s.cmp++;
+        s.ptrs = { i:i, j:j, min:min };
+        s.marks = {}; s.marks[min] = 'min'; s.marks[j] = 'cmp';
+        const less = s.a[j].v < s.a[min].v;
+        yield [4, 'a[' + j + '] = ' + s.a[j].v + '  vs  current min a[' + min + '] = ' + s.a[min].v + ' → ' + (less ? 'new minimum!' : 'no better.')];
+        if (less){
+          min = j;
+          s.ptrs = { i:i, j:j, min:min }; s.marks = {}; s.marks[min] = 'min';
+          yield [5, 'min = ' + min + '.'];
+        }
+      }
+      s.marks = {}; s.marks[min] = 'min';
+      if (min !== i){
+        yield [6, 'min = ' + min + ' ≠ i = ' + i + ' → swap them. Note how FAR apart they are: this is a long-range swap.'];
+        swap(s,i,min);
+        s.marks = {}; s.marks[i] = 'swap';
+        yield [7, 'swap → ' + fmt(s) + '.  Swaps so far: ' + s.swp + ' — and it will never exceed n−1 = ' + (n-1) + '.'];
+      } else {
+        yield [6, 'min == i — a[' + i + '] was already the smallest. Skip the swap.'];
+      }
+      s.sortedL = i+1; s.lKind = 'done'; s.marks = {};
+    }
+    s.sortedL = n; s.ptrs = {}; s.marks = {};
+    yield [9, 'Done: ' + s.cmp + ' comparisons = n(n−1)/2 = ' + (n*(n-1)/2) + ' — the SAME number for any input, sorted or not. Only ' + s.swp + ' swap' + (s.swp===1?'':'s') + '.'];
+  },
+  finishNote:s => 'Long-range swaps break stability; adjacent moves preserve it. That single rule explains selection sort AND predicts that heap sort is unstable too.' },
+
+{ label:'why it is unstable', group:'bug', hint:'needs duplicates',
+  sig:()=>'selectionSort on equal keys',
+  check:NEEDDUP,
+  facts:F('O(n²)','O(n²)','O(n²)','O(1)',0,1,0),
+  lesson:'<b>The counterexample every student must reproduce:</b> {4ₐ, 4_b, 1}. The minimum is 1, so it swaps into position 0 — and 4ₐ is flung to the back, behind 4_b. One long-range swap did it. Load the preset “4 4 1” and watch the #n labels cross.',
+  code:C(`
+/* {4a, 4b, 1} -> min is 1, swap it into position 0
+   {1, 4b, 4a} -> 4b now sits BEFORE 4a. Order lost. */
+void selectionSort(int a[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        int min = i;
+        for (int j = i + 1; j < n; j++)
+            if (a[j] < a[min]) min = j;
+        if (min != i) swap(&a[i], &a[min]);
+    }
+}`),
+  gen:function*(s){
+    const n = s.a.length;
+    for (let i=0;i<n-1;i++){
+      s.pass++;
+      let min = i;
+      s.ptrs = { i:i, min:min }; s.marks = {}; s.marks[min]='min';
+      yield [5, 'i = ' + i + ': hunting for the minimum of a[' + i + '..' + (n-1) + '].'];
+      for (let j=i+1;j<n;j++){
+        s.cmp++;
+        s.ptrs = { i:i, j:j, min:min }; s.marks = {}; s.marks[min]='min'; s.marks[j]='cmp';
+        const less = s.a[j].v < s.a[min].v;
+        yield [7, 'a[' + j + '] = ' + s.a[j].v + ' vs a[' + min + '] = ' + s.a[min].v + ' → ' + (less?'new min.':'no.')];
+        if (less) min = j;
+      }
+      if (min !== i){
+        const A = s.a[i], B = s.a[min];
+        const jumpsEqual = s.a.slice(i+1, min).some(e => e.v === A.v);
+        swap(s,i,min);
+        s.marks = {}; s.marks[i]='swap'; s.marks[min]='swap';
+        yield [8, 'swap a[' + i + '] (' + A.v + ', originally #' + A.id + ') with a[' + min + '] (' + B.v + ', #' + B.id + '). It jumped ' + (min-i) + ' position' + (min-i===1?'':'s') + '.'
+                + (jumpsEqual ? '  ⚠ It just leapfrogged an element with the SAME value — the original order of those equal keys is now gone, permanently.' : '')];
+      } else {
+        yield [8, 'min == i, nothing to swap.'];
+      }
+      s.sortedL = i+1; s.marks = {};
+    }
+    s.sortedL = n; s.ptrs = {};
+    yield [9, 'Sorted correctly — check the #n labels on equal values. Compare with bubble or insertion sort on the same input, which never move an element past an equal one.'];
+  } },
+];
+
+/* -------------------------------------------------- HEAP ---- */
+const HEAP_CODE = C(`
+void heapify(int a[], int n, int i) {   /* sift-down */
+    int largest = i, l = 2*i + 1, r = 2*i + 2;
+    if (l < n && a[l] > a[largest]) largest = l;
+    if (r < n && a[r] > a[largest]) largest = r;
+    if (largest != i) {
+        swap(&a[i], &a[largest]);
+        heapify(a, n, largest);   /* chase it down */
+    }
+}
+
+void heapSort(int a[], int n) {
+    for (int i = n/2 - 1; i >= 0; i--)  /* build: O(n) */
+        heapify(a, n, i);
+    for (int i = n - 1; i > 0; i--) {   /* extract max */
+        swap(&a[0], &a[i]);
+        heapify(a, i, 0);
+    }
+}`);
+
+function* gHeapify(s, hn, i, depth){
+  const pad = depth ? '   ↳ (recursive call, depth ' + depth + ') ' : '';
+  let largest = i;
+  const l = 2*i+1, r = 2*i+2;
+  s.ptrs = { i:i }; s.marks = {}; s.marks[i] = 'min';
+  yield [1, pad + 'heapify(a, ' + hn + ', ' + i + '): assume node ' + i + ' (value ' + s.a[i].v + ') is the largest. Children live at ' + l + ' and ' + r + '.'];
+  if (l < hn){
+    s.cmp++;
+    s.marks = {}; s.marks[i] = 'min'; s.marks[l] = 'cmp';
+    const bigger = s.a[l].v > s.a[largest].v;
+    yield [2, pad + 'left child a[' + l + '] = ' + s.a[l].v + '  vs  a[' + largest + '] = ' + s.a[largest].v + ' → ' + (bigger ? 'left is bigger, largest = ' + l + '.' : 'no change.')];
+    if (bigger) largest = l;
+  } else {
+    yield [2, pad + 'left child index ' + l + ' is outside the heap (size ' + hn + ') — node ' + i + ' is a leaf on this side.'];
+  }
+  if (r < hn){
+    s.cmp++;
+    s.marks = {}; s.marks[largest] = 'min'; s.marks[r] = 'cmp';
+    const bigger = s.a[r].v > s.a[largest].v;
+    yield [3, pad + 'right child a[' + r + '] = ' + s.a[r].v + '  vs  a[' + largest + '] = ' + s.a[largest].v + ' → ' + (bigger ? 'right is bigger, largest = ' + r + '.' : 'no change.')];
+    if (bigger) largest = r;
+  } else {
+    yield [3, pad + 'right child index ' + r + ' is outside the heap.'];
+  }
+  if (largest !== i){
+    s.marks = {}; s.marks[i] = 'cmp'; s.marks[largest] = 'cmp';
+    yield [4, pad + 'largest = ' + largest + ' ≠ ' + i + ' → the heap property is violated here. Fix it.'];
+    swap(s, i, largest);
+    s.marks = {}; s.marks[i] = 'swap'; s.marks[largest] = 'swap';
+    yield [5, pad + 'swap a[' + i + '] and a[' + largest + '] → ' + fmt(s) + '. The parent is now the biggest of the three — but the subtree below ' + largest + ' may have broken.'];
+    yield [6, pad + 'Recurse into ' + largest + '. This is NOT branch-and-recurse — it follows a SINGLE path downward, which is exactly why heapify is O(log n) and not O(n).'];
+    yield* gHeapify(s, hn, largest, (depth||0)+1);
+  } else {
+    s.marks = {}; s.marks[i] = 'min';
+    yield [4, pad + 'largest is still ' + i + ' — the parent already dominates both children. Nothing to do, return.'];
+  }
+}
+
+OPS.heap = [
+{ label:'heap sort (build + extract)', hint:'the whole thing', race:true,
+  sig:()=>'heapSort(a, n)',
+  facts:F('O(n log n)','O(n log n)','O(n log n)','O(1)',0,1,0),
+  lesson:'<b>The headline:</b> the array is the same array — we just decided to read it as a tree. <b>The derivation the syllabus asks for:</b> build heap O(n) + (n−1) extractions × O(log n) heapify = O(n log n), in best, average AND worst case. Heap sort has no bad input; no adversary can degrade it. That is its selling point over quick sort. <b>Why it isn’t the default anyway:</b> it jumps all over the array, so its cache locality is terrible — big-O is deliberately blind to the memory hierarchy.',
+  code:HEAP_CODE,
+  gen:function*(s){
+    const n = s.a.length;
+    s.heapSize = n;
+    yield [11, 'Phase 1 — build a max heap. Start at the last NON-LEAF node, i = n/2 − 1 = ' + ((n>>1)-1) + ', and walk BACKWARDS to 0.'];
+    for (let i=(n>>1)-1;i>=0;i--){
+      yield [12, 'heapify(a, ' + n + ', ' + i + ') — going bottom-up is not a style choice: heapify assumes both subtrees are ALREADY valid heaps. Top-down would violate its precondition.'];
+      yield* gHeapify(s, n, i, 0);
+    }
+    s.marks = {}; s.ptrs = {};
+    yield [11, 'Max heap built: ' + fmt(s) + '. Every parent ≥ both children — and note there is NO left-right ordering. A max heap is not a BST. Cost: O(n), not O(n log n), because half the nodes are leaves and cost zero.'];
+    for (let i=n-1;i>0;i--){
+      s.pass++;
+      s.marks = {}; s.marks[0] = 'cmp'; s.marks[i] = 'cmp';
+      s.ptrs = { i:i };
+      yield [13, 'Extraction ' + s.pass + ': a[0] = ' + s.a[0].v + ' is the maximum of the remaining heap, and index ' + i + ' is where it belongs in the final array.'];
+      swap(s, 0, i);
+      s.heapSize = i;
+      s.sortedR = n - i;
+      s.marks = {}; s.marks[i] = 'swap';
+      yield [14, 'swap(a[0], a[' + i + ']) → ' + fmt(s) + '. The max is parked; the heap shrinks to size ' + i + '. That long-range swap is also why heap sort is NOT stable.'];
+      if (i > 1){
+        yield [15, 'heapify(a, ' + i + ', 0) — the value we moved to the root almost certainly violates the heap property. Sift it down. O(log n).'];
+        yield* gHeapify(s, i, 0, 0);
+      } else {
+        yield [15, 'Only one element left in the heap — trivially a heap, nothing to fix.'];
+      }
+    }
+    s.heapSize = 0; s.sortedR = n; s.marks = {}; s.ptrs = {};
+    yield [17, 'Sorted: ' + fmt(s) + '.  ' + s.cmp + ' comparisons, ' + s.swp + ' swaps. Space O(1) — the “tree” never existed, it was always just the array.'];
+  } },
+
+{ label:'buildMaxHeap only', group:'aux', hint:'the O(n) surprise',
+  sig:()=>'buildMaxHeap(a, n)',
+  facts:F('O(n)','O(n)','O(n)','O(1)',0,1,0),
+  lesson:'<b>n calls to an O(log n) operation “should” be O(n log n). It is actually O(n).</b> Because most nodes are near the bottom, where heapify does almost nothing: n/2 leaves cost 0, n/4 nodes cost 1, n/8 cost 2… total ≈ n·Σ(h/2^(h+1)), and that sum converges to a constant. Watch the comparison counter — it stays close to linear.',
+  code:HEAP_CODE,
+  gen:function*(s){
+    const n = s.a.length;
+    s.heapSize = n;
+    yield [11, 'Last non-leaf node = n/2 − 1 = ' + ((n>>1)-1) + '. Every index above that is a leaf, and a leaf is already a valid heap of one node — that is half the array, skipped for free.'];
+    for (let i=(n>>1)-1;i>=0;i--){
+      yield [12, 'heapify at i = ' + i + '. Both of its subtrees are already valid heaps (we processed them first), so the precondition holds.'];
+      yield* gHeapify(s, n, i, 0);
+    }
+    s.marks = {}; s.ptrs = {};
+    yield [11, 'Max heap: ' + fmt(s) + ' — built in ' + s.cmp + ' comparisons and ' + s.swp + ' swaps for n = ' + n + '. Linear-ish, not n log n.'];
+  } },
+
+{ label:'one heapify call at root', group:'aux', hint:'the primitive',
+  sig:()=>'heapify(a, n, 0)',
+  facts:F('O(log n)','O(log n)','O(log n)','O(1)',0,1,0),
+  lesson:'<b>Sift-down is the single primitive everything else is built from.</b> It follows one root-to-leaf path, doing at most one swap per level, so it costs at most the height of the tree: O(log n).',
+  code:HEAP_CODE,
+  gen:function*(s){
+    s.heapSize = s.a.length;
+    if (!s.a.length){ yield [1, 'Empty array — nothing to heapify.']; return; }
+    yield* gHeapify(s, s.a.length, 0, 0);
+    s.marks = {}; s.ptrs = {};
+    yield [8, 'Return. Note this fixed ONLY the path it walked — heapify is not a “make this array a heap” function, it repairs a single violation at the root of one subtree.'];
+  } },
+
+{ label:'build-heap running FORWARDS', group:'bug', hint:'precondition violated',
+  sig:()=>'BUGGY buildMaxHeap (i = 0 → n/2-1)',
+  facts:F('O(n)','O(n)','O(n)','O(1)',0,1,0),
+  lesson:'<b>Trap #5 from the plan.</b> Running the build loop forwards feels natural and is wrong: heapify’s precondition is that both subtrees are <em>already</em> heaps. Going top-down, they are not. The result usually looks heap-ish and is not a heap — and heap sort built on it produces an unsorted array.',
+  code:C(`
+void buildMaxHeap(int a[], int n) {   /* wrong way! */
+    for (int i = 0; i <= n/2 - 1; i++)  /* must go DOWN */
+        heapify(a, n, i);
+}
+/* heapify assumes left(i) and right(i) are already valid heaps.
+   Top-down, they are not — so violations get left behind. */`),
+  gen:function*(s){
+    const n = s.a.length;
+    s.heapSize = n;
+    yield [1, 'Loop runs i = 0 UP to ' + ((n>>1)-1) + ' — the root first, the deep nodes last. That is exactly backwards.'];
+    for (let i=0;i<=(n>>1)-1;i++){
+      yield [2, 'heapify(a, ' + n + ', ' + i + ') — but the subtrees under ' + i + ' have not been fixed yet, so this call is working on garbage.'];
+      yield* gHeapifyShallow(s, n, i);
+    }
+    s.marks = {}; s.ptrs = {};
+    /* verify */
+    let bad = -1;
+    for (let i=0;i<n;i++){
+      for (const c of [2*i+1,2*i+2]) if (c < n && s.a[c].v > s.a[i].v){ bad = i; break; }
+      if (bad >= 0) break;
+    }
+    if (bad >= 0){
+      s.marks[bad] = 'cmp';
+      yield [4, 'Verify: node ' + bad + ' (value ' + s.a[bad].v + ') is SMALLER than one of its children. This is not a max heap. The root is not the maximum, so heapSort would happily park the wrong value at the end.'];
+    } else {
+      yield [4, 'On THIS particular input the forward loop happened to produce a valid heap — it does not always. Try “4 10 3 5 1” or a random array and run it again.'];
+    }
+  } },
+];
+/* a non-recursing heapify used only by the buggy build, so the failure is visible */
+function* gHeapifyShallow(s, hn, i){
+  let largest = i;
+  const l = 2*i+1, r = 2*i+2;
+  s.marks = {}; s.marks[i] = 'min'; s.ptrs = { i:i };
+  if (l < hn){ s.cmp++; if (s.a[l].v > s.a[largest].v) largest = l; }
+  if (r < hn){ s.cmp++; if (s.a[r].v > s.a[largest].v) largest = r; }
+  if (largest !== i){
+    swap(s,i,largest);
+    s.marks = {}; s.marks[i]='swap'; s.marks[largest]='swap';
+    yield [2, 'swapped a[' + i + '] with a[' + largest + '] → ' + fmt(s) + '. The recursive call repairs the subtree below — but nothing repairs the damage this does to a subtree we have not visited yet.'];
+  } else {
+    yield [2, 'node ' + i + ' already dominates its children (for now).'];
+  }
+}
+
+/* ---------------------------------------- PRIORITY QUEUE ---- */
+OPS.pq = [
+{ label:'insert(x) — sift up', needsValue:true, hint:'O(log n)',
+  sig:a=>'insert(' + a.value + ')',
+  facts:F('O(1)','O(log n)','O(log n)','O(1)',0,1,0),
+  lesson:'<b>Sift-up is the mirror of sift-down</b> — do not derive it from scratch. Append at the first free slot (which keeps the tree complete), then walk up swapping with the parent while the parent is smaller.',
+  check:s => s.a.length >= 15 ? 'Keep the heap to ≤ 15 nodes so the tree stays readable.' : null,
+  code:C(`
+void insert(int x) {
+    a[n++] = x;             /* append keeps it complete */
+    int i = n - 1;
+    while (i > 0 && a[(i - 1) / 2] < a[i]) {
+        swap(&a[(i - 1) / 2], &a[i]);   /* sift up */
+        i = (i - 1) / 2;
+    }
+}`),
+  gen:function*(s,args){
+    const id = s.a.length ? Math.max(...s.a.map(e=>e.id)) + 1 : 0;
+    s.a.push({ v:args.value, id:id, k:s.kseq++ });
+    s.heapSize = s.a.length;
+    let i = s.a.length - 1;
+    s.marks = {}; s.marks[i] = 'swap'; s.ptrs = { i:i };
+    yield [1, args.value + ' lands at index ' + i + ' — the next free slot. The tree stays COMPLETE, which is what lets the array representation work with no gaps.'];
+    yield [2, 'i = ' + i + '. Now walk up while the parent is smaller.'];
+    while (i > 0){
+      const p = (i-1) >> 1;
+      s.cmp++;
+      s.marks = {}; s.marks[p] = 'cmp'; s.marks[i] = 'cmp';
+      s.ptrs = { i:i, parent:p };
+      const less = s.a[p].v < s.a[i].v;
+      yield [3, 'parent a[' + p + '] = ' + s.a[p].v + '  vs  a[' + i + '] = ' + s.a[i].v + ' → ' + (less ? 'parent is smaller, heap property violated — swap up.' : 'parent is ≥, so we have found the right level. Stop.')];
+      if (!less) break;
+      swap(s, p, i);
+      s.marks = {}; s.marks[p] = 'swap';
+      yield [4, 'swap → ' + fmt(s)];
+      i = p;
+      s.ptrs = { i:i };
+      yield [5, 'i = (i−1)/2 = ' + i + '. At most log n levels to climb.'];
+    }
+    s.marks = {}; s.ptrs = {};
+    yield [7, 'Inserted in ' + s.cmp + ' comparison' + (s.cmp===1?'':'s') + '. Max is a[0] = ' + s.a[0].v + '.'];
+  } },
+
+{ label:'extractMax() — sift down', hint:'O(log n)',
+  sig:()=>'extractMax()',
+  facts:F('O(log n)','O(log n)','O(log n)','O(1)',0,1,0),
+  lesson:'<b>Dijkstra’s “pick the nearest unvisited node” step IS this operation.</b> So is OS priority scheduling, and Huffman coding’s “take the two smallest”. Python’s <code>heapq</code> and C++’s <code>priority_queue</code> are literally this: a heap on an array.',
+  check:s => s.a.length ? null : 'The queue is empty — insert something first, or load the input array as a heap.',
+  code:C(`
+int extractMax(void) {
+    int max = a[0];       /* root is the maximum */
+    a[0] = a[--n];        /* last leaf to the root */
+    heapify(a, n, 0);     /* sift it back down */
+    return max;
+}`),
+  gen:function*(s){
+    const max = s.a[0].v;
+    s.marks = {}; s.marks[0] = 'min';
+    yield [1, 'max = a[0] = ' + max + '. peekMax() would stop right here — that is the O(1) operation.'];
+    const last = s.a.pop();
+    if (s.a.length === 0){
+      s.heapSize = 0; s.marks = {};
+      yield [2, 'That was the only element. The queue is now empty.'];
+      yield [4, 'return ' + max + '.'];
+      return;
+    }
+    s.a[0] = last; s.wr++;
+    s.heapSize = s.a.length;
+    s.marks = {}; s.marks[0] = 'swap';
+    yield [2, 'a[0] = a[--n] — the LAST leaf (' + last.v + ') is promoted to the root. Ugly, but it keeps the tree complete, and completeness is non-negotiable.'];
+    yield [3, 'That value almost certainly does not belong at the root. heapify sifts it down — O(log n).'];
+    yield* gHeapify(s, s.a.length, 0, 0);
+    s.marks = {}; s.ptrs = {};
+    yield [4, 'return ' + max + '. New max: ' + s.a[0].v + '. Total ' + s.cmp + ' comparisons.'];
+  } },
+
+{ label:'peekMax()', hint:'O(1)',
+  sig:()=>'peekMax()',
+  facts:F('O(1)','O(1)','O(1)','O(1)',0,1,0),
+  lesson:'<b>Why a heap and not something simpler?</b> Unsorted array: insert O(1), extractMax O(n). Sorted array: insert O(n), extractMax O(1). Heap: O(log n) / O(log n) / O(1) peek. The heap is the structure that refuses to be terrible at <em>either</em> operation — that trade-off shape recurs everywhere (AVL, hash tables with chaining).',
+  check:s => s.a.length ? null : 'The queue is empty.',
+  code:C(`
+int peekMax(void) {
+    return a[0];   /* O(1): max is always the root */
+}`),
+  gen:function*(s){
+    s.marks = {}; s.marks[0] = 'min';
+    yield [1, 'return a[0] = ' + s.a[0].v + '. No search, no comparison — the heap property GUARANTEES the maximum sits at the root. This is the operation an unsorted array charges O(n) for.'];
+  } },
+];
+
+/* ------------------------------------------------- QUICK ---- */
+function crumb(s){
+  const c = s.callStack;
+  if (!c.length) return '';
+  const shown = c.length > 5 ? ['…'].concat(c.slice(-5)) : c;
+  return 'call stack:  ' + shown.join('  →  ');
+}
+const QUICK_CODE = C(`
+int partition(int a[], int lo, int hi) {
+    int pivot = a[hi];      /* Lomuto: the LAST element */
+    int i = lo - 1;
+    for (int j = lo; j < hi; j++)
+        if (a[j] <= pivot) {
+            i++;
+            swap(&a[i], &a[j]);
+        }
+    swap(&a[i + 1], &a[hi]);
+    return i + 1;
+}
+
+void quickSort(int a[], int lo, int hi) {
+    if (lo < hi) {
+        int p = partition(a, lo, hi);
+        quickSort(a, lo, p - 1);   /* left of pivot  */
+        quickSort(a, p + 1, hi);   /* right of pivot */
+    }
+}`);
+
+function* gQuick(s, lo, hi){
+  const call = 'quickSort(' + lo + ',' + hi + ')';
+  s.callStack.push(call); rtEnter(s, lo, hi); s.out = crumb(s);
+  s.range = { lo:lo, hi:hi };
+  if (lo >= hi){
+    if (lo === hi) s.cell[lo] = 'done';
+    s.marks = {}; s.ptrs = {}; s.notes = {};
+    yield [13, call + ': lo ' + (lo === hi ? '== hi — a slice of ONE element is sorted by definition' : '> hi — an empty slice') + '. Base case, return without doing anything.'];
+    s.callStack.pop(); rtExit(s, 'base'); s.out = crumb(s);
+    return;
+  }
+  yield [13, call + ': lo < hi, so this slice has real work in it. Partition it around a pivot.'];
+  s.pass++;
+  /* ---- partition ---- */
+  const pv = s.a[hi].v;
+  s.marks = {}; s.marks[hi] = 'pivot'; s.ptrs = {}; s.notes = {};
+  yield [1, 'pivot = a[' + hi + '] = ' + pv + '. Lomuto always grabs the LAST element — cheap, and precisely why an already-sorted array is this algorithm’s worst case.'];
+  let i = lo - 1;
+  s.notes = i < lo ? { i:'lo-1 = ' + i + ' (the <= region is empty)' } : {};
+  yield [2, 'i = lo − 1 = ' + i + '. Invariant: a[' + lo + '..i] holds everything seen so far that is ≤ pivot. Right now that region is empty.'];
+  for (let j = lo; j < hi; j++){
+    s.cmp++;
+    s.marks = {}; s.marks[j] = 'cmp'; s.marks[hi] = 'pivot';
+    s.ptrs = {}; if (i >= lo) s.ptrs.i = i; s.ptrs.j = j;
+    s.notes = i < lo ? { i:'i = ' + i + ' (region still empty)' } : {};
+    const le = s.a[j].v <= pv;
+    yield [4, 'a[' + j + '] = ' + s.a[j].v + '  vs  pivot ' + pv + ' → ' + (le ? '≤ pivot, so it belongs in the left region.' : '> pivot — leave it exactly where it is and just move j on. Big values drift right for free.')];
+    if (le){
+      i++;
+      s.ptrs = { i:i, j:j }; s.notes = {};
+      yield [5, 'i++ → ' + i + '. The ≤-pivot region grows by one slot, and a[' + i + '] is the value that has to move out of it.'];
+      swap(s, i, j);
+      s.marks = {}; s.marks[i] = 'swap'; s.marks[hi] = 'pivot';
+      if (i !== j) s.marks[j] = 'swap';
+      yield [6, i === j
+        ? 'swap(a[' + i + '], a[' + j + ']) — i and j are the same slot, so this swaps the element with itself. A no-op the code still pays for.'
+        : 'swap(a[' + i + '], a[' + j + ']) → ' + fmt(s) + '. The small value joins the left region; the big one it displaced is thrown to the right.'];
+    }
+  }
+  s.marks = {}; s.marks[i+1] = 'cmp'; s.marks[hi] = 'pivot';
+  s.ptrs = { i:i };
+  yield [8, 'Loop done. a[' + lo + '..' + i + '] is ≤ pivot and a[' + (i+1) + '..' + (hi-1) + '] is > pivot, so the pivot’s home is index ' + (i+1) + '. Swap it there.'];
+  swap(s, i+1, hi);
+  const pp = i + 1;
+  s.cell[pp] = 'done'; rtSet(s, { piv:pp });
+  s.marks = {}; s.marks[pp] = 'pivot';
+  yield [9, 'return ' + pp + '. a[' + pp + '] = ' + pv + ' is now in its FINAL position and will never move again — everything to its left is ≤ it, everything to its right is >. That is the whole trick: one pass places one element and halves the problem.'];
+  const nL = pp - lo, nR = hi - pp;
+  s.marks = {}; s.ptrs = {}; s.notes = {};
+  yield [15, 'Recurse left: quickSort(' + lo + ', ' + (pp-1) + ') — ' + nL + ' element' + (nL===1?'':'s') + '. (Left ' + nL + ' vs right ' + nR + ': ' + (Math.abs(nL-nR) <= 1 ? 'a nicely balanced split, which is what buys you n log n.' : 'a lopsided split — lopsided splits are how quick sort decays toward n².') + ')'];
+  yield* gQuick(s, lo, pp-1);
+  s.range = { lo:lo, hi:hi };
+  yield [16, 'Recurse right: quickSort(' + (pp+1) + ', ' + hi + ') — ' + nR + ' element' + (nR===1?'':'s') + '.'];
+  yield* gQuick(s, pp+1, hi);
+  s.callStack.pop(); rtExit(s, 'done'); s.out = crumb(s);
+}
+
+/* ---- Hoare partitioning: the original, and the two ways it gets broken ---- */
+const HOARE_CODE = C(`
+int partition(int a[], int lo, int hi) {
+    int pivot = a[lo];        /* Hoare: the FIRST element */
+    int i = lo - 1, j = hi + 1;
+
+    while (1) {
+        do { i++; } while (a[i] < pivot);   /* scan right for a big one  */
+        do { j--; } while (a[j] > pivot);   /* scan left  for a small one */
+
+        if (i >= j)
+            return j;         /* crossed: j is a BOUNDARY, not the pivot */
+
+        swap(&a[i], &a[j]);   /* one swap repairs TWO elements */
+    }
+}
+
+void quickSort(int a[], int lo, int hi) {
+    if (lo < hi) {
+        int p = partition(a, lo, hi);
+        quickSort(a, lo, p);       /* p IS included — not p-1 */
+        quickSort(a, p + 1, hi);
+    }
+}`);
+const HOARE_M1_CODE = C(`
+int partition(int a[], int lo, int hi) {
+    int pivot = a[lo];        /* Hoare: the FIRST element */
+    int i = lo - 1, j = hi + 1;
+
+    while (1) {
+        do { i++; } while (a[i] < pivot);   /* scan right for a big one  */
+        do { j--; } while (a[j] > pivot);   /* scan left  for a small one */
+
+        if (i >= j)
+            return j;         /* crossed: j is a BOUNDARY, not the pivot */
+
+        swap(&a[i], &a[j]);   /* one swap repairs TWO elements */
+    }
+}
+
+void quickSort(int a[], int lo, int hi) {
+    if (lo < hi) {
+        int p = partition(a, lo, hi);
+        quickSort(a, lo, p - 1);   /* ⚠ the Lomuto reflex — drops a[p] */
+        quickSort(a, p + 1, hi);
+    }
+}`);
+const HOARE_PHI_CODE = C(`
+int partition(int a[], int lo, int hi) {
+    int pivot = a[hi];        /* ⚠ LAST element, in a Hoare loop */
+    int i = lo - 1, j = hi + 1;
+
+    while (1) {
+        do { i++; } while (a[i] < pivot);   /* scan right for a big one  */
+        do { j--; } while (a[j] > pivot);   /* scan left  for a small one */
+
+        if (i >= j)
+            return j;         /* crossed: j is a BOUNDARY, not the pivot */
+
+        swap(&a[i], &a[j]);   /* one swap repairs TWO elements */
+    }
+}
+
+void quickSort(int a[], int lo, int hi) {
+    if (lo < hi) {
+        int p = partition(a, lo, hi);
+        quickSort(a, lo, p);       /* p IS included — not p-1 */
+        quickSort(a, p + 1, hi);
+    }
+}`);
+
+/* One Hoare partition. Yields steps; RETURNS the split index (null if it bailed). */
+function* gHoarePart(s, lo, hi, o){
+  const pIdx = o.pivotHi ? hi : lo;
+  const pv = s.a[pIdx].v;
+  s.marks = {}; s.marks[pIdx] = 'pivot'; s.ptrs = {}; s.notes = { pivot:pv };
+  yield [1, 'pivot = a[' + pIdx + '] = ' + pv + '. ' + (o.pivotHi
+    ? 'The LAST element — copied straight from Lomuto, and about to go very wrong.'
+    : 'Hoare takes the FIRST element. Notice what it does NOT do: it never parks the pivot anywhere. The pivot is a VALUE to compare against, not a slot to protect — a[' + lo + '] gets swapped around like everything else.')];
+  let i = lo - 1, j = hi + 1;
+  s.marks = {}; s.ptrs = {}; s.notes = { pivot:pv };
+  yield [2, 'i = lo − 1 = ' + i + ',  j = hi + 1 = ' + j + '. Both start OUTSIDE the slice, because each loop moves BEFORE it tests — that is what `do…while` buys you.'];
+  for (;;){
+    /* ---- scan right ---- */
+    for (;;){
+      i++;
+      if (i > hi){
+        s.marks = {}; s.ptrs = {}; s.notes = { pivot:pv };
+        yield [5, '⛔ i ran past hi = ' + hi + ' — a[' + i + '] is off the end of the slice. In C that is an out-of-bounds read: undefined behaviour, not an error message. The pivot is supposed to act as a SENTINEL that stops this scan; pick the wrong pivot and the sentinel is gone.'];
+        return null;
+      }
+      s.cmp++;
+      s.marks = {}; s.marks[i] = 'cmp'; s.ptrs = { i:i, j:j }; s.notes = { pivot:pv };
+      const go = s.a[i].v < pv;
+      yield [5, 'i++ → ' + i + '.  a[' + i + '] = ' + s.a[i].v + (go
+        ? ' < pivot ' + pv + ' — already on the correct side, keep scanning right.'
+        : ' is NOT < pivot ' + pv + ' — stop. i is parked on something that belongs to the RIGHT half.')];
+      if (!go) break;
+    }
+    /* ---- scan left ---- */
+    for (;;){
+      j--;
+      if (j < lo){
+        s.marks = {}; s.ptrs = {}; s.notes = { pivot:pv };
+        yield [6, '⛔ j ran below lo = ' + lo + ' — a[' + j + '] is off the FRONT of the slice. Same undefined behaviour, other end. This is the second, quieter half of the same bug.'];
+        return null;
+      }
+      s.cmp++;
+      s.marks = {}; s.marks[j] = 'cmp'; s.ptrs = { i:i, j:j }; s.notes = { pivot:pv };
+      const go = s.a[j].v > pv;
+      yield [6, 'j-- → ' + j + '.  a[' + j + '] = ' + s.a[j].v + (go
+        ? ' > pivot ' + pv + ' — already on the correct side, keep scanning left.'
+        : ' is NOT > pivot ' + pv + ' — stop. j is parked on something that belongs to the LEFT half.')];
+      if (!go) break;
+    }
+    s.marks = {}; s.marks[i] = 'cmp'; s.marks[j] = 'cmp'; s.ptrs = { i:i, j:j };
+    if (i >= j){
+      yield [9, 'i = ' + i + ' ≥ j = ' + j + ' — the pointers met or crossed, so there is nothing left to trade. return ' + j + '.  Read this next part twice: a[' + j + '] = ' + s.a[j].v + ' is NOT necessarily the pivot and is NOT in its final place. Hoare returns a BOUNDARY, not a position: everything in a[' + lo + '..' + j + '] is ≤ everything in a[' + (j+1) + '..' + hi + ']. That is the whole promise, and it is enough to recurse on.'];
+      return j;
+    }
+    yield [8, 'i = ' + i + ' < j = ' + j + ' — not crossed yet, so these two are a genuine pair: a big value sitting on the left, a small value sitting on the right.'];
+    swap(s, i, j);
+    s.marks = {}; s.marks[i] = 'swap'; s.marks[j] = 'swap';
+    yield [11, 'swap(a[' + i + '], a[' + j + ']) → ' + fmt(s) + '. One swap repairs TWO misplaced elements at once. Lomuto repairs one per swap, and swaps an element with itself whenever i == j — which is why Hoare ends up doing roughly half as many.'];
+  }
+}
+
+function* gHoare(s, lo, hi, o){
+  if (o.dead) return;
+  const call = 'quickSort(' + lo + ',' + hi + ')';
+  /* a frame already on the stack with IDENTICAL arguments cannot be making progress */
+  if (o.watch && s.callStack.filter(c => c === call).length >= 3){
+    s.marks = {}; s.ptrs = {}; s.notes = {};
+    s.callStack.push(call); rtEnter(s, lo, hi); s.out = crumb(s);
+    yield [18, '⛔ STOP — read the call stack: ' + call + ' is on it four times over, with the SAME arguments every time. partition keeps handing back p = ' + hi + ', so “the left half” is the whole slice again and the recursion never shrinks anything. This does not hang forever on real hardware — it dies, when the stack runs out. The demo stops here so your browser does not.'];
+    o.dead = true;
+    return;
+  }
+  s.callStack.push(call); rtEnter(s, lo, hi); s.out = crumb(s);
+  s.range = { lo:lo, hi:hi };
+  if (lo >= hi){
+    if (lo === hi) s.cell[lo] = 'done';
+    s.marks = {}; s.ptrs = {}; s.notes = {};
+    yield [16, call + ': ' + (lo === hi ? 'lo == hi — a slice of ONE element is sorted by definition' : 'lo > hi — an empty slice') + '. Base case, return.'];
+    s.callStack.pop(); rtExit(s, 'base'); s.out = crumb(s);
+    return;
+  }
+  yield [16, call + ': lo < hi, so this slice has real work in it. Partition it.'];
+  s.pass++;
+  const p = yield* gHoarePart(s, lo, hi, o);
+  if (p == null){ o.dead = true; return; }
+  rtSet(s, { bnd:p });
+  const cut = o.minusOne ? p - 1 : p;
+  const nL = cut - lo + 1, nR = hi - p;
+  s.marks = {}; s.ptrs = {}; s.notes = {};
+  yield [18, 'Recurse left: quickSort(' + lo + ', ' + cut + ') — ' + Math.max(0,nL) + ' element' + (nL===1?'':'s') + '. ' + (o.minusOne
+    ? '⚠ p − 1. That is the Lomuto habit firing on the wrong algorithm: it assumes a[' + p + '] is finished. It is not — Hoare never finished anything — so a[' + p + '] = ' + s.a[p].v + ' just fell out of BOTH halves and will never be looked at again.'
+    : 'p is INCLUDED — the bound is p, not p−1. With Lomuto you write p−1 because a[p] is genuinely done; here nothing is done, so dropping a[p] would silently lose an element.') + (o.minusOne ? '' : ' (Left ' + nL + ' vs right ' + nR + ': ' + (Math.abs(nL-nR) <= 1 ? 'a balanced split, which is what buys you n log n.' : 'lopsided — that is how quick sort decays toward n².') + ')')];
+  yield* gHoare(s, lo, cut, o);
+  if (o.dead) return;
+  s.range = { lo:lo, hi:hi };
+  yield [19, 'Recurse right: quickSort(' + (p+1) + ', ' + hi + ') — ' + nR + ' element' + (nR===1?'':'s') + '.'];
+  yield* gHoare(s, p+1, hi, o);
+  if (o.dead) return;
+  s.callStack.pop(); rtExit(s, 'done'); s.out = crumb(s);
+}
+
+/* plain-array replay of the p−1 bug, so the trap can refuse an input that hides it */
+function hoareBroken(v){
+  const rec = (lo,hi,budget) => {
+    if (lo >= hi || budget.n-- < 0) return;
+    const pv = v[lo]; let i = lo-1, j = hi+1;
+    for(;;){
+      do { i++; if (i > hi) return; } while (v[i] < pv);
+      do { j--; if (j < lo) return; } while (v[j] > pv);
+      if (i >= j) break;
+      const t = v[i]; v[i] = v[j]; v[j] = t;
+    }
+    rec(lo, j-1, budget); rec(j+1, hi, budget);
+  };
+  rec(0, v.length-1, { n:20000 });
+  for (let k=1;k<v.length;k++) if (v[k-1] > v[k]) return false;
+  return true;
+}
+
+OPS.quick = [
+{ label:'quick sort (Lomuto)', hint:'divide & conquer', race:true,
+  sig:()=>'quickSort(a, 0, n-1)',
+  facts:F('O(n log n)','O(n log n)','O(n²)','O(log n)',0,1,0),
+  lesson:'<b>Partition, don’t merge.</b> Quick sort does all its work on the way DOWN: one pass puts the pivot in its final place and splits the problem in two. Merge sort does all its work on the way BACK UP. <b>Why it is the default sort almost everywhere</b> despite a O(n²) worst case: it is in-place and it scans the array linearly, so it is extremely cache-friendly — the constant factor beats heap sort badly. <b>Why heap sort still exists:</b> quick sort’s bad case is real, and on a real-time system a tail risk is not acceptable. Run the sorted-input trap below to watch it happen. <b>One caveat about this particular partition:</b> Lomuto is the version textbooks teach because it is a single loop and easy to prove. It is not the version that ships — Hoare’s original, next in the list, does the same job with about a third of the swaps.',
+  gen:function*(s){
+    const n = s.a.length;
+    if (!n){ yield [12, 'Empty array.']; return; }
+    yield* gQuick(s, 0, n-1);
+    s.range = null; s.cell = {}; s.sortedR = n; s.marks = {}; s.ptrs = {}; s.notes = {}; s.out = '';
+    yield [18, 'Sorted in ' + s.cmp + ' comparisons and ' + s.swp + ' swaps across ' + s.pass + ' partition' + (s.pass===1?'':'s') + '. No merge step, no scratch array — the recursion stack is the only extra memory, O(log n) of it when the splits are balanced.'];
+  },
+  finishNote:()=> 'Unstable, for the usual reason: partition swaps elements across long distances.' },
+
+{ label:'quick sort (Hoare)', hint:'the original — far fewer swaps', race:true,
+  sig:()=>'quickSort(a, 0, n-1)  /* Hoare */',
+  facts:F('O(n log n)','O(n log n)','O(n²)','O(log n)',0,1,0),
+  code:HOARE_CODE,
+  lesson:'<b>Same algorithm, different partition — and this is the one Hoare actually published in 1961.</b> Lomuto is the textbook version because it is easy to prove; Hoare is the one in your standard library. Two pointers walk toward each other from the outside: i stops on something too big for the left, j stops on something too small for the right, and a single swap fixes <em>both</em>. <b>The trade, and you can measure it here:</b> Hoare does about <b>half the swaps</b> — so half the array writes — and about <b>twice the comparisons</b>. Both numbers are in the race table, so check them rather than believing me. That trade is worth taking every time: a comparison is a register test, a swap is two writes to memory, and on nearly-sorted input the gap gets embarrassing (Lomuto swaps elements with themselves; Hoare does nothing at all). <b>The one thing that trips everyone:</b> Hoare’s return value is a BOUNDARY, not a final position. Nothing is placed. That is why the recursion is <code>(lo, p)</code> and <code>(p+1, hi)</code> — write <code>p−1</code> out of Lomuto habit and you lose an element. <b>Also:</b> pivot = a[lo] is not a style choice. The pivot value has to act as a sentinel that stops both scans; take a[hi] instead and the loop either runs off the array or recurses forever. Both traps are below.',
+  gen:function*(s){
+    const n = s.a.length;
+    if (!n){ yield [12, 'Empty array.']; return; }
+    yield* gHoare(s, 0, n-1, {});
+    s.range = null; s.cell = {}; s.sortedR = n; s.marks = {}; s.ptrs = {}; s.notes = {}; s.out = '';
+    yield [21, 'Sorted in ' + s.cmp + ' comparisons and ' + s.swp + ' swaps across ' + s.pass + ' partition' + (s.pass===1?'':'s') + '. Now run Lomuto on this same input and put the two side by side. Hoare LOSES on comparisons — roughly double, because the crossing region gets scanned from both ends and every scan spends one test discovering it has to stop. Hoare WINS on swaps, and therefore on array writes, usually by about half. Comparisons are cheap; writes are not.'];
+  },
+  finishNote:()=> 'Still unstable — the swaps are long-range. Read the “array writes” column against Lomuto on this same input: that gap, not the comparison count, is why this is the version that ships.' },
+
+{ label:'one Hoare partition', group:'aux', hint:'what it actually returns',
+  sig:()=>'partition(a, 0, n-1)',
+  code:HOARE_CODE,
+  lesson:'<b>One partition, then stop.</b> The point is the return value. Lomuto’s partition returns a <em>position</em> — a[p] is sorted forever after. Hoare’s returns a <em>boundary</em> — a[p] is just the last index of the left group, and it may still move a dozen times before the sort is done. Everything in a[0..p] ≤ everything in a[p+1..n−1]; nothing stronger is true, and nothing stronger is needed.',
+  gen:function*(s){
+    const n = s.a.length;
+    if (n < 2){ yield [0, 'Need at least two elements to partition.']; return; }
+    s.range = { lo:0, hi:n-1 };
+    const p = yield* gHoarePart(s, 0, n-1, {});
+    if (p == null) return;
+    const L = s.a.slice(0, p+1).map(e=>e.v), R = s.a.slice(p+1).map(e=>e.v);
+    s.marks = {}; s.ptrs = {}; s.notes = {}; s.range = { lo:0, hi:n-1, mid:p };
+    yield [9, 'Stop here. Left  a[0..' + p + '] = ' + L.join(' ') + '   (max ' + Math.max(...L) + ')  |  right a[' + (p+1) + '..' + (n-1) + '] = ' + R.join(' ') + '   (min ' + Math.min(...R) + '). The max of the left ≤ the min of the right — the split line is honest. But look at the bars: not one of them is coloured “final”, because not one of them is. Compare with Lomuto, where after one partition exactly one element is nailed down forever.'];
+  } },
+
+{ label:'worst case — sorted input', group:'bug', hint:'O(n²)',
+  sig:()=>'quickSort on already-sorted input',
+  check:s => isSorted(s.a.filter(e=>e)) ? null : 'This trap only bites on ALREADY-SORTED input — pick the “sorted (best case)” preset (or “reverse”, which is just as bad) and run it again.',
+  facts:F('O(n log n)','O(n log n)','O(n²)','O(n)',0,1,0),
+  lesson:'<b>The pivot choice IS the algorithm.</b> On sorted input, the last element is always the largest, so every partition splits n into (n−1) and 0 — no halving at all. You get n levels of recursion instead of log n, n²/2 comparisons, and a stack n deep that can genuinely blow up. <b>The fixes, all real:</b> median-of-three pivot, a random pivot, or introsort — which counts its own recursion depth and bails out to heap sort when it gets too deep. That is the answer to “why does heap sort exist if quick sort is faster?”',
+  code:QUICK_CODE,
+  gen:function*(s){
+    const n = s.a.length;
+    yield [1, 'Watch the pivot. On sorted input a[hi] is the LARGEST element every single time — so nothing is ever bigger than it, and the “right half” is always empty.'];
+    yield* gQuick(s, 0, n-1);
+    s.range = null; s.cell = {}; s.sortedR = n; s.marks = {}; s.ptrs = {}; s.notes = {}; s.out = '';
+    const worst = n*(n-1)/2;
+    yield [18, 'Done — ' + s.cmp + ' comparisons, and n(n−1)/2 = ' + worst + ' is the theoretical worst. Recursion went ' + n + ' levels deep instead of log₂(' + n + ') ≈ ' + Math.ceil(Math.log2(n||1)) + '. Race this against heap sort on the same input: heap sort will not have noticed anything unusual happened.'];
+  } },
+
+{ label:'Hoare recursing on p − 1', group:'bug', hint:'silently loses an element',
+  sig:()=>'quickSort(a, lo, p - 1)  /* Hoare */',
+  code:HOARE_M1_CODE,
+  check:s => hoareBroken(vals(s))
+    ? 'On THIS input the dropped element happened to already be in the right place, so the bug leaves no trace — which is exactly what makes it dangerous. Pick “reverse (worst case)”, “4 3 2 1”, or a random array of 6+ and run it again.'
+    : null,
+  facts:F('O(n log n)','O(n log n)','O(n²)','O(log n)',0,1,0),
+  lesson:'<b>The single most common Hoare bug, and it is muscle memory.</b> You learned <code>quickSort(lo, p−1)</code> with Lomuto, where it is correct because a[p] is the pivot and the pivot is finished. Hoare finishes nothing: p is only the last index of the left group. Skipping it hands a[p] to neither recursive call, so it stays wherever the partition happened to leave it. <b>Why it is so nasty:</b> the recursion still terminates, the program still returns, and on plenty of inputs a[p] was already in the right spot — so it passes your test and fails in production. Watch the step where the element gets orphaned, then watch the output come out almost sorted.',
+  gen:function*(s){
+    const n = s.a.length;
+    if (!n){ yield [12, 'Empty array.']; return; }
+    yield [18, 'The only difference from the working version is one character on line 19: p − 1 instead of p. Watch which element that costs you.'];
+    yield* gHoare(s, 0, n-1, { minusOne:true });
+    s.range = null; s.cell = {}; s.marks = {}; s.ptrs = {}; s.notes = {}; s.out = '';
+    yield [21, 'Finished — no crash, no infinite loop, and the array is ' + fmt(s) + '. It is NEARLY sorted, which is the worst possible failure mode: a bug that looks like it works. The fix is one character. The lesson is bigger — a partition’s CONTRACT is what tells you the recursion bound, and Lomuto and Hoare have different contracts.'];
+  },
+  finishNote:()=> 'Every orphaned element is one that no recursive call ever owned. Count how many are out of place — that is how many partitions dropped one.' },
+
+{ label:'Hoare with pivot = a[hi]', group:'bug', hint:'infinite recursion',
+  sig:()=>'partition with pivot = a[hi]',
+  code:HOARE_PHI_CODE,
+  facts:F('—','—','—','stack overflow',0,1,0),
+  lesson:'<b>Why pivot = a[lo] is load-bearing, not stylistic.</b> Hoare’s loop returns j and recurses on (lo, j). For that to make progress, j must be strictly less than hi — the left slice has to actually shrink. Taking a[lo] guarantees it. Taking a[hi] does not: whenever the last element is the largest of the slice, j comes back as hi, the “left half” is the entire slice again, and quickSort calls itself with identical arguments until the stack dies. <b>The other failure mode, same cause:</b> the pivot value doubles as the sentinel that stops each scan. Move it to the wrong end and a scan can walk clean off the array — an out-of-bounds read, which in C is not an error, just wrong. <b>The rule to memorise:</b> pivot end, return value, and recursion bound are one design, not three; mix Lomuto and Hoare halves and you get neither.',
+  gen:function*(s){
+    const n = s.a.length;
+    if (!n){ yield [12, 'Empty array.']; return; }
+    yield [1, 'One character changed: pivot = a[hi]. The loop body and the recursion are untouched — and that is the point, because they were written to assume a[lo].'];
+    const o = { pivotHi:true, watch:true };
+    yield* gHoare(s, 0, n-1, o);
+    s.range = null; s.cell = {}; s.marks = {}; s.ptrs = {}; s.notes = {};
+    yield [21, o.dead
+      ? 'That is the bug: the recursion never shrank the problem. Note that this needs no adversary and no big input — it just needs one slice whose last element is its largest, which happens constantly.'
+      : 'This input got away with it — no slice ever had its maximum sitting last, so nothing looped. An intermittent infinite loop is <em>worse</em> than a reliable one: it ships. Try “5 1 4 2 8”, “sorted”, or a random array and watch the same code hang.'];
+  } },
+];
+OPS.quick[0].code = QUICK_CODE;
+
+/* ------------------------------------------------- MERGE ---- */
+const MERGE_CODE = C(`
+void merge(int a[], int lo, int mid, int hi) {
+    int n1 = mid - lo + 1, n2 = hi - mid;
+    int L[n1], R[n2];
+    for (int i = 0; i < n1; i++) L[i] = a[lo + i];
+    for (int j = 0; j < n2; j++) R[j] = a[mid + 1 + j];
+    int i = 0, j = 0, k = lo;
+    while (i < n1 && j < n2)
+        if (L[i] <= R[j])      /* <= keeps it stable */
+            a[k++] = L[i++];
+        else
+            a[k++] = R[j++];
+    while (i < n1) a[k++] = L[i++];
+    while (j < n2) a[k++] = R[j++];
+}
+
+void mergeSort(int a[], int lo, int hi) {
+    if (lo < hi) {
+        int mid = lo + (hi - lo) / 2;
+        mergeSort(a, lo, mid);
+        mergeSort(a, mid + 1, hi);
+        merge(a, lo, mid, hi);
+    }
+}`);
+
+function* gMergeStep(s, lo, mid, hi, strict){
+  const n1 = mid - lo + 1, n2 = hi - mid;
+  s.auxKind = 'merge';
+  s.marks = {}; s.ptrs = {}; s.notes = {};
+  yield [1, 'n1 = ' + n1 + ' (left half), n2 = ' + n2 + ' (right half).'];
+  s.L = []; s.R = []; s.Li = null; s.Rj = null;
+  yield [2, 'Declare L[' + n1 + '] and R[' + n2 + '] — scratch space. This is the line that costs merge sort its in-place badge.'];
+  for (let x = 0; x < n1; x++){ s.L.push(cp(s, s.a[lo+x])); s.wr++; }
+  s.Li = 0;
+  yield [3, 'Copy the left half into L[]: ' + s.L.map(e=>e.v).join(' ') + '. We copy because we are about to overwrite a[' + lo + '..' + hi + '] in place.'];
+  for (let x = 0; x < n2; x++){ s.R.push(cp(s, s.a[mid+1+x])); s.wr++; }
+  s.Rj = 0;
+  yield [4, 'Copy the right half into R[]: ' + s.R.map(e=>e.v).join(' ') + '.'];
+  let i = 0, j = 0, k = lo;
+  s.ptrs = { k:k };
+  yield [5, 'i = 0, j = 0, k = ' + lo + '. Three fingers: one in each sorted copy, one in the destination. Each comparison places exactly one element, so a merge of m items costs O(m).'];
+  while (i < n1 && j < n2){
+    s.cmp++;
+    s.Li = i; s.Rj = j;
+    s.marks = {}; s.marks[k] = 'cmp'; s.ptrs = { k:k };
+    const takeL = strict ? s.L[i].v < s.R[j].v : s.L[i].v <= s.R[j].v;
+    const tie = s.L[i].v === s.R[j].v;
+    yield [7, 'L[' + i + '] = ' + s.L[i].v + '  vs  R[' + j + '] = ' + s.R[j].v + ' → take from ' + (takeL ? 'L' : 'R') + '.'
+            + (tie ? (strict
+                ? '  ⚠ A TIE, and < sends it to the RIGHT half — but the left half came first in the input. Stability just died.'
+                : '  ← A TIE, and ≤ sends the LEFT one first. The left half came first in the input, so original order survives. That single character is merge sort’s stability.')
+              : '')];
+    if (takeL){
+      s.a[k] = cp(s, s.L[i]); s.wr++;
+      s.marks = {}; s.marks[k] = 'swap';
+      i++; k++; s.Li = i; s.ptrs = { k:k };
+      yield [8, 'a[' + (k-1) + '] = L[' + (i-1) + '] = ' + s.a[k-1].v + '; i and k both advance.'];
+    } else {
+      s.a[k] = cp(s, s.R[j]); s.wr++;
+      s.marks = {}; s.marks[k] = 'swap';
+      j++; k++; s.Rj = j; s.ptrs = { k:k };
+      yield [10, 'a[' + (k-1) + '] = R[' + (j-1) + '] = ' + s.a[k-1].v + '; j and k both advance.'];
+    }
+  }
+  if (i < n1) yield [11, 'R[] is exhausted — whatever is left in L[] is already sorted and already bigger, so just tip it in.'];
+  while (i < n1){
+    s.a[k] = cp(s, s.L[i]); s.wr++;
+    s.marks = {}; s.marks[k] = 'swap';
+    i++; k++; s.Li = i; s.ptrs = { k:k };
+    yield [11, 'a[' + (k-1) + '] = L[' + (i-1) + '] = ' + s.a[k-1].v + '.'];
+  }
+  if (j < n2) yield [12, 'L[] is exhausted — tip the rest of R[] in.'];
+  while (j < n2){
+    s.a[k] = cp(s, s.R[j]); s.wr++;
+    s.marks = {}; s.marks[k] = 'swap';
+    j++; k++; s.Rj = j; s.ptrs = { k:k };
+    yield [12, 'a[' + (k-1) + '] = R[' + (j-1) + '] = ' + s.a[k-1].v + '.'];
+  }
+  for (let x = lo; x <= hi; x++) s.cell[x] = 'pre';
+  s.marks = {}; s.ptrs = {}; s.Li = null; s.Rj = null;
+  yield [13, 'Merged: a[' + lo + '..' + hi + '] = ' + s.a.slice(lo,hi+1).map(e=>e.v).join(' ') + ' — one sorted run, built in ' + (hi-lo+1) + ' placements.'];
+}
+
+function* gMerge(s, lo, hi, strict){
+  const call = 'mergeSort(' + lo + ',' + hi + ')';
+  s.callStack.push(call); rtEnter(s, lo, hi); s.out = crumb(s);
+  s.range = { lo:lo, hi:hi };
+  if (lo >= hi){
+    if (lo === hi) s.cell[lo] = 'pre';
+    s.marks = {}; s.ptrs = {};
+    yield [16, call + ': lo ' + (lo === hi ? '== hi — one element is a sorted run of length 1' : '> hi — empty') + '. Base case.'];
+    s.callStack.pop(); rtExit(s, 'base'); s.out = crumb(s);
+    return;
+  }
+  const mid = lo + ((hi - lo) >> 1);
+  rtSet(s, { mid:mid });
+  s.range = { lo:lo, hi:hi, mid:mid };
+  yield [17, call + ': mid = ' + mid + '. Split into a[' + lo + '..' + mid + '] and a[' + (mid+1) + '..' + hi + ']. The split is blind — merge sort never looks at the DATA to decide where to cut, which is exactly why it has no bad input and quick sort does.'];
+  yield [18, 'Sort the left half first. We go all the way down before anything gets merged.'];
+  yield* gMerge(s, lo, mid, strict);
+  s.range = { lo:lo, hi:hi, mid:mid };
+  yield [19, 'Left half done. Now the right half.'];
+  yield* gMerge(s, mid+1, hi, strict);
+  s.range = { lo:lo, hi:hi, mid:mid };
+  s.pass++;
+  yield [20, 'Both halves are sorted runs. NOW merge them — all of merge sort’s work happens on the way back UP the recursion.'];
+  yield* gMergeStep(s, lo, mid, hi, strict);
+  s.callStack.pop(); rtExit(s, 'done'); s.out = crumb(s);
+}
+
+OPS.merge = [
+{ label:'merge sort', hint:'no bad input', race:true,
+  sig:()=>'mergeSort(a, 0, n-1)',
+  facts:F('O(n log n)','O(n log n)','O(n log n)','O(n)',1,0,0),
+  code:MERGE_CODE,
+  lesson:'<b>O(n log n) in best, average and worst — like heap sort, but stable.</b> log n levels of recursion, O(n) work to merge each level. The split is data-blind, so no adversary can unbalance it. <b>What it costs:</b> O(n) scratch memory, which is the one thing quick sort and heap sort do not pay. <b>Where you have actually used it:</b> anything that must be stable and predictable — Java’s Arrays.sort for objects, Python’s sorted(), both Timsort, which is merge sort that hunts for already-sorted runs and hands short ones to insertion sort. The write counter below includes the copies into L[] and R[]; that scratch traffic is real, and it is what you pay for stability and a guarantee.',
+  gen:function*(s){
+    const n = s.a.length;
+    if (!n){ yield [15, 'Empty array.']; return; }
+    yield* gMerge(s, 0, n-1, false);
+    s.range = null; s.cell = {}; s.sortedR = n; s.auxKind = null; s.L = null; s.R = null; s.out = '';
+    yield [22, 'Sorted in ' + s.cmp + ' comparisons and ' + s.wr + ' writes over ' + s.pass + ' merges. n log₂ n ≈ ' + Math.round(n*Math.log2(n||1)) + ' — and it would be the same number for sorted, reverse or random input. That predictability is the entire selling point.'];
+  } },
+
+{ label:'merge with < instead of <=', group:'bug', hint:'stability bug',
+  sig:()=>'merge() with L[i] < R[j]',
+  check:NEEDDUP,
+  facts:F('O(n log n)','O(n log n)','O(n log n)','O(n)',0,0,0),
+  code:C(`
+void merge(int a[], int lo, int mid, int hi) {
+    int n1 = mid - lo + 1, n2 = hi - mid;
+    int L[n1], R[n2];
+    for (int i = 0; i < n1; i++) L[i] = a[lo + i];
+    for (int j = 0; j < n2; j++) R[j] = a[mid + 1 + j];
+    int i = 0, j = 0, k = lo;
+    while (i < n1 && j < n2)
+        if (L[i] < R[j])       /* was:  <=  */
+            a[k++] = L[i++];   /* ties now go */
+        else                   /* to the RIGHT */
+            a[k++] = R[j++];
+    while (i < n1) a[k++] = L[i++];
+    while (j < n2) a[k++] = R[j++];
+}
+
+void mergeSort(int a[], int lo, int hi) {
+    if (lo < hi) {
+        int mid = lo + (hi - lo) / 2;
+        mergeSort(a, lo, mid);
+        mergeSort(a, mid + 1, hi);
+        merge(a, lo, mid, hi);
+    }
+}`),
+  lesson:'<b>The same one-character lesson as bubble’s <code>&gt;=</code> and counting sort’s loop direction.</b> On a tie, <code>&lt;=</code> takes the left element — and the left half is the half that came first in the input, so equal keys keep their order. Change it to <code>&lt;</code> and the right element wins every tie. Output still perfectly sorted; every group of equal keys quietly reordered.',
+  gen:function*(s){
+    const n = s.a.length;
+    yield [7, 'Only the tie-break changed. Watch the #n labels whenever L and R show the same value.'];
+    yield* gMerge(s, 0, n-1, true);
+    s.range = null; s.cell = {}; s.sortedR = n; s.auxKind = null; s.L = null; s.R = null; s.out = '';
+    yield [22, 'Sorted correctly. Now compare the #n labels against the honest version — that is your bug report.'];
+  } },
+];
+
+/* ---------------------------------------------- COUNTING ---- */
+const COUNT_OK = s => {
+  const a = s.a.filter(e=>e);
+  if (!a.length) return 'Empty array.';
+  const mn = Math.min(...a.map(e=>e.v)), mx = Math.max(...a.map(e=>e.v));
+  if (mn < 0) return 'Counting sort needs NON-NEGATIVE integer keys. Negative values need an offset first — pick the “small keys 0–5” or “4 2 2 5 3 3 1 0” preset.';
+  if (mx > 20) return 'Key range is 0…' + mx + ', so count[] would need ' + (mx+1) + ' cells for ' + a.length + ' values. That is the k ≫ n disaster — legal, but useless, and it will not fit on screen. Pick the “small keys 0–5” preset.';
+  return null;
+};
+OPS.counting = [
+{ label:'counting sort (stable)', hint:'right-to-left', race:true,
+  sig:()=>'countingSort(a, n, k)',
+  check:COUNT_OK,
+  facts:F('O(n+k)','O(n+k)','O(n+k)','O(n+k)',1,0,0),
+  lesson:'<b>Every comparison sort is Ω(n log n). This one is O(n). So which rule is it breaking?</b> None — it never compares two elements. It uses the keys as array <em>indices</em>. The lower bound applies only to comparison sorts, and counting sort simply is not one. The theorem is not violated, it is sidestepped. <b>But watch k:</b> O(n+k) is only linear when k = O(n). Sorting 10 values in the range 0…1,000,000 means a million-cell count array — and the big-O tells you that honestly, as long as you remember k is in there.',
+  code:C(`
+void countingSort(int a[], int n, int k) {
+    int count[k], output[n];
+    for (int i = 0; i < k; i++) count[i] = 0;
+    for (int i = 0; i < n; i++) count[a[i]]++;  /* count */
+    for (int i = 1; i < k; i++)               /* prefix sum */
+        count[i] += count[i - 1];
+    for (int i = n - 1; i >= 0; i--)   /* RIGHT to LEFT! */
+        output[--count[a[i]]] = a[i];
+    for (int i = 0; i < n; i++) a[i] = output[i];
+}`),
+  gen:function*(s){
+    const n = s.a.length, k = Math.max(...s.a.map(e=>e.v)) + 1;
+    s.count = new Array(k).fill(0);
+    s.output = new Array(n).fill(null);
+    s.prefix = false;
+    yield [1, 'Two extra arrays: count[' + k + '] and output[' + n + ']. That is the O(n+k) space — counting sort is NOT in-place, and that is the price of not comparing.'];
+    yield [2, 'count[] zeroed.'];
+    for (let i=0;i<n;i++){
+      s.ptrs = { i:i }; s.marks = {}; s.marks[i] = 'cmp';
+      s.cntMark = s.a[i].v;
+      s.count[s.a[i].v]++;
+      yield [3, 'a[' + i + '] = ' + s.a[i].v + ' → count[' + s.a[i].v + ']++ = ' + s.count[s.a[i].v] + '. The key is being used as an INDEX. No comparison has happened, and none ever will.'];
+    }
+    s.marks = {}; s.ptrs = {}; s.cntMark = null;
+    yield [3, 'Phase 1 done — count[] is a histogram: ' + s.count.join(' ') + '.'];
+    s.prefix = true;
+    for (let i=1;i<k;i++){
+      s.cntMark = i;
+      s.count[i] += s.count[i-1];
+      yield [5, 'count[' + i + '] += count[' + (i-1) + '] → ' + s.count[i] + '. Now count[i] means “how many elements are ≤ i”, which is the slot just PAST where key i ends in the output.'];
+    }
+    s.cntMark = null;
+    yield [5, 'Phase 2 done — prefix sums: ' + s.count.join(' ') + '.'];
+    yield [6, 'Phase 3: iterate the input from the RIGHT end (i = ' + (n-1) + ' down to 0). This direction is the entire reason counting sort is stable — budget your attention here, this is where everyone gets lost.'];
+    for (let i=n-1;i>=0;i--){
+      const e = s.a[i];
+      s.ptrs = { i:i }; s.marks = {}; s.marks[i] = 'cmp';
+      s.cntMark = e.v;
+      s.count[e.v]--;
+      const slot = s.count[e.v];
+      s.output[slot] = { v:e.v, id:e.id, k:e.k };
+      s.outMark = slot; s.wr++;
+      yield [7, 'a[' + i + '] = ' + e.v + ' → --count[' + e.v + '] = ' + slot + ' → output[' + slot + '] = ' + e.v + '. Because we came from the right, the LAST occurrence of ' + e.v + ' took the LAST slot — relative order preserved.'];
+    }
+    s.marks = {}; s.ptrs = {}; s.cntMark = null; s.outMark = null;
+    yield [8, 'Copy output[] back into a[].'];
+    s.a = s.output.map(e => ({ v:e.v, id:e.id, k:e.k }));
+    s.wr += n;
+    s.sortedR = n;
+    yield [9, 'Done: ' + fmt(s) + '. Zero comparisons. O(n+k) time with n = ' + n + ', k = ' + k + '.'];
+  } },
+
+{ label:'placement loop LEFT to RIGHT', group:'bug', hint:'stability bug',
+  sig:()=>'countingSort with i = 0 → n-1',
+  check:s => COUNT_OK(s) || NEEDDUP(s),
+  facts:F('O(n+k)','O(n+k)','O(n+k)','O(n+k)',0,0,0),
+  lesson:'<b>Trap #6, and the best stability demo in the module.</b> The output is still correctly sorted. Every test on the numbers passes. And the order of equal keys has been silently reversed. If those keys carried payloads — (3, "Ravi") and (3, "Sneha") — the same numbers come out with different names attached. This is where “stable” stops being vocabulary and becomes a bug report.',
+  code:C(`
+void countingSort(int a[], int n, int k) {   /* broken */
+    int count[k], output[n];
+    for (int i = 0; i < k; i++) count[i] = 0;
+    for (int i = 0; i < n; i++) count[a[i]]++;
+    for (int i = 1; i < k; i++)
+        count[i] += count[i - 1];
+    for (int i = 0; i < n; i++)    /* was: i = n-1; i-- */
+        output[--count[a[i]]] = a[i];
+    for (int i = 0; i < n; i++) a[i] = output[i];
+}`),
+  gen:function*(s){
+    const n = s.a.length, k = Math.max(...s.a.map(e=>e.v)) + 1;
+    s.count = new Array(k).fill(0);
+    s.output = new Array(n).fill(null);
+    for (let i=0;i<n;i++) s.count[s.a[i].v]++;
+    yield [3, 'Phases 1 and 2 are untouched and perfectly correct — histogram: ' + s.count.join(' ') + '.'];
+    s.prefix = true;
+    for (let i=1;i<k;i++) s.count[i] += s.count[i-1];
+    yield [5, 'Prefix sums: ' + s.count.join(' ') + '. Still correct. The bug is one loop away.'];
+    yield [6, 'The “optimisation”: walk the input LEFT to RIGHT. Because --count hands out slots from the BACK of each key’s block, the first element you meet gets the LAST slot. Watch the #n labels on equal keys.'];
+    for (let i=0;i<n;i++){
+      const e = s.a[i];
+      s.ptrs = { i:i }; s.marks = {}; s.marks[i] = 'cmp';
+      s.cntMark = e.v; s.count[e.v]--;
+      const slot = s.count[e.v];
+      const later = s.a.slice(i+1).some(o => o.v === e.v);
+      s.output[slot] = { v:e.v, id:e.id, k:e.k };
+      s.outMark = slot; s.wr++;
+      yield [7, 'a[' + i + '] (' + e.v + ', originally #' + e.id + ') → output[' + slot + '].'
+              + (later ? '  ⚠ There is another ' + e.v + ' still to come in the input, and it will be given slot ' + (slot-1) + ' — IN FRONT of this one. The first occurrence just lost its place to a later twin.' : '')];
+    }
+    s.marks = {}; s.ptrs = {}; s.cntMark = null; s.outMark = null;
+    s.a = s.output.map(e => ({ v:e.v, id:e.id, k:e.k }));
+    s.wr += n; s.sortedR = n;
+    yield [8, 'Copy output[] back into a[].'];
+    yield [9, 'Result: ' + fmt(s) + ' — correctly sorted, every numeric test green, and every group of equal keys is in REVERSE input order. Compare the #n labels against the stable version. Now write the bug report.'];
+  } },
+];
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function boot(){
+  applyTheme(readTheme());
+  $('#themeBtn').onclick = cycleTheme;
+  /* while on "auto", the OS flipping at sunset should update the button label too */
+  darkMQ.addEventListener('change', () => { if (readTheme() === 'auto') paintThemeBtn('auto'); });
+  buildTabs();
+  buildPresets();
+  $('#btnNext').onclick = stepFwd;
+  $('#btnPrev').onclick = stepBack;
+  $('#btnRun').onclick  = toggleAuto;
+  $('#btnEnd').onclick  = finishRun;
+  $('#regen').onclick   = () => applyPreset($('#preset').value);
+  $('#apply').onclick   = () => {
+    const nums = $('#custom').value.split(/[\s,]+/).map(Number).filter(v => !isNaN(v));
+    if (nums.length < 2){ note('Type at least two numbers, space separated — e.g.  5 1 4 2 8'); return; }
+    setInput(nums);
+  };
+  $('#custom').onkeydown = ev => { if (ev.key === 'Enter') $('#apply').click(); };
+  $('#restore').onclick = () => {
+    if (run) finishRun();
+    if (MODES[mode].own){ PQ = freshState(INPUT); PQ.heapSize = PQ.a.length; }
+    else { S = freshState(INPUT); if (MODES[mode].tree) S.heapSize = S.a.length; }
+    note('Working array restored to  ' + INPUT.join(' ') + '.');
+    renderAll();
+  };
+  document.addEventListener('keydown', ev => {
+    if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+    if (ev.key === 'ArrowRight'){ stepFwd(); ev.preventDefault(); }
+    if (ev.key === 'ArrowLeft'){ stepBack(); ev.preventDefault(); }
+    if (ev.key === ' '){ toggleAuto(); ev.preventDefault(); }
+  });
+  $('#custom').value = INPUT.join(' ');
+  setMode('bubble');
+}
+boot();
+</script>
+</body></html>

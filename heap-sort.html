@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TITLE — SUBTITLE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EFF3F5;--slide:#FFFFFF;--ink:#22303C;--dim:#5D7285;--faint:#8CA0AE;--rule:#CBD8E0;
+  --accent:#116A83;--accent-soft:#E1EEF2;--bad:#A4303F;--bad-soft:#F7EAEC;
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --pad:clamp(20px,4vw,64px);
+  /* --- surfaces and ink that used to be hardcoded further down --- */
+  color-scheme:light;
+  --slide-0:rgba(255,255,255,0);
+  --panel-bg:#FAFCFD;
+  --box-bg:#FBFDFE;
+  --btn-bg:#FFFFFF;
+  --pre-bg:#F1F5F7;
+  --pre-ink:#1E2E3A;
+  --code-ink:#0C4E61;
+  --tok-c:#7E93A2;
+  --tok-k:#0C5A73;
+  --tok-n:#8A5A00;
+  --tok-s:#1F6B3F;
+  --svg-node:#FFFFFF;
+  --svg-rule:#9FB3C0;
+  --on-fill:#FFFFFF;
+  --zero:#C3CFD8;
+  --wash:#DCE5EA;
+  --cell:#F4F8FA;
+  --bad:#A4303F;
+  --bad-soft:#F7EAEC;
+  --block:#9C6510;
+  --block-soft:#F6EEE0;
+  --done:#4A6B2F;
+  --done-soft:#EDF2E4;
+  --node-red:#C62828;
+  --node-red-edge:#C62828;
+  --node-black:#14181C;
+  --node-black-edge:#14181C;
+  --on-node:#FFFFFF;
+}
+
+/* The media query is guarded so an explicit light choice still wins,
+   and both [data-theme] blocks exist so the button wins in either
+   direction over whatever the operating system thinks. */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --paper:#12171B;
+  --slide:#1A2127;
+  --slide-0:rgba(26,33,39,0);
+  --ink:#E1E8ED;
+  --dim:#9DAFBB;
+  --faint:#778995;
+  --rule:#2E3941;
+  --accent:#5BB7D0;
+  --accent-soft:#16303A;
+  --panel-bg:#1E262D;
+  --box-bg:#171E24;
+  --btn-bg:#212A31;
+  --pre-bg:#141A20;
+  --pre-ink:#D5DEE5;
+  --code-ink:#8FD9EC;
+  --tok-c:#6F8290;
+  --tok-k:#6BC1D8;
+  --tok-n:#D6A355;
+  --tok-s:#6CBE8F;
+  --svg-node:#242E36;
+  --svg-rule:#55646F;
+  --on-fill:#0E1419;
+  --zero:#3D4A54;
+  --wash:#333F48;
+  --cell:#1E262D;
+  --bad:#E0655E;
+  --bad-soft:#382324;
+  --block:#D6A355;
+  --block-soft:#33291A;
+  --done:#93C36B;
+  --done-soft:#212A1B;
+  /* A black node on a black ground is honest and useless. In dark mode the
+     black node stays the darkest thing on the slide -- darker than the box it
+     sits in -- and earns a bright rim so you can still find its edges. */
+  --node-red:#CF3A40;
+  --node-red-edge:#F08A8E;
+  --node-black:#10151A;
+  --node-black-edge:#8FA3B2;
+  --on-node:#F2F7FA;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#12171B;
+  --slide:#1A2127;
+  --slide-0:rgba(26,33,39,0);
+  --ink:#E1E8ED;
+  --dim:#9DAFBB;
+  --faint:#778995;
+  --rule:#2E3941;
+  --accent:#5BB7D0;
+  --accent-soft:#16303A;
+  --panel-bg:#1E262D;
+  --box-bg:#171E24;
+  --btn-bg:#212A31;
+  --pre-bg:#141A20;
+  --pre-ink:#D5DEE5;
+  --code-ink:#8FD9EC;
+  --tok-c:#6F8290;
+  --tok-k:#6BC1D8;
+  --tok-n:#D6A355;
+  --tok-s:#6CBE8F;
+  --svg-node:#242E36;
+  --svg-rule:#55646F;
+  --on-fill:#0E1419;
+  --zero:#3D4A54;
+  --wash:#333F48;
+  --cell:#1E262D;
+  --bad:#E0655E;
+  --bad-soft:#382324;
+  --block:#D6A355;
+  --block-soft:#33291A;
+  --done:#93C36B;
+  --done-soft:#212A1B;
+  /* A black node on a black ground is honest and useless. In dark mode the
+     black node stays the darkest thing on the slide -- darker than the box it
+     sits in -- and earns a bright rim so you can still find its edges. */
+  --node-red:#CF3A40;
+  --node-red-edge:#F08A8E;
+  --node-black:#10151A;
+  --node-black-edge:#8FA3B2;
+  --on-node:#F2F7FA;
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --paper:#EFF3F5;
+  --slide:#FFFFFF;
+  --ink:#22303C;
+  --dim:#5D7285;
+  --faint:#8CA0AE;
+  --rule:#CBD8E0;
+  --accent:#116A83;
+  --accent-soft:#E1EEF2;
+  --bad:#A4303F;
+  --bad-soft:#F7EAEC;
+  --slide-0:rgba(255,255,255,0);
+  --panel-bg:#FAFCFD;
+  --box-bg:#FBFDFE;
+  --btn-bg:#FFFFFF;
+  --pre-bg:#F1F5F7;
+  --pre-ink:#1E2E3A;
+  --code-ink:#0C4E61;
+  --tok-c:#7E93A2;
+  --tok-k:#0C5A73;
+  --tok-n:#8A5A00;
+  --tok-s:#1F6B3F;
+  --svg-node:#FFFFFF;
+  --svg-rule:#9FB3C0;
+  --on-fill:#FFFFFF;
+  --zero:#C3CFD8;
+  --wash:#DCE5EA;
+  --cell:#F4F8FA;
+  --block:#9C6510;
+  --block-soft:#F6EEE0;
+  --done:#4A6B2F;
+  --done-soft:#EDF2E4;
+  --node-red:#C62828;
+  --node-red-edge:#C62828;
+  --node-black:#14181C;
+  --node-black-edge:#14181C;
+  --on-node:#FFFFFF;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0;z-index:50;transition:width .28s ease}
+#deck{height:100%;position:relative}
+.slide{display:none;height:100%;overflow-y:auto;overflow-x:hidden;padding:calc(var(--pad) + 14px) var(--pad) 76px;background:var(--slide);scrollbar-width:thin}
+.slide.is-active{display:block;animation:fadein .22s ease both}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.inner{max-width:1080px;margin:0 auto}
+#bar{position:fixed;left:0;right:0;bottom:0;height:56px;z-index:40;display:flex;align-items:center;gap:14px;padding:0 var(--pad);background:linear-gradient(to top,var(--slide) 62%,var(--slide-0));font-family:var(--mono);font-size:12px;color:var(--faint)}
+#bar .chapter{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bar button{font-family:var(--mono);font-size:12px;border:1px solid var(--rule);background:var(--slide);color:var(--ink);border-radius:3px;padding:6px 12px;cursor:pointer}
+#bar button:hover{border-color:var(--accent);color:var(--accent)}
+#bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
+#count{min-width:56px;text-align:right}
+#bar #theme{min-width:88px;text-align:center}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1{font-size:clamp(30px,5.4vw,52px);line-height:1.08;font-weight:700;letter-spacing:-.015em;margin:0 0 18px}
+h2{font-size:clamp(23px,3.4vw,34px);line-height:1.18;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+h3{font-size:16px;font-weight:600;margin:26px 0 8px}
+.kicker{font-family:var(--mono);font-size:12px;color:var(--accent);margin:0 0 10px}
+.sub{color:var(--dim);font-size:clamp(16px,2vw,19px);margin:0 0 26px;max-width:62ch;font-style:italic}
+p{max-width:66ch;margin:0 0 14px}
+ul,ol{max-width:66ch;padding-left:22px;margin:0 0 16px}
+li{margin-bottom:9px}
+li::marker{color:var(--faint)}
+.tight li{margin-bottom:5px}
+code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);padding:1px 5px;border-radius:3px;color:var(--code-ink)}
+.small{font-size:14px;color:var(--dim)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,3.5vw,44px);align-items:start}
+.cols.wide-left{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+@media (max-width:820px){.cols,.cols.wide-left,.cols3{grid-template-columns:1fr;gap:24px}}
+.panel{border:1px solid var(--rule);border-radius:4px;padding:18px 20px;background:var(--panel-bg)}
+.panel h3{margin-top:0}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;margin:18px 0;font-size:15.5px;max-width:66ch}
+.note p:last-child{margin-bottom:0}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:6px 0 16px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);border-bottom:1.5px solid var(--ink)}
+td:first-child{color:var(--dim)}
+tbody tr:last-child td{border-bottom:none}
+.num{font-family:var(--mono)}
+.alert{color:var(--bad);font-weight:600}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.62;background:var(--pre-bg);border-left:3px solid var(--accent);padding:14px 16px;margin:0 0 16px;border-radius:0 4px 4px 0;overflow-x:auto;color:var(--pre-ink)}
+pre code{background:none;padding:0;border-radius:0;color:inherit;font-size:inherit;font-family:inherit}
+.tok-c{color:var(--tok-c);font-style:italic}
+.tok-k{color:var(--tok-k);font-weight:500}
+.tok-n{color:var(--tok-n)}
+.tok-s{color:var(--tok-s)}
+.treebox{border:1px solid var(--rule);border-radius:4px;background:var(--box-bg);padding:10px;overflow-x:auto}
+svg.tree{display:block;height:auto;margin-inline:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:10px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.controls button,.controls select{font-family:var(--mono);font-size:12px;padding:7px 11px;border:1px solid var(--rule);background:var(--btn-bg);color:var(--ink);border-radius:3px;cursor:pointer}
+.controls button:hover{border-color:var(--accent);color:var(--accent)}
+.controls input[type=number]{font-family:var(--mono);font-size:12px;padding:7px 9px;width:86px;border:1px solid var(--rule);border-radius:3px;background:var(--btn-bg);color:var(--ink)}
+.controls input[type=text]{font-family:var(--mono);font-size:12px;padding:7px 9px;width:86px;border:1px solid var(--rule);border-radius:3px;background:var(--btn-bg);color:var(--ink)}
+.controls input[type=checkbox]{accent-color:var(--accent)}
+.controls input::placeholder{color:var(--faint)}
+.controls label{color:var(--dim)}
+.stat{font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+.stat b{color:var(--ink);font-weight:500}
+ol.props{counter-reset:p;list-style:none;padding-left:0;max-width:none}
+ol.props li{counter-increment:p;position:relative;padding-left:40px;margin-bottom:14px}
+ol.props li::before{content:counter(p);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;border:1px solid var(--rule);font-family:var(--mono);font-size:12px;color:var(--accent);display:flex;align-items:center;justify-content:center}
+@media print{.slide{display:block!important;height:auto;page-break-after:always;padding:24px}#bar,#progress{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style><style>
+/* extras used by some decks — delete what you do not need */
+.matrix{border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.matrix td,.matrix th{border:1px solid var(--rule);padding:3px 6px;text-align:center;color:var(--ink)}
+.matrix th{background:#F1F5F7;font-weight:500;color:var(--dim)}
+.matrix td.one{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.matrix td.zero{color:#C3CFD8}
+.chip{display:inline-block;font-family:var(--mono);font-size:11.5px;border:1px solid var(--rule);border-radius:3px;padding:2px 7px;margin:0 4px 4px 0;background:#fff}
+.chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+</style>
+<script>
+/* Pick the theme up before first paint: a dark-mode reader opening this deck
+   should never get a white flash on the way in. */
+(function(){try{var t=localStorage.getItem('deck-theme');
+if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+</head>
+<body>
+<div id="progress"></div>
+<main id="deck">
+
+<!-- ============ SLIDES GO HERE ============
+     Append each slide with:  cat >> deck.html << 'CHUNK'  ... CHUNK
+     Number each slide with a marker comment so you can splice later.
+     (Never write a literal comment-close sequence inside a comment - it
+      terminates the comment early and the rest leaks onto the page.)
+     Structural vocabulary available:
+       .inner            page column wrapper (always the first child of .slide)
+       .kicker           small mono line above the heading: "04 — the idea"
+       .sub              italic standfirst under an h2
+       .cols             two equal columns   .cols.wide-left / .wide-right  (60/40)
+       .cols3            three columns
+       .panel            bordered box for secondary material
+       .note             accent-bordered callout for the one idea that matters
+       .note.bad         red variant, for failure modes and traps
+       .treebox          container for an SVG visual, with .legend beneath
+       .controls         row of buttons/inputs for a live demo
+       .stat             mono status line under a demo
+       ol.props          numbered circles, for a list that really is a numbered set
+       table             comparison tables; .num for figures, .alert for the bad cell
+       pre > code        C listings — escape &lt; &gt; &amp; by hand
+============================================ -->
+
+<!-- 1 -->
+<section class="slide" data-chapter="Opening">
+ <div class="inner">
+  <div class="treebox" style="margin-bottom:22px">
+    <svg class="tree" id="heroTree" role="img" aria-label="A max-heap built from ascending input, drawn as a complete binary tree"></svg>
+    <svg class="tree" id="heroArr" role="img" aria-label="The same heap shown as a flat array with index labels"></svg>
+    <div class="legend"><span id="heroCap"></span></div>
+  </div>
+  <h1>Heap sort</h1>
+  <p class="sub">Selection sort spends O(n) finding the maximum and then throws away everything it learned. A heap remembers.</p>
+  <p class="small">The result is the only comparison sort that is simultaneously O(n log n) in the worst case, in place, and free of recursion. Arrow keys, or the buttons below, to move through the deck.</p>
+ </div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">02 — the problem</p>
+  <h2>Selection sort rediscovers the same array n times</h2>
+  <p class="sub">The algorithm is not wrong. It is amnesiac.</p>
+  <div class="cols wide-left">
+   <div>
+    <p>Selection sort has exactly one idea: find the largest remaining element, put it where it belongs, repeat. The idea is correct. The cost is in the word <em>find</em>.</p>
+    <p>Each pass scans the whole unsorted region to locate the maximum. That scan learns a great deal — it sees every pairwise comparison along the way — and at the end of the pass it discards all of it and starts again from nothing.</p>
+    <div class="note bad">
+     <p>Press the button. The comparison count is <span class="num">n(n−1)/2</span> for every input, sorted or not. Selection sort has no best case.</p>
+    </div>
+   </div>
+   <div class="panel">
+    <h3>Count it</h3>
+    <div class="controls">
+      <input type="number" id="selN" value="2000" min="10" max="20000" step="10">
+      <button id="selRun">Run selection sort</button>
+    </div>
+    <div class="stat" id="selOut">Not run yet.</div>
+    <p class="small" style="margin-top:14px">Each row runs the real implementation in this page and counts every comparison it performs.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">03 — the problem</p>
+  <h2>Things that do not fix this</h2>
+  <div class="cols">
+   <div>
+    <ul>
+     <li><b>Scan from both ends.</b> Cocktail-style, grab the max and the min in one pass. Halves the number of passes. Still n²/2 comparisons.</li>
+     <li><b>Remember the second largest.</b> After removing the max, the runner-up is the new max — but only if you tracked it, and tracking it correctly for the <em>next</em> pass means tracking the whole ordering. You have reinvented sorting.</li>
+     <li><b>Faster comparisons.</b> Comparisons were never the bottleneck. There are simply too many of them.</li>
+     <li><b>Sort the array first, then read off the maxima.</b> Circular.</li>
+    </ul>
+   </div>
+   <div>
+    <div class="note">
+     <p>Every one of these attacks the cost of a pass. The problem is not the cost of a pass — it is that there are n of them, each starting from zero.</p>
+    </div>
+    <p>The quantity to attack is the <b>information thrown away between passes</b>. If the array could carry a little structure forward — not full sorted order, just enough to make the next maximum obvious — each pass would cost a fraction of a scan.</p>
+    <p>That is the whole of heap sort, stated before we know what a heap is.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">04 — the problem</p>
+  <h2>Merge sort and quicksort each give up something you may need</h2>
+  <p class="sub">Two O(n log n) sorts already exist. Neither closes the gap.</p>
+  <table>
+   <thead><tr><th>&nbsp;</th><th>Worst case</th><th>Extra memory</th><th>Recursion</th><th>Stable</th></tr></thead>
+   <tbody>
+    <tr><td>Selection sort</td><td class="num alert">O(n²)</td><td class="num">O(1)</td><td>none</td><td>no</td></tr>
+    <tr><td>Merge sort</td><td class="num">O(n log n)</td><td class="num alert">O(n)</td><td>O(log n) depth</td><td>yes</td></tr>
+    <tr><td>Quicksort (Lomuto)</td><td class="num alert">O(n²)</td><td class="num">O(1)</td><td class="alert">O(n) depth worst case</td><td>no</td></tr>
+    <tr><td>Heap sort</td><td class="num">O(n log n)</td><td class="num">O(1)</td><td>none needed</td><td>no</td></tr>
+   </tbody>
+  </table>
+  <div class="cols">
+   <div>
+    <p>Merge sort's guarantee is real, and it is paid for with a second array the size of the first. On an embedded device, or inside a kernel, that buffer may simply not exist.</p>
+    <p>Quicksort is usually faster than either, and its worst case is not a curiosity — the Lomuto partition you already know degrades to O(n²) on <em>already-sorted</em> input, which is the most common shape real data arrives in.</p>
+   </div>
+   <div>
+    <div class="note">
+     <p>The gap: a sort that is <b>guaranteed</b> O(n log n), uses <b>no extra memory</b>, and needs <b>no stack</b>. Nothing above is all three.</p>
+    </div>
+    <p class="small">Slide 14 measures the quicksort claim rather than asserting it, including the input on which randomising the pivot does not save you.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-chapter="The reframe">
+ <div class="inner">
+  <p class="kicker">05 — the reframe</p>
+  <h2>We never needed the array sorted. We needed the maximum, repeatedly.</h2>
+  <p class="sub">Sorted order is an answer to a much harder question than the one selection sort is asking.</p>
+  <div class="cols">
+   <div>
+    <p>Selection sort asks the array a single question, n times: <em>who is the largest of you?</em> It does not need to know the ordering of the rest. It never uses that information.</p>
+    <p>Full sorted order answers that question — and also answers a million questions nobody asked. Maintaining it is expensive precisely because it is so informative.</p>
+    <p>So the question becomes: <b>what is the weakest ordering that still makes "who is the largest" free?</b></p>
+   </div>
+   <div class="panel">
+    <h3>What the answer has to satisfy</h3>
+    <ol class="props">
+     <li>The maximum is findable in O(1) — no scan.</li>
+     <li>After the maximum is removed, the structure repairs itself in O(log n), not O(n).</li>
+     <li>It lives inside the original array. No second buffer, no malloc, no pointers.</li>
+     <li>It can be established from an unordered array cheaply — ideally in O(n), or the setup cost eats the saving.</li>
+    </ol>
+    <p class="small">A structure satisfying all four gives a sort immediately: build it once, then extract n times.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-chapter="The heap">
+ <div class="inner">
+  <p class="kicker">06 — the heap</p>
+  <h2>A heap is a partial order, and that is the point</h2>
+  <p class="sub">You have just built BSTs. A heap relaxes almost every rule a BST enforces, and gets something in return.</p>
+  <div class="cols">
+   <div>
+    <p>A binary search tree orders every node against every other: everything left of a node is smaller, everything right is larger. Read it in order and the array falls out sorted.</p>
+    <p>A max-heap enforces one rule and nothing else:</p>
+    <div class="note">
+     <p><b>Every node is ≥ both of its children.</b> Siblings have no relationship. Cousins have no relationship. A node on the left may be larger than a node three levels up on the right.</p>
+    </div>
+    <p>That looseness is not a defect to be apologised for. It is the reason repair costs one root-to-leaf path instead of a rebalance, and it is the reason a heap survives being stored in a bare array.</p>
+    <p class="small">Say it out loud once: a heap is not sorted. It only knows who is biggest.</p>
+   </div>
+   <div>
+    <div class="treebox">
+      <svg class="tree" id="miniBST" role="img" aria-label="A binary search tree, fully ordered left to right"></svg>
+      <div class="legend"><span>BST — every node ordered against every other</span></div>
+    </div>
+    <div class="treebox" style="margin-top:14px">
+      <svg class="tree" id="miniHeap" role="img" aria-label="A max-heap holding the same keys, only parent-child ordered"></svg>
+      <div class="legend"><span>Max-heap — same keys, only parent ≥ child</span></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-chapter="The heap">
+ <div class="inner">
+  <p class="kicker">07 — the heap</p>
+  <h2>The array is the tree. There are no pointers anywhere.</h2>
+  <p class="sub">This is the slide to slow down on. Everything afterwards is index arithmetic.</p>
+  <div class="treebox">
+    <svg class="tree" id="mapTree" role="img" aria-label="A max-heap drawn as a tree, each node badged with its array index"></svg>
+    <svg class="tree" id="mapArr" role="img" aria-label="The same heap as a flat array, indices 0 to 9"></svg>
+    <div class="legend"><span>the small number beside each node is its array index</span></div>
+  </div>
+  <div class="cols">
+   <div>
+    <ol class="props">
+     <li>The tree is <b>complete</b>: every level full except possibly the last, which fills left to right. This is what makes the array packed with no gaps.</li>
+     <li>Node <span class="num">i</span> has children <span class="num">2i+1</span> and <span class="num">2i+2</span>.</li>
+     <li>Node <span class="num">i</span> has parent <span class="num">(i−1)/2</span>, integer division.</li>
+     <li>Indices <span class="num">n/2 … n−1</span> are the leaves. They have no children, so they are already valid one-node heaps.</li>
+    </ol>
+   </div>
+   <div>
+    <div class="note">
+     <p>The tree is a way of <em>reading</em> the array. It is never built. No node struct, no left and right fields, no allocation — the parent-child relationship is arithmetic on an index.</p>
+    </div>
+    <p>This is also why a heap has no rotations, no rebalancing and no deletion cases. The shape is fixed by n alone; only the values move.</p>
+    <p class="small">Property 4 is the one students skip, and it is the one that makes the build step cheap.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-chapter="The heap">
+ <div class="inner">
+  <p class="kicker">08 — the heap</p>
+  <h2>Completeness caps the height at ⌊log₂ n⌋, for free</h2>
+  <p class="sub">No invariant to maintain, no rotations to perform. The shape cannot degenerate.</p>
+  <div class="cols wide-left">
+   <div>
+    <p>An AVL or red-black tree pays, on every write, to keep its height near log n. A heap gets the same bound without paying anything, because completeness is a property of the <em>shape</em> and the shape is determined entirely by how many elements there are.</p>
+    <p>A complete tree with n nodes fills level d with 2<sup>d</sup> nodes. After h full levels it holds 2<sup>h+1</sup>−1 nodes, so h = ⌊log₂ n⌋. Feed a heap sorted input, reverse input, or all-equal input: the height is identical, because the height never depended on the values.</p>
+    <div class="note">
+     <p>Every sift travels one root-to-leaf path. The height bound is therefore also the bound on the work of a single repair — and unlike an average, it is a <b>guarantee</b>.</p>
+    </div>
+   </div>
+   <div class="panel">
+    <h3>Height at realistic n</h3>
+    <table>
+     <thead><tr><th>n</th><th>levels</th><th>worst sift</th></tr></thead>
+     <tbody>
+      <tr><td class="num">1 000</td><td class="num">10</td><td class="num">9</td></tr>
+      <tr><td class="num">1 000 000</td><td class="num">20</td><td class="num">19</td></tr>
+      <tr><td class="num">1 000 000 000</td><td class="num">30</td><td class="num">29</td></tr>
+     </tbody>
+    </table>
+    <p class="small">A billion elements, and no single repair touches more than thirty of them. Slide 14 prints the measured maximum and you can check it against ⌊log₂ n⌋.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-chapter="Mechanics">
+ <div class="inner">
+  <p class="kicker">09 — mechanics</p>
+  <h2>siftDown is the entire algorithm</h2>
+  <p class="sub">One procedure. Build uses it, sort uses it, priority queues use it. Learn it and you are done.</p>
+  <div class="cols">
+   <div>
+    <p>The situation siftDown handles is always the same: one node may be too small for its position, and <em>everything below it is already a valid heap</em>. That precondition is what makes it cheap.</p>
+    <p>The rule: compare the node with its children. If a child is larger, swap with the <b>larger</b> of the two and continue from the new position. Stop when the node is &ge; both children, or when it reaches a leaf.</p>
+   </div>
+   <div>
+    <div class="note bad" style="margin-top:0">
+     <p><b>Swap with the larger child, always.</b> Swap with the smaller one and the promoted child ends up below its own sibling — the invariant breaks one level down, silently, and the array still looks plausible. This is the classic heap bug.</p>
+    </div>
+    <p class="small">Cost: one comparison pair per level, at most &lfloor;log&#8322; n&rfloor; levels.</p>
+   </div>
+  </div>
+  <div class="cols3" style="margin-top:8px">
+   <div class="treebox">
+     <svg class="tree" id="siftA" role="img" aria-label="Before: the root is smaller than both of its children"></svg>
+     <div class="legend"><span>3 is too small — children are 9 and 7</span></div>
+   </div>
+   <div class="treebox">
+     <svg class="tree" id="siftB" role="img" aria-label="After swapping with the larger child"></svg>
+     <div class="legend"><span>swap with 9, the larger — 9 &ge; 7 holds</span></div>
+   </div>
+   <div class="treebox">
+     <svg class="tree" id="siftC" role="img" aria-label="What the wrong swap produces"></svg>
+     <div class="legend"><span>swap with 7 instead — 7 &lt; 9, broken</span></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-chapter="Mechanics">
+ <div class="inner">
+  <p class="kicker">10 — mechanics</p>
+  <h2>Build from the bottom, and the whole build costs O(n)</h2>
+  <p class="sub">The surprising one. Most of the tree is leaves, and leaves do no work.</p>
+  <div class="cols wide-left">
+   <div>
+    <p>Half the nodes are leaves and are already heaps, so start at the last internal node, index <span class="num">n/2 − 1</span>, and siftDown backwards to index 0. Every call meets its precondition, because everything below it has already been fixed.</p>
+    <p>The cost argument is a counting argument. A node at height h sifts at most h levels, and a complete tree has about n/2<sup>h+1</sup> nodes at height h. Most nodes sit near the bottom where h is 0 or 1. Summing h·n/2<sup>h+1</sup> over all heights converges to a constant multiple of n — the log never appears.</p>
+    <div class="note">
+     <p>The rival approach — start with an empty heap and insert n times, sifting each new element <em>up</em> — is O(n log n) in the worst case. Press the button rather than take that on trust; the gap only shows on some inputs, which is the interesting part.</p>
+    </div>
+   </div>
+   <div class="panel">
+    <h3>Predict, then measure</h3>
+    <p class="small">Which build is cheaper, and does the answer depend on the input order? Write your prediction down first.</p>
+    <div class="controls">
+      <input type="number" id="bN" value="100000" min="100" max="1000000" step="100">
+      <button id="bRandom">Random</button>
+      <button id="bSorted">Ascending</button>
+      <button id="bReverse">Descending</button>
+    </div>
+    <div class="stat" id="bOut">Not run yet.</div>
+    <p class="small" style="margin-top:12px">Comparisons are reported as a multiple of n, so a constant column means O(n) and a growing column means O(n log n).</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-chapter="Mechanics">
+ <div class="inner">
+  <p class="kicker">11 — mechanics</p>
+  <h2>The sort loop: one array, two regions, no extra memory</h2>
+  <p class="sub">This is why a max-heap produces ascending order, which trips up everyone the first time.</p>
+  <div class="treebox">
+    <svg class="tree" id="regArr" role="img" aria-label="The array split into a shrinking heap region and a growing sorted region"></svg>
+    <div class="legend"><span style="color:var(--accent)">heap region — still being repaired</span><span style="color:var(--done)">final position — never moves again</span></div>
+  </div>
+  <div class="cols">
+   <div>
+    <p>Once the heap is built, <span class="num">a[0]</span> is the largest element in the array. The largest element belongs at the <em>end</em>. So swap it there, declare that slot finished, and shrink the heap by one.</p>
+    <p>The swap has put some arbitrary leaf at the root, which is the one situation siftDown was written for — and every subtree below the root is still a valid heap. One siftDown, and the shrunken heap is correct again.</p>
+    <p>Repeat n−1 times. The sorted region grows backwards from the end, which is precisely why a <b>max</b>-heap yields <b>ascending</b> order.</p>
+   </div>
+   <div>
+    <div class="note">
+     <p>The two regions share one array and never overlap. That is the entire memory cost of heap sort: a loop variable and one temporary for the swap.</p>
+    </div>
+    <p><b>Want descending order?</b> Build a min-heap instead. Do not sort ascending and reverse the array — that is an extra O(n) pass for nothing, and a min-heap is the same code with one comparison flipped.</p>
+    <p class="small">Note the asymmetry with the build phase: build fixes n/2 nodes each sifting a little; the sort loop fixes one node n times, each sifting a lot. Build is O(n), the loop is O(n log n), and the loop dominates.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-chapter="Mechanics">
+ <div class="inner">
+  <p class="kicker">12 — playground</p>
+  <h2>Drive it yourself</h2>
+  <p class="sub">A real heap, a real validator. The status line's <span class="num">valid</span> field is computed by the property checker on slide 19, not asserted.</p>
+  <div class="controls">
+    <button id="pgRand">New random array</button>
+    <button id="pgSorted">Ascending input</button>
+    <button id="pgEqual">All equal</button>
+    <button id="pgBuild">Build heap</button>
+    <button id="pgStep">Extract max (one step)</button>
+    <button id="pgAll">Finish sorting</button>
+  </div>
+  <div class="treebox" style="min-height:330px">
+    <svg class="tree" id="pgTree" role="img" aria-label="The live heap, drawn as a tree"></svg>
+    <svg class="tree" id="pgArr" role="img" aria-label="The live array, heap region and sorted region"></svg>
+    <div class="legend"><span style="color:var(--accent)">heap region</span><span style="color:var(--done)">sorted, final</span><span>badge = array index</span></div>
+  </div>
+  <div class="stat" id="pgStat">—</div>
+  <div class="cols" style="margin-top:18px">
+   <div class="panel">
+    <h3>Things to try deliberately</h3>
+    <ul>
+     <li>Load <b>ascending input</b> and press Build. Count how few elements actually move — ascending order is nearly the worst case for a max-heap build, yet the array barely changes at the top.</li>
+     <li>Load <b>all equal</b> and press Build, then Finish. No element ever sinks. This is heap sort's best case and it is still Θ(n).</li>
+     <li>Press <b>Extract max</b> repeatedly and watch the tree shrink by exactly one node each time while the green region grows from the right.</li>
+    </ul>
+   </div>
+   <div class="panel">
+    <h3>What to watch in the status line</h3>
+    <p>On a freshly loaded array it reads <b>NO</b> — an unordered array is not a heap, and that is the honest answer. From the moment you press Build it must read <b>yes</b> after every single press. If it ever flips back, that is a real bug in this page and worth telling someone about.</p>
+    <p class="small">During the sort phase the checker is applied to the heap region only — the green suffix is finished and is deliberately not a heap.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-chapter="Mechanics">
+ <div class="inner">
+  <p class="kicker">13 — mechanics</p>
+  <h2>Five boundaries, and what each one does when you get it wrong</h2>
+  <p class="sub">None of these produce a crash. All of them produce an array that is nearly sorted, which is worse.</p>
+  <table>
+   <thead><tr><th>Boundary</th><th>Right</th><th>What the mistake does</th></tr></thead>
+   <tbody>
+    <tr><td>Where to start the build</td><td class="num">i = n/2 − 1</td><td>Starting at <span class="num">n−1</span> wastes half the calls on leaves — harmless but pointless. Starting at <span class="num">n/2</span> <span class="alert">skips a real internal node</span> when n is even.</td></tr>
+    <tr><td>Which child to swap with</td><td>the larger</td><td class="alert">Invariant broken one level down. The sort still terminates and still looks almost right.</td></tr>
+    <tr><td>Node with one child</td><td>test <span class="num">r &lt; n</span> separately</td><td class="alert">Reading <span class="num">a[r]</span> past the heap boundary — in C that is the sorted region, so you compare against an element you already finished.</td></tr>
+    <tr><td>Sort-loop bound</td><td class="num">end = n−1 down to 1</td><td>Running to 0 does one pointless swap of a[0] with itself. Stopping at 2 leaves the first two elements unsorted.</td></tr>
+    <tr><td>The shrinking size</td><td>siftDown over <span class="num">end</span>, not n</td><td class="alert">Passing n keeps the finished maximum inside the heap, and it comes straight back to the root. The array never sorts.</td></tr>
+   </tbody>
+  </table>
+  <div class="note bad">
+   <p>Three of these five silently corrupt the result while leaving an array that passes a casual eyeball check. That is the argument for the validator on slide 19: write <span class="num">isMaxHeap</span> before you write the sort loop, not after it fails.</p>
+  </div>
+ </div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-chapter="Measurement">
+ <div class="inner">
+  <p class="kicker">14 — measurement</p>
+  <h2>Predict first, then press</h2>
+  <p class="sub">Heap sort against the quicksort you already wrote. Both implementations are real and run in this page.</p>
+  <div class="controls">
+    <input type="number" id="mN" value="2000" min="100" max="8000" step="100">
+    <button id="mRandom">Random</button>
+    <button id="mSorted">Ascending</button>
+    <button id="mReverse">Descending</button>
+    <button id="mEqual">All equal</button>
+    <button id="mFew">8 distinct values</button>
+  </div>
+  <div id="mOut" class="stat">Not run yet.</div>
+  <div class="cols" style="margin-top:16px">
+   <div class="panel">
+    <h3>Worth asking before you press</h3>
+    <ul>
+     <li>Does heap sort's comparison count change much between random and ascending input? Should it?</li>
+     <li>On random input, which does <em>fewer</em> comparisons — and does that match what you expected from the Big-O?</li>
+     <li>Randomising the pivot fixes quicksort on ascending input. Does it fix the all-equal column?</li>
+    </ul>
+   </div>
+   <div class="panel">
+    <h3>Reading it honestly</h3>
+    <p>Heap sort's row is a <b>guarantee</b>. Quicksort's rows are <b>samples</b> — one input, one seed. A single good number from a randomised algorithm is not a bound.</p>
+    <p class="small">Comparison counts are not wall-clock time. They deliberately ignore the effect this deck cannot measure and slide 21 has to be honest about.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-chapter="Measurement">
+ <div class="inner">
+  <p class="kicker">15 — measurement</p>
+  <h2>What the harness says, including the part that is awkward</h2>
+  <p class="sub">Run slide 14 before reading this. The numbers below are the ones the page computes; they are named as patterns, not as figures.</p>
+  <div class="cols">
+   <div>
+    <p><b>Heap sort barely notices the input.</b> Random, ascending and descending land within roughly ten percent of each other. There is no adversarial input to find, because the work is determined by the tree's shape and the shape is determined by n.</p>
+    <p><b>The maximum single sift never exceeds ⌊log₂ n⌋.</b> That is the row that matters for anything real-time — not the total, but the worst one operation.</p>
+    <p><b>All-equal input is heap sort's best case.</b> Nothing ever sinks, so the whole sort collapses to about 3n comparisons.</p>
+   </div>
+   <div>
+    <div class="note bad">
+     <p><b>On random input, heap sort loses to quicksort on comparisons.</b> Both are O(n log n) and quicksort still does noticeably fewer. Heap sort is not the fastest sort; it is the most predictable one. A deck that hid this would be selling something.</p>
+    </div>
+    <div class="note">
+     <p><b>Randomising the pivot does not save Lomuto on duplicate keys.</b> The all-equal column goes quadratic for both pivot rules, because the partition puts every equal element on one side regardless of which one you pick. The fix is three-way partitioning, not randomisation — and heap sort needed neither.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">16 — implementation</p>
+  <h2>Four decisions to make before you type a line</h2>
+  <p class="sub">A reader who understands the choices can adapt the code. One who only has the code cannot.</p>
+  <div class="cols">
+   <div>
+    <p><b>0-based indexing.</b> Children are <span class="num">2i+1</span> and <span class="num">2i+2</span>. Many textbooks use 1-based, where children are <span class="num">2i</span> and <span class="num">2i+1</span> and the arithmetic is prettier — at the cost of wasting slot 0 and of every array in C being 0-based anyway. Pick one and never mention the other; mixing them is the most common source of off-by-one heap bugs.</p>
+    <p><b>Iterative siftDown, not recursive.</b> The recursion is a tail call and compilers usually eliminate it, but "usually" is not a guarantee. Written as a loop, heap sort's stack usage is a fixed handful of bytes — which is the whole reason to choose it over quicksort on constrained hardware.</p>
+   </div>
+   <div>
+    <p><b>Size passed explicitly, not stored.</b> <span class="num">sift_down(a, i, n)</span> takes the heap size as a parameter because during the sort loop the heap shrinks while the array does not. A struct holding its own size would have to be mutated on every extraction, and forgetting to is the bug on slide 13's last row.</p>
+    <p><b>Max-heap for ascending output.</b> Swapping the root to the end grows the sorted region backwards. A min-heap here would produce descending order — correct code, different answer.</p>
+    <div class="note">
+     <p>All four decisions are visible in one signature: <span class="num">static void sift_down(int *a, int i, int n)</span>.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+
+<!-- 17 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">17 — implementation</p>
+  <h2>siftDown and build, in full</h2>
+  <div class="cols">
+   <div>
+<pre><code>static void swap(int *a, int i, int j) { int t = a[i]; a[i] = a[j]; a[j] = t; }
+
+/* Precondition: the subtrees rooted at 2i+1 and 2i+2 are already max-heaps.
+   Postcondition: the subtree rooted at i is a max-heap.
+   n is the size of the HEAP, not of the array. */
+static void sift_down(int *a, int i, int n)
+{
+    for (;;) {
+        int l = 2 * i + 1;
+        int r = l + 1;
+        int big = i;
+
+        if (l &lt; n &amp;&amp; a[l] &gt; a[big]) big = l;   /* left child exists and is bigger  */
+        if (r &lt; n &amp;&amp; a[r] &gt; a[big]) big = r;   /* right child may not exist at all */
+        if (big == i) return;                  /* already &gt;= both children: done   */
+
+        swap(a, i, big);
+        i = big;                               /* follow the element down          */
+    }
+}
+
+static void build_heap(int *a, int n)
+{
+    for (int i = n / 2 - 1; i &gt;= 0; i--)       /* last internal node, backwards    */
+        sift_down(a, i, n);
+}
+</code></pre>
+   </div>
+   <div>
+    <p>The <span class="num">for (;;)</span> loop with an internal <span class="num">return</span> is deliberate: the exit condition is discovered in the middle of the body, after both children have been examined, and forcing it into a <span class="num">while</span> header means computing <span class="num">big</span> twice.</p>
+    <div class="note">
+     <p><span class="num">if (r &lt; n &amp;&amp; a[r] &gt; a[big])</span> compares against <span class="num">a[big]</span>, not <span class="num">a[i]</span>. That single detail is what makes it the <em>larger</em> child rather than just <em>a</em> larger child.</p>
+    </div>
+    <div class="note bad">
+     <p>C's <span class="num">&amp;&amp;</span> short-circuits, and that is load-bearing. Reverse the operands to <span class="num">a[l] &gt; a[big] &amp;&amp; l &lt; n</span> and you read past the heap boundary before checking whether you may. Address sanitizer will not always catch it, because the memory is still inside the array — it is the sorted region.</p>
+    </div>
+    <p class="small"><span class="num">n / 2 - 1</span> on an empty or single-element array gives −1 and 0 respectively; the loop body simply does not execute or does nothing. No special case needed.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+
+<!-- 18 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">18 — implementation</p>
+  <h2>The sort is six lines, and two of them are the trap</h2>
+  <div class="cols">
+   <div>
+<pre><code>void heap_sort(int *a, int n)
+{
+    build_heap(a, n);
+    for (int end = n - 1; end &gt; 0; end--) {
+        swap(a, 0, end);          /* largest of the heap to its final slot */
+        sift_down(a, 0, end);     /* heap shrinks: end, not n              */
+    }
+}
+</code></pre>
+    <div class="note">
+     <p>Everything heap sort needs beyond the input array: <span class="num">end</span>, <span class="num">i</span>, and one <span class="num">int</span> inside <span class="num">swap</span>. That is the O(1) space claim, stated concretely.</p>
+    </div>
+   </div>
+   <div>
+    <p><b><span class="num">sift_down(a, 0, end)</span>, not <span class="num">(a, 0, n)</span>.</b> After the swap, <span class="num">a[end]</span> holds a finished element. Passing <span class="num">n</span> leaves it inside the heap, it is the largest thing there, and it sifts straight back to the root. The array then never sorts and the loop still terminates — you get a wrong answer with no crash and no warning.</p>
+    <p><b><span class="num">end &gt; 0</span>, not <span class="num">end &gt;= 0</span>.</b> When one element remains it is trivially in place. Running to zero swaps <span class="num">a[0]</span> with itself, which is harmless but tells a reader you had not thought about the boundary.</p>
+    <p class="small">Trace it by hand on <span class="num">{4, 10, 3, 5, 1}</span> before running it. Build gives <span class="num">{10, 5, 3, 4, 1}</span>; the first extraction should leave <span class="num">{5, 4, 3, 1 | 10}</span>. If your trace disagrees with the code, one of the two is wrong and it is worth finding out which before you compile.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+
+<!-- 19 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">19 — implementation</p>
+  <h2>Write the validator first</h2>
+  <p class="sub">A broken heap answers most queries correctly for a long time. Only a property check finds the operation that broke it.</p>
+  <div class="cols">
+   <div>
+<pre><code>int is_max_heap(const int *a, int n)
+{
+    for (int i = 0; i &lt; n; i++) {
+        int l = 2 * i + 1, r = l + 1;
+        if (l &lt; n &amp;&amp; a[l] &gt; a[i]) return 0;
+        if (r &lt; n &amp;&amp; a[r] &gt; a[i]) return 0;
+    }
+    return 1;
+}
+
+int is_sorted(const int *a, int n)
+{
+    for (int i = 1; i &lt; n; i++)
+        if (a[i - 1] &gt; a[i]) return 0;
+    return 1;
+}
+
+static int cmp_int(const void *x, const void *y)
+{
+    int a = *(const int *)x, b = *(const int *)y;
+    return (a &gt; b) - (a &lt; b);
+}
+</code></pre>
+<pre><code>static void harness(void)
+{
+    unsigned s = 2463534242u;
+    int a[64], b[64];
+
+    for (int trial = 0; trial &lt; 20000; trial++) {
+        s ^= s &lt;&lt; 13; s ^= s &gt;&gt; 17; s ^= s &lt;&lt; 5;
+        int n = (int)(s % 64);
+        for (int i = 0; i &lt; n; i++) {
+            s ^= s &lt;&lt; 13; s ^= s &gt;&gt; 17; s ^= s &lt;&lt; 5;
+            b[i] = a[i] = (int)(s % 50);   /* small range: forces duplicates */
+        }
+
+        build_heap(a, n);
+        assert(is_max_heap(a, n));         /* check the invariant on its own  */
+        for (int end = n - 1; end &gt; 0; end--) {
+            swap(a, 0, end);
+            sift_down(a, 0, end);
+            assert(is_max_heap(a, end));   /* ... after every single sift     */
+        }
+
+        qsort(b, (size_t)n, sizeof *b, cmp_int);
+        assert(is_sorted(a, n));
+        assert(memcmp(a, b, (size_t)n * sizeof *a) == 0);
+    }
+    printf("harness: 20000 trials, n = 0..63, duplicates included -- OK\n");
+}
+</code></pre>
+   </div>
+   <div>
+    <div class="note">
+     <p>The assertion inside the extraction loop is the one that earns its keep: it checks the invariant after <em>every</em> sift, so a failure names the operation that broke it rather than the operation that noticed.</p>
+    </div>
+    <p><b>Check the property, not the printed output.</b> <span class="num">is_max_heap</span> does not care which of several valid heaps you produced — many arrangements of the same keys are legal heaps, and a test that demanded one specific arrangement would fail on a correct implementation.</p>
+    <p><b>Small n, small value range.</b> <span class="num">n = 0..63</span> exercises the empty array, the single element, the one-child node and both parities of n. <span class="num">s % 50</span> forces heavy duplication, which is where the comparison operators matter: use <span class="num">&gt;=</span> instead of <span class="num">&gt;</span> in <span class="num">sift_down</span> and you get pointless swaps between equal elements that this harness will not catch — but a swap counter will.</p>
+<pre><code>gcc -Wall -Wextra -O2 \
+    -fsanitize=address,undefined \
+    heapsort.c -o hs</code></pre>
+    <p class="small">This exact source compiles clean under those flags and passes all 20 000 trials.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+
+<!-- 20 -->
+<section class="slide" data-chapter="C implementation">
+ <div class="inner">
+  <p class="kicker">20 — implementation</p>
+  <h2>The same machine, doing the job it is actually used for</h2>
+  <p class="sub">Heap sort is a nice sort. The priority queue is why heaps are everywhere.</p>
+  <div class="cols">
+   <div>
+<pre><code>typedef struct { int *a; int n, cap; } PQ;
+
+static void sift_up(int *a, int i)
+{
+    while (i &gt; 0) {
+        int p = (i - 1) / 2;
+        if (a[i] &lt;= a[p]) break;
+        swap(a, i, p);
+        i = p;
+    }
+}
+
+int pq_push(PQ *q, int v)
+{
+    if (q-&gt;n == q-&gt;cap) return 0;
+    q-&gt;a[q-&gt;n] = v;
+    sift_up(q-&gt;a, q-&gt;n);
+    q-&gt;n++;
+    return 1;
+}
+
+int pq_pop_max(PQ *q, int *out)
+{
+    if (q-&gt;n == 0) return 0;
+    *out = q-&gt;a[0];
+    q-&gt;a[0] = q-&gt;a[--q-&gt;n];
+    sift_down(q-&gt;a, 0, q-&gt;n);
+    return 1;
+}
+</code></pre>
+   </div>
+   <div>
+    <p>A sort needs the heap built once and drained once. A priority queue needs elements to arrive over time, so it needs the operation heap sort never uses: <b>siftUp</b>, for an element inserted at the end that may be too large for its position.</p>
+    <div class="note">
+     <p>siftUp compares against one parent, siftDown against two children. That asymmetry is why building by repeated insertion costs more than building bottom-up, and it is the same asymmetry measured on slide 10.</p>
+    </div>
+    <p><span class="num">pq_pop_max</span> moves the <em>last</em> element to the root rather than promoting a child. Promoting a child would leave a hole in the middle of the array and destroy completeness, and completeness is the only reason the index arithmetic works.</p>
+    <p class="small">This is the structure underneath Dijkstra's algorithm, task schedulers, event simulation, and the k-largest problem you will meet in interviews. Slides 21 and 22 assume you have seen it.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-chapter="Exit">
+ <div class="inner">
+  <p class="kicker">21 — where it wins and where it loses</p>
+  <h2>Heap sort is chosen for its worst case, and for nothing else</h2>
+  <div class="cols">
+   <div class="panel">
+    <h3>Where it is genuinely used</h3>
+    <ul>
+     <li><b>As quicksort's parachute.</b> C++'s <span class="num">std::sort</span> is introsort: quicksort until the recursion gets suspiciously deep, then switch to heap sort. Quicksort supplies the speed, heap sort supplies the guarantee.</li>
+     <li><b>Kernel and embedded code.</b> The Linux kernel's generic <span class="num">sort()</span> is heap sort. No allocation, no recursion, no worst case — the three things kernel code cannot tolerate.</li>
+     <li><b>Hard real-time systems</b>, where the number that matters is the slowest possible run, not the average.</li>
+     <li><b>Anywhere an adversary chooses the input.</b> Quicksort's worst case is reachable on purpose; heap sort has no input to construct.</li>
+     <li><b>The heap itself</b>, far more often than the sort — priority queues, Dijkstra, schedulers, top-k.</li>
+    </ul>
+   </div>
+   <div class="panel">
+    <h3>Where it loses, and to what</h3>
+    <ul>
+     <li><b>Average-case speed: use quicksort.</b> Slide 14 shows it doing fewer comparisons, and the wall-clock gap is wider than the comparison gap, because heap sort jumps from index i to 2i+1 and defeats the cache on every level. Quicksort walks memory sequentially. This is heap sort's real weakness and it is invisible in Big-O.</li>
+     <li><b>Stability: use merge sort.</b> Heap sort is not stable, and cannot easily be made so. Equal keys are reordered by the swaps.</li>
+     <li><b>Nearly-sorted data: use insertion sort or Timsort.</b> Heap sort has no best case worth the name — it does the same Θ(n log n) work on an already-sorted array.</li>
+     <li><b>Small n: use insertion sort.</b> Below roughly a few dozen elements the build phase is not worth it.</li>
+    </ul>
+   </div>
+  </div>
+  <div class="note">
+   <p>If you take one sentence away: heap sort trades average speed for the absence of a bad case. Choose it when you have to answer the question "what is the slowest this can possibly be?"</p>
+  </div>
+ </div>
+</section>
+
+<!-- 22 -->
+<section class="slide" data-chapter="Exit">
+ <div class="inner">
+  <p class="kicker">22 — exercises</p>
+  <h2>Predict, then instrument</h2>
+  <p class="sub">Write your answer down before you run anything. An exercise you looked up the answer to taught you nothing.</p>
+  <div class="cols">
+   <div>
+    <ol class="props">
+     <li><b>Trace it.</b> On paper, build a heap from <span class="num">{4, 10, 3, 5, 1}</span>, writing the whole array after each <span class="num">sift_down</span> call. How many swaps? Now instrument the C and check.</li>
+     <li><b>Predict the build.</b> For <span class="num">n = 1000</span>, how many comparisons does <span class="num">build_heap</span> perform on descending input versus ascending input? Which is cheaper, and by how much? Slide 10 will tell you if you are right, but guess first — one of the two answers surprises most people.</li>
+     <li><b>Break it deliberately.</b> Change <span class="num">sift_down</span> to swap with the <em>left</em> child whenever the left child is larger than the parent, ignoring the right. Find the shortest array on which the output is wrong. It is shorter than you expect — and note that the harness on slide 19 catches it while a printout of a random 100-element array does not.</li>
+    </ol>
+   </div>
+   <div>
+    <ol class="props" start="4">
+     <li><b>The off-by-one.</b> Start the build loop at <span class="num">n/2</span> instead of <span class="num">n/2 - 1</span>. Find the shortest input on which the result is wrong. Then explain why every <em>odd</em>-length array you tried happened to work.</li>
+     <li><b>Equal keys.</b> Replace <span class="num">&gt;</span> with <span class="num">&gt;=</span> in both child comparisons. The output stays correct. Add a swap counter and re-run on the all-equal input — what happened, and why does correctness testing miss it entirely?</li>
+     <li><b>Descending output.</b> Turn this into a min-heap sort producing descending order. Exactly one thing changes. Resist reversing the array afterwards and say why that would be the worse answer.</li>
+     <li><b>Extend it.</b> Write <span class="num">heap_select(a, n, k)</span> returning the k largest elements in O(n + k log n), using only the two procedures on slide 17. Then say why sorting the whole array first would be the wrong answer for small k.</li>
+    </ol>
+   </div>
+  </div>
+ </div>
+</section>
+</main>
+
+<nav id="bar">
+  <span id="count">1 / 1</span>
+  <button id="prev" aria-label="Previous slide">Back</button>
+  <button id="next" aria-label="Next slide">Next</button>
+  <span class="chapter" id="chapter"></span>
+  <button id="theme" title="Colour theme — auto, light, dark (T)">◐ Auto</button>
+</nav>
+
+<script>
+"use strict";
+/* ==================================================================
+   DECK CHROME — navigation, progress, keyboard, touch, deep links.
+   Nothing here needs changing.
+   ================================================================== */
+var slides=Array.prototype.slice.call(document.querySelectorAll('.slide')),idx=0;
+var elProg=document.getElementById('progress'),elCount=document.getElementById('count'),
+    elChap=document.getElementById('chapter'),btnPrev=document.getElementById('prev'),btnNext=document.getElementById('next');
+function show(i){
+  idx=Math.max(0,Math.min(slides.length-1,i));
+  slides.forEach(function(s,k){s.classList.toggle('is-active',k===idx);});
+  slides[idx].scrollTop=0;
+  elProg.style.width=((idx+1)/slides.length*100)+'%';
+  elCount.textContent=(idx+1)+' / '+slides.length;
+  elChap.textContent=slides[idx].dataset.chapter||'';
+  btnPrev.disabled=idx===0;btnNext.disabled=idx===slides.length-1;
+  if(location.hash!=='#'+(idx+1)) history.replaceState(null,'','#'+(idx+1));
+}
+btnPrev.addEventListener('click',function(){show(idx-1);});
+btnNext.addEventListener('click',function(){show(idx+1);});
+document.addEventListener('keydown',function(e){
+  var t=e.target.tagName; if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA') return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'){show(idx+1);e.preventDefault();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){show(idx-1);e.preventDefault();}
+  else if(e.key==='Home') show(0); else if(e.key==='End') show(slides.length-1);
+});
+(function(){var x0=null,y0=null,d=document.getElementById('deck');
+ d.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;y0=e.touches[0].clientY;},{passive:true});
+ d.addEventListener('touchend',function(e){if(x0===null)return;
+   var dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;
+   if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.8) show(idx+(dx<0?1:-1));x0=null;},{passive:true});})();
+
+/* ==================================================================
+   C SYNTAX HIGHLIGHTING for <pre><code> blocks. Nothing to change.
+   ================================================================== */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function highlight(src){
+  var re=/(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|(#\s*\w+)|("(?:[^"\\]|\\.)*")|\b(if|else|while|for|return|struct|typedef|enum|int|char|long|void|static|const|sizeof|NULL|break|continue|assert|puts|calloc|malloc|free|srand|rand|main)\b|\b(\d+)\b/g;
+  var out='',last=0,m;
+  while((m=re.exec(src))!==null){
+    out+=esc(src.slice(last,m.index));
+    if(m[1]) out+='<span class="tok-c">'+esc(m[1])+'</span>';
+    else if(m[2]) out+='<span class="tok-k">'+esc(m[2])+'</span>';
+    else if(m[3]) out+='<span class="tok-s">'+esc(m[3])+'</span>';
+    else if(m[4]) out+='<span class="tok-k">'+esc(m[4])+'</span>';
+    else out+='<span class="tok-n">'+esc(m[5])+'</span>';
+    last=re.lastIndex;
+  }
+  return out+esc(src.slice(last));
+}
+Array.prototype.forEach.call(document.querySelectorAll('pre code'),function(el){el.innerHTML=highlight(el.textContent);});
+
+/* ==================================================================
+   DRAWING PRIMITIVES
+   Colours: keep any colour that carries meaning in the subject
+   (node colour, saturation, violation) reserved for that meaning.
+   ================================================================== */
+/* Colours live in the CSS custom properties so the theme switch can move
+   them. These diagrams are SVG *strings*, not styled elements, so nothing
+   already on screen updates by itself: each render records how to repeat
+   itself and repaintAll() replays the lot once the palette has changed.
+   C_NODE doubles as the "no fill was asked for" sentinel below, so it has
+   to be compared against rather than a bare '#FFFFFF'. */
+var C_INK,C_RULE,C_FAINT,C_ACCENT,C_SOFT,C_BAD,C_CELL,
+    C_NODE,C_BOX,C_WASH,C_ON,C_BLOCK,C_BLOCKSOFT,C_DONE,C_DONE_SOFT;
+
+function readTokens(){
+  var cs=getComputedStyle(document.documentElement);
+  function t(n,fb){ var v=(cs.getPropertyValue(n)||'').trim(); return v||fb; }
+  C_INK      = t('--ink','#22303C');
+  C_RULE     = t('--svg-rule','#9FB3C0');
+  C_FAINT    = t('--faint','#8CA0AE');
+  C_ACCENT   = t('--accent','#116A83');
+  C_SOFT     = t('--accent-soft','#E1EEF2');
+  C_BAD      = t('--bad','#A4303F');
+  C_CELL     = t('--cell','#F4F8FA');
+  C_NODE     = t('--svg-node','#FFFFFF');
+  C_BOX      = t('--box-bg','#FBFDFE');
+  C_WASH     = t('--wash','#DCE5EA');
+  C_ON       = t('--on-fill','#FFFFFF');
+  C_BLOCK    = t('--block','#9C6510');
+  C_BLOCKSOFT= t('--block-soft','#F6EEE0');
+  C_DONE     = t('--done','#4A6B2F');
+  C_DONE_SOFT= t('--done-soft','#EDF2E4');
+}
+readTokens();
+
+var _painters=[];
+function _paints(el,fn){
+  for(var i=0;i<_painters.length;i++){ if(_painters[i][0]===el){ _painters[i][1]=fn; return; } }
+  _painters.push([el,fn]);
+}
+function repaintAll(){
+  readTokens();
+  for(var i=0;i<_painters.length;i++) _painters[i][1]();
+}
+
+/* Sizes an SVG so small diagrams are not blown up to full width and
+   large ones scroll on mobile instead of shrinking to illegibility. */
+function sizeSVG(svg,W){
+  var d=W<620?Math.min(W*1.6,720):W;
+  var narrow=(window.innerWidth||1024)<760;
+  svg.style.width=d+'px';
+  svg.style.maxWidth=(narrow||d>1100)?'none':'100%';
+}
+function lineSVG(x1,y1,x2,y2,em){
+  return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+(em?C_ACCENT:C_RULE)+
+         '" stroke-width="'+(em?2.4:1.4)+'"/>';
+}
+function circSVG(x,y,r,label,sub,subCol,fill,txt){
+  var s='<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+(fill||C_NODE)+'" stroke="'+
+        (fill&&fill!==C_NODE?fill:C_INK)+'" stroke-width="1.4"/>'+
+        '<text x="'+x+'" y="'+(y+4)+'" text-anchor="middle" fill="'+(txt||C_INK)+
+        '" font-family="JetBrains Mono, monospace" font-size="'+(r>13?12:10)+'">'+label+'</text>';
+  if(sub!==undefined&&sub!==null)
+    s+='<text x="'+(x+r+3)+'" y="'+(y-r+2)+'" fill="'+(subCol||C_ACCENT)+
+       '" font-family="JetBrains Mono, monospace" font-size="10">'+sub+'</text>';
+  return s;
+}
+/* triangle placeholder for "some subtree" in schematic diagrams */
+function triSVG(x,y,w,hh,label){
+  return '<path d="M '+x+' '+y+' L '+(x-w)+' '+(y+hh)+' L '+(x+w)+' '+(y+hh)+' Z" fill="'+C_CELL+
+         '" stroke="'+C_RULE+'" stroke-width="1.2"/>'+
+         '<text x="'+x+'" y="'+(y+hh-6)+'" text-anchor="middle" fill="'+C_FAINT+
+         '" font-family="JetBrains Mono, monospace" font-size="11">'+label+'</text>';
+}
+/* box of key cells, for B-tree style nodes */
+function boxSVG(x,y,keys,cw,bh,alt,hl){
+  var w=Math.max(keys.length,1)*cw+6;
+  var fill=hl?C_BLOCKSOFT:(alt?C_CELL:C_NODE), stroke=hl?C_BLOCK:C_RULE;
+  var s='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+bh+'" rx="2" fill="'+fill+
+        '" stroke="'+stroke+'" stroke-width="'+(hl?2:1.2)+'"/>';
+  for(var i=0;i<keys.length;i++){
+    if(i) s+='<line x1="'+(x+3+i*cw)+'" y1="'+(y+3)+'" x2="'+(x+3+i*cw)+'" y2="'+(y+bh-3)+
+             '" stroke="'+C_RULE+'" stroke-width="0.8"/>';
+    s+='<text x="'+(x+3+i*cw+cw/2)+'" y="'+(y+bh/2+4)+'" text-anchor="middle" fill="'+C_INK+
+       '" font-family="JetBrains Mono, monospace" font-size="11">'+keys[i]+'</text>';
+  }
+  return s;
+}
+
+/* ------------------------------------------------------------------
+   renderBinaryTree(svg, T, opts)
+   T needs { root } with .left/.right/.key; empty child is null (or set
+   T.NIL and pass opts.nil for a sentinel implementation).
+   opts.badge(n)  -> string beside the node (height, balance factor, distance)
+   opts.fill(n)   -> fill colour, for structures where node colour is data
+   opts.mark      -> a node to ring in the accent colour
+   ------------------------------------------------------------------ */
+function renderBinaryTree(svg,T,opts){
+  opts=opts||{};
+  if(!svg) return;
+  _paints(svg,function(){ renderBinaryTree(svg,T,opts); });
+  var NIL=T.NIL||null;
+  if(T.root===NIL||!T.root){
+    svg.setAttribute('viewBox','0 0 400 70'); sizeSVG(svg,400);
+    svg.innerHTML='<text x="200" y="42" text-anchor="middle" fill="'+C_FAINT+
+      '" font-family="JetBrains Mono, monospace" font-size="13">empty</text>';
+    return;
+  }
+  var items=[],i=0,maxd=0;
+  (function walk(n,d){ if(n===NIL||!n) return; walk(n.left,d+1);
+    n._x=i++;n._d=d; if(d>maxd)maxd=d; items.push(n); walk(n.right,d+1); })(T.root,0);
+  var cols=items.length,cw=cols>24?28:(cols>14?36:44),r=cols>24?11:14,ch=maxd>8?32:54,m=24;
+  var W=cols*cw+m*2,H=(maxd+1)*ch+m+6;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); sizeSVG(svg,W);
+  function px(n){return m+n._x*cw+cw/2;} function py(n){return m+n._d*ch;}
+  var e='',c='';
+  items.forEach(function(n){
+    if(n.left&&n.left!==NIL) e+=lineSVG(px(n),py(n),px(n.left),py(n.left));
+    if(n.right&&n.right!==NIL) e+=lineSVG(px(n),py(n),px(n.right),py(n.right));
+  });
+  items.forEach(function(n){
+    var fill=opts.fill?opts.fill(n):C_NODE;
+    var txt=(fill&&fill!==C_NODE)?C_ON:C_INK;
+    var bd=opts.badge?opts.badge(n):null;
+    c+=circSVG(px(n),py(n),r,n.key,bd,opts.badgeCol?opts.badgeCol(n):C_ACCENT,fill,txt);
+    if(opts.mark&&n===opts.mark)
+      c+='<circle cx="'+px(n)+'" cy="'+py(n)+'" r="'+(r+5)+'" fill="none" stroke="'+C_ACCENT+'" stroke-width="2"/>';
+  });
+  svg.innerHTML=e+c;
+}
+
+/* ------------------------------------------------------------------
+   renderGraph(svg, G, opts)
+   G = { n, labels[], pos[[x,y]], edges[[u,v]] or [[u,v,w]], directed }
+   opts.state[i]     'u' unvisited | 'f' frontier | 'v' visited | 'c' current
+   opts.badge[i]     text beside a vertex (distance, id)
+   opts.edgeLabel(i,ed) -> weight / "flow/cap" / null
+   opts.edgeCls(i,ed)   -> 'hi' | 'sat' | null
+   opts.treeEdges    Set of "u-v" strings to thicken
+   ------------------------------------------------------------------ */
+function renderGraph(svg,G,opts){
+  opts=opts||{};
+  if(!svg) return;
+  _paints(svg,function(){ renderGraph(svg,G,opts); });
+  var r=19,maxx=0,maxy=0;
+  G.pos.forEach(function(p){ if(p[0]>maxx)maxx=p[0]; if(p[1]>maxy)maxy=p[1]; });
+  var W=maxx+r+26,H=maxy+r+26;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); sizeSVG(svg,W);
+  var e='',c='';
+  G.edges.forEach(function(ed,ei){
+    var a=G.pos[ed[0]],b=G.pos[ed[1]];
+    var key=ed[0]+'-'+ed[1],key2=ed[1]+'-'+ed[0];
+    var cls=opts.edgeCls?opts.edgeCls(ei,ed):null;
+    var hi=(cls==='hi')||(opts.treeEdges&&(opts.treeEdges.has(key)||opts.treeEdges.has(key2)));
+    var col=hi?C_ACCENT:(cls==='sat'?C_BAD:C_RULE), wdt=hi?3:(cls==='sat'?2.4:1.6);
+    var dx=b[0]-a[0],dy=b[1]-a[1],L=Math.sqrt(dx*dx+dy*dy)||1,ux=dx/L,uy=dy/L;
+    var x1=a[0]+ux*r,y1=a[1]+uy*r,x2=b[0]-ux*r,y2=b[1]-uy*r;
+    e+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+col+'" stroke-width="'+wdt+'"/>';
+    if(G.directed){
+      var px=-uy,py=ux,sz=5;
+      e+='<path d="M '+x2+' '+y2+' L '+(x2-ux*10+px*sz)+' '+(y2-uy*10+py*sz)+
+         ' L '+(x2-ux*10-px*sz)+' '+(y2-uy*10-py*sz)+' Z" fill="'+col+'"/>';
+    }
+    if(opts.edgeLabel){
+      var lab=opts.edgeLabel(ei,ed);
+      if(lab!==null&&lab!==undefined){
+        var mx=(x1+x2)/2-uy*13,my=(y1+y2)/2+ux*13,lw=String(lab).length*6.6+8;
+        e+='<rect x="'+(mx-lw/2)+'" y="'+(my-9)+'" width="'+lw+'" height="15" rx="2" fill="'+C_BOX+'" stroke="'+
+           (hi?C_ACCENT:C_WASH)+'" stroke-width="1"/>'+
+           '<text x="'+mx+'" y="'+(my+2.5)+'" text-anchor="middle" fill="'+(hi?C_ACCENT:C_INK)+
+           '" font-family="JetBrains Mono, monospace" font-size="10">'+lab+'</text>';
+      }
+    }
+  });
+  for(var i=0;i<G.n;i++){
+    var st=opts.state?opts.state[i]:'u';
+    var fill=C_NODE,stroke=C_INK,txt=C_INK,sw=1.5;
+    if(st==='f'){fill=C_SOFT;stroke=C_ACCENT;txt=C_ACCENT;}
+    else if(st==='v'){fill=C_ACCENT;stroke=C_ACCENT;txt=C_ON;}
+    else if(st==='c'){fill=C_BAD;stroke=C_BAD;txt=C_ON;sw=2.5;}
+    c+='<circle cx="'+G.pos[i][0]+'" cy="'+G.pos[i][1]+'" r="'+r+'" fill="'+fill+
+       '" stroke="'+stroke+'" stroke-width="'+sw+'"/>'+
+       '<text x="'+G.pos[i][0]+'" y="'+(G.pos[i][1]+4)+'" text-anchor="middle" fill="'+txt+
+       '" font-family="JetBrains Mono, monospace" font-size="'+(G.labels[i].length>1?10:12)+'">'+G.labels[i]+'</text>';
+    if(opts.badge&&opts.badge[i]!==undefined&&opts.badge[i]!==null)
+      c+='<text x="'+(G.pos[i][0]+r+3)+'" y="'+(G.pos[i][1]-r+2)+'" fill="'+C_ACCENT+
+         '" font-family="JetBrains Mono, monospace" font-size="10">'+opts.badge[i]+'</text>';
+  }
+  svg.innerHTML=e+c;
+}
+
+/* ------------------------------------------------------------------
+   drawMini(id, spec) — hand-placed schematic diagrams (rotation cases,
+   split/merge before-and-after, the shape you want them to recognise).
+   spec = { w, h, nodes:[{id,x,y,l,sub,subCol,tri,keys,hl}], edges:[[a,b]] }
+   A node with `keys` draws as a B-tree box; with `tri` as a subtree
+   triangle; otherwise as a circle.
+   ------------------------------------------------------------------ */
+function drawMini(id,spec){
+  var svg=document.getElementById(id); if(!svg) return;
+  _paints(svg,function(){ drawMini(id,spec); });
+  svg.setAttribute('viewBox','0 0 '+spec.w+' '+spec.h); sizeSVG(svg,spec.w);
+  var cw=spec.cw||30,bh=26,map={};
+  spec.nodes.forEach(function(n){ n._w=n.keys?Math.max(n.keys.length,1)*cw+6:0; map[n.id]=n; });
+  var s='';
+  (spec.edges||[]).forEach(function(ed){
+    /* accepts ['a','b'] for circles and ['parent', slot, 'child'] for boxes */
+    var slotMid=(typeof ed[1]==='number');
+    var a=map[ed[0]], b=map[slotMid?ed[2]:ed[1]], slot=slotMid?ed[1]:(ed[2]||0);
+    if(a.keys) s+=lineSVG(a.x+3+slot*cw,a.y+bh,b.x+b._w/2,b.y);
+    else s+=lineSVG(a.x,a.y,b.x,b.y);
+  });
+  spec.nodes.forEach(function(n){
+    if(n.keys) s+=boxSVG(n.x,n.y,n.keys,cw,bh,!!n.alt,!!n.hl);
+    else if(n.tri) s+=triSVG(n.x,n.y-10,26,40,n.l);
+    else s+=circSVG(n.x,n.y,17,n.l,n.sub,n.subCol,n.fill,n.txt);
+  });
+  svg.innerHTML=s;
+}
+
+/* ==================================================================
+   YOUR CODE GOES HERE
+   - the real data-structure implementation (insert/delete/search/valid)
+   - the hero visual
+   - the live measurement harness
+   - the playground
+   Keep each in its own IIFE so one failure cannot take out the rest.
+   ================================================================== */
+
+
+/* ==================================================================
+   HEAP SORT — the real implementations. Everything the page claims is
+   computed by this code, mirroring the C on slides 17-20.
+   ================================================================== */
+/* C_DONE / C_DONE_SOFT are declared and filled in by readTokens() above. */
+
+function hsStats(){ return {cmp:0,swp:0,maxSift:0,depth:0}; }
+
+function hsSiftDown(a,i,n,st){
+  var d=0;
+  for(;;){
+    var l=2*i+1, r=l+1, big=i;
+    if(l<n){ st.cmp++; if(a[l]>a[big]) big=l; }
+    if(r<n){ st.cmp++; if(a[r]>a[big]) big=r; }
+    if(big===i) break;
+    var t=a[i]; a[i]=a[big]; a[big]=t; st.swp++;
+    i=big; d++;
+  }
+  if(d>st.maxSift) st.maxSift=d;
+  return d;
+}
+function hsSiftUp(a,i,st){
+  var d=0;
+  while(i>0){
+    var p=(i-1)>>1;
+    st.cmp++;
+    if(a[i]<=a[p]) break;
+    var t=a[i]; a[i]=a[p]; a[p]=t; st.swp++;
+    i=p; d++;
+  }
+  if(d>st.maxSift) st.maxSift=d;
+  return d;
+}
+function hsBuild(a,n,st){ for(var i=(n>>1)-1;i>=0;i--) hsSiftDown(a,i,n,st); }
+function hsBuildByInsert(a,n,st){ for(var i=1;i<n;i++) hsSiftUp(a,i,st); }
+function heapSort(a,st){
+  var n=a.length;
+  hsBuild(a,n,st);
+  for(var end=n-1;end>0;end--){
+    var t=a[0]; a[0]=a[end]; a[end]=t; st.swp++;
+    hsSiftDown(a,0,end,st);
+  }
+  return a;
+}
+function isMaxHeap(a,n){
+  for(var i=0;i<n;i++){
+    var l=2*i+1,r=l+1;
+    if(l<n&&a[l]>a[i]) return false;
+    if(r<n&&a[r]>a[i]) return false;
+  }
+  return true;
+}
+function isSorted(a){ for(var i=1;i<a.length;i++) if(a[i-1]>a[i]) return false; return true; }
+
+function selectionSort(a,st){
+  var n=a.length;
+  for(var end=n-1;end>0;end--){
+    var mx=0;
+    for(var j=1;j<=end;j++){ st.cmp++; if(a[j]>a[mx]) mx=j; }
+    var t=a[mx]; a[mx]=a[end]; a[end]=t; st.swp++;
+  }
+  return a;
+}
+
+/* Lomuto partition, the scheme from the quicksort lesson. */
+function qsRec(a,lo,hi,st,rule,rng,d){
+  if(lo>=hi) return;
+  if(d>st.depth) st.depth=d;
+  if(rule==='rand'){
+    var k=lo+(rng()%(hi-lo+1));
+    var u=a[k]; a[k]=a[hi]; a[hi]=u; st.swp++;
+  }
+  var pv=a[hi], i=lo-1;
+  for(var j=lo;j<hi;j++){
+    st.cmp++;
+    if(a[j]<=pv){ i++; var q=a[i]; a[i]=a[j]; a[j]=q; st.swp++; }
+  }
+  var w=a[i+1]; a[i+1]=a[hi]; a[hi]=w; st.swp++;
+  var p=i+1;
+  qsRec(a,lo,p-1,st,rule,rng,d+1);
+  qsRec(a,p+1,hi,st,rule,rng,d+1);
+}
+function quickSort(a,st,rule,rng){ if(a.length) qsRec(a,0,a.length-1,st,rule,rng,1); return a; }
+
+function makeRng(seed){
+  var s=(seed>>>0)||88675123;
+  return function(){ s^=s<<13; s>>>=0; s^=s>>>17; s^=s<<5; s>>>=0; return s; };
+}
+function genInput(kind,n,rng){
+  var a=new Array(n),i;
+  if(kind==='sorted'){ for(i=0;i<n;i++) a[i]=i+1; }
+  else if(kind==='reverse'){ for(i=0;i<n;i++) a[i]=n-i; }
+  else if(kind==='equal'){ for(i=0;i<n;i++) a[i]=7; }
+  else if(kind==='fewuniq'){ for(i=0;i<n;i++) a[i]=rng()%8; }
+  else { for(i=0;i<n;i++) a[i]=rng()%(n*4); }
+  return a;
+}
+function fmt(x){ return String(x).replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+
+/* ------------------------------------------------------------------
+   renderHeapArray(svg, a, heapN, opts) — the array strip.
+   Cells 0..heapN-1 are the live heap; the rest are in final position.
+   opts.hi = array of indices to ring in the accent colour.
+   ------------------------------------------------------------------ */
+function renderHeapArray(svg,a,heapN,opts){
+  if(!svg) return;
+  _paints(svg,function(){ renderHeapArray(svg,a,heapN,opts); });
+  opts=opts||{};
+  var n=a.length;
+  if(!n){ svg.setAttribute('viewBox','0 0 400 40'); sizeSVG(svg,400); svg.innerHTML=''; return; }
+  var cw=n>28?26:(n>16?32:40), ch=30, m=14, cwi=cw-4;
+  var W=n*cw+m*2, H=ch+m+24;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); sizeSVG(svg,W);
+  var s='',i;
+  for(i=0;i<n;i++){
+    var x=m+i*cw, inHeap=i<heapN;
+    var fill=inHeap?C_NODE:C_DONE_SOFT;
+    var stroke=inHeap?C_RULE:C_DONE;
+    var col=inHeap?C_INK:C_DONE;
+    if(opts.hi&&opts.hi.indexOf(i)>=0){ fill=C_SOFT; stroke=C_ACCENT; col=C_ACCENT; }
+    s+='<rect x="'+x+'" y="'+m+'" width="'+cwi+'" height="'+ch+'" rx="2" fill="'+fill+
+       '" stroke="'+stroke+'" stroke-width="'+(inHeap?1.2:1.6)+'"/>'+
+       '<text x="'+(x+cwi/2)+'" y="'+(m+ch/2+4)+'" text-anchor="middle" fill="'+col+
+       '" font-family="JetBrains Mono, monospace" font-size="11.5">'+a[i]+'</text>'+
+       '<text x="'+(x+cwi/2)+'" y="'+(m+ch+14)+'" text-anchor="middle" fill="'+C_FAINT+
+       '" font-family="JetBrains Mono, monospace" font-size="9.5">'+i+'</text>';
+  }
+  svg.innerHTML=s;
+}
+
+/* sizeSVG upscales small diagrams by up to 1.6x, which wastes vertical
+   space and shouts the labels. fitSVG pins a diagram to its natural width. */
+function fitSVG(svg,cap){
+  if(!svg) return;
+  var vb=(svg.getAttribute('viewBox')||'').split(/\s+/);
+  var W=parseFloat(vb[2]); if(!W) return;
+  svg.style.width=Math.min(W,cap||W)+'px';
+  svg.style.maxWidth='100%';
+}
+function fitById(id,cap){ fitSVG(document.getElementById(id),cap); }
+
+/* read the array as a complete binary tree, for renderBinaryTree */
+function heapToTree(a,n){
+  function mk(i){ return i>=n?null:{key:a[i],idx:i,left:mk(2*i+1),right:mk(2*i+2)}; }
+  return {root:mk(0)};
+}
+
+/* ---------- 01 hero ---------- */
+(function(){
+  var t=document.getElementById('heroTree'), ar=document.getElementById('heroArr'),
+      cap=document.getElementById('heroCap');
+  if(!t||!ar||!cap) return;
+  var n=15, a=genInput('sorted',n,makeRng(1)), st=hsStats();
+  hsBuild(a,n,st);
+  renderBinaryTree(t,heapToTree(a,n),{badge:function(nd){return nd.idx;}});
+  renderHeapArray(ar,a,n);
+  fitSVG(t,780); fitSVG(ar,620);
+
+  var N=2047, src=genInput('sorted',N,makeRng(1));
+  var h=hsStats(); var out=heapSort(src.slice(),h);
+  var q=hsStats(), qtxt;
+  try{ quickSort(src.slice(),q,'last',makeRng(1)); qtxt=fmt(q.cmp)+' comparisons and '+fmt(q.depth)+' stack frames'; }
+  catch(e){ qtxt='a stack overflow'; }
+  cap.innerHTML='built from 1…15 in ascending order — height '+
+    (Math.floor(Math.log(n)/Math.LN2))+', every parent ≥ both children, no pointers. '+
+    'At n = '+fmt(N)+' on the same ascending input, heap sort used '+fmt(h.cmp)+
+    ' comparisons with no single repair deeper than '+h.maxSift+
+    ' levels; Lomuto quicksort needed '+qtxt+'. Sorted correctly: '+(isSorted(out)?'yes':'NO')+'.';
+})();
+
+/* ---------- 02 selection sort ---------- */
+(function(){
+  var btn=document.getElementById('selRun'), out=document.getElementById('selOut'),
+      inp=document.getElementById('selN');
+  if(!btn||!out) return;
+  btn.addEventListener('click',function(){
+    var n=Math.max(10,Math.min(20000,parseInt(inp.value,10)||2000));
+    var rows='',kinds=[['random','random'],['sorted','already sorted'],['equal','all equal']];
+    kinds.forEach(function(k){
+      var a=genInput(k[0],n,makeRng(n+7));
+      var s=hsStats(); selectionSort(a,s);
+      var h=hsStats(); heapSort(genInput(k[0],n,makeRng(n+7)),h);
+      rows+='<tr><td>'+k[1]+'</td><td class="num">'+fmt(s.cmp)+'</td><td class="num">'+
+            fmt(h.cmp)+'</td><td class="num">'+(s.cmp/h.cmp).toFixed(1)+'×</td></tr>';
+    });
+    out.innerHTML='<table><thead><tr><th>input</th><th>selection sort</th><th>heap sort</th>'+
+      '<th>ratio</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+      '<p class="small">n(n−1)/2 = <b>'+fmt(n*(n-1)/2)+'</b> — selection sort matches it exactly on every input.</p>';
+  });
+})();
+
+/* ---------- 06 BST vs heap, same keys ---------- */
+(function(){
+  var b=document.getElementById('miniBST'), h=document.getElementById('miniHeap');
+  if(!b||!h) return;
+  function ins(r,k){ if(!r) return {key:k,left:null,right:null};
+    if(k<r.key) r.left=ins(r.left,k); else r.right=ins(r.right,k); return r; }
+  var root=null,keys=[5,3,9,1,4,7,10];
+  keys.forEach(function(k){ root=ins(root,k); });
+  renderBinaryTree(b,{root:root},{});
+  var a=keys.slice(), st=hsStats();
+  hsBuild(a,a.length,st);
+  renderBinaryTree(h,heapToTree(a,a.length),{});
+  fitSVG(b,400); fitSVG(h,400);
+})();
+
+/* ---------- 07 the index map ---------- */
+(function(){
+  var t=document.getElementById('mapTree'), ar=document.getElementById('mapArr');
+  if(!t||!ar) return;
+  var a=[9,17,3,24,6,12,8,31,5,15], st=hsStats();
+  hsBuild(a,a.length,st);
+  renderBinaryTree(t,heapToTree(a,a.length),{badge:function(n){return n.idx;}});
+  renderHeapArray(ar,a,a.length);
+  fitSVG(t,620); fitSVG(ar,560);
+})();
+
+/* ---------- 09 siftDown, right and wrong ---------- */
+(function(){
+  if(!document.getElementById('siftA')) return;
+  function spec(root,l,r,ll,lr,rl,rr,badIds){
+    var bad=badIds||[];
+    function nd(id,x,y,lab){
+      var isBad=bad.indexOf(id)>=0;
+      return {id:id,x:x,y:y,l:lab,fill:isBad?C_BAD:C_NODE,txt:isBad?C_ON:C_INK};
+    }
+    return { w:340,h:190, nodes:[
+      nd('a',170,34,root), nd('b',90,102,l), nd('c',250,102,r),
+      nd('d',50,168,ll), nd('e',130,168,lr), nd('f',210,168,rl), nd('g',290,168,rr)
+    ], edges:[['a','b'],['a','c'],['b','d'],['b','e'],['c','f'],['c','g']] };
+  }
+  drawMini('siftA',spec('3','9','7','2','1','6','5'));
+  drawMini('siftB',spec('9','3','7','2','1','6','5'));
+  drawMini('siftC',spec('7','9','3','2','1','6','5',['a','b']));
+  fitById('siftA',330); fitById('siftB',330); fitById('siftC',330);
+})();
+
+/* ---------- 10 build cost ---------- */
+(function(){
+  var out=document.getElementById('bOut'), inp=document.getElementById('bN');
+  if(!out) return;
+  function run(kind,label){
+    var n=Math.max(100,Math.min(1000000,parseInt(inp.value,10)||100000));
+    var base=genInput(kind,n,makeRng(3));
+    var s1=hsStats(); var a1=base.slice(); hsBuild(a1,n,s1);
+    var s2=hsStats(); var a2=base.slice(); hsBuildByInsert(a2,n,s2);
+    out.innerHTML='<table><thead><tr><th>'+label+', n = '+fmt(n)+'</th><th>comparisons</th>'+
+      '<th>per element</th><th>swaps</th><th>valid heap</th></tr></thead><tbody>'+
+      '<tr><td>bottom-up siftDown</td><td class="num">'+fmt(s1.cmp)+'</td><td class="num">'+
+        (s1.cmp/n).toFixed(2)+'n</td><td class="num">'+fmt(s1.swp)+'</td><td class="num">'+
+        (isMaxHeap(a1,n)?'yes':'NO')+'</td></tr>'+
+      '<tr><td>repeated insert, siftUp</td><td class="num">'+fmt(s2.cmp)+'</td><td class="num">'+
+        (s2.cmp/n).toFixed(2)+'n</td><td class="num">'+fmt(s2.swp)+'</td><td class="num">'+
+        (isMaxHeap(a2,n)?'yes':'NO')+'</td></tr></tbody></table>'+
+      '<p class="small">log₂ n = <b>'+(Math.log(n)/Math.LN2).toFixed(1)+
+      '</b>. Change n and watch which "per element" figure moves.</p>';
+  }
+  var b1=document.getElementById('bRandom'), b2=document.getElementById('bSorted'),
+      b3=document.getElementById('bReverse');
+  if(b1) b1.addEventListener('click',function(){run('random','random input');});
+  if(b2) b2.addEventListener('click',function(){run('sorted','ascending input');});
+  if(b3) b3.addEventListener('click',function(){run('reverse','descending input');});
+})();
+
+/* ---------- 11 the two regions ---------- */
+(function(){
+  var ar=document.getElementById('regArr'); if(!ar) return;
+  var a=[14,3,27,9,21,6,18,11,25,7,16,2], n=a.length, st=hsStats();
+  hsBuild(a,n,st);
+  for(var end=n-1;end>n-5;end--){
+    var t=a[0]; a[0]=a[end]; a[end]=t;
+    hsSiftDown(a,0,end,st);
+  }
+  renderHeapArray(ar,a,n-4,{hi:[0]});
+  fitSVG(ar,620);
+})();
+
+/* ---------- 12 playground ---------- */
+(function(){
+  var tree=document.getElementById('pgTree'), arr=document.getElementById('pgArr'),
+      stat=document.getElementById('pgStat');
+  if(!tree||!arr||!stat) return;
+  var a=[], heapN=0, built=false, st=hsStats(), seed=11, lastMsg='';
+
+  function draw(){
+    renderBinaryTree(tree,heapToTree(a,heapN),{badge:function(n){return n.idx;}});
+    renderHeapArray(arr,a,heapN,{hi:heapN>0?[0]:[]});
+    fitSVG(tree,620); fitSVG(arr,600);
+    var ok=isMaxHeap(a,heapN);
+    stat.innerHTML='n <b>'+a.length+'</b> &nbsp; heap region <b>'+heapN+
+      '</b> &nbsp; sorted suffix <b>'+(a.length-heapN)+
+      '</b> &nbsp; comparisons <b>'+fmt(st.cmp)+'</b> &nbsp; swaps <b>'+fmt(st.swp)+
+      '</b> &nbsp; deepest sift <b>'+st.maxSift+'</b> &nbsp; valid <b>'+(ok?'yes':'NO')+
+      '</b>'+(lastMsg?' &nbsp; — '+lastMsg:'');
+  }
+  function load(kind){
+    seed++;
+    a=genInput(kind,12,makeRng(seed*97));
+    if(kind==='random'){ a=a.map(function(v){return v%90+5;}); }
+    heapN=a.length; built=false; st=hsStats();
+    lastMsg=(kind==='random'?'unordered':kind)+' input loaded — not a heap yet';
+    draw();
+  }
+  function build(){
+    if(built){ lastMsg='already built'; draw(); return; }
+    hsBuild(a,heapN,st); built=true;
+    lastMsg='built bottom-up from index '+((heapN>>1)-1);
+    draw();
+  }
+  function step(){
+    if(!built){ build(); return; }
+    if(heapN<=1){ lastMsg='nothing left to extract'; draw(); return; }
+    var end=heapN-1, max=a[0];
+    var t=a[0]; a[0]=a[end]; a[end]=t; st.swp++;
+    heapN=end;
+    var d=hsSiftDown(a,0,heapN,st);
+    lastMsg=max+' placed at index '+end+', new root sank '+d+' level'+(d===1?'':'s');
+    draw();
+  }
+  function all(){ if(!built) build(); while(heapN>1) step(); lastMsg='sorted: '+(isSorted(a)?'yes':'NO'); draw(); }
+
+  var map={pgRand:['random'],pgSorted:['sorted'],pgEqual:['equal']};
+  Object.keys(map).forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.addEventListener('click',function(){ load(map[id][0]); });
+  });
+  var bB=document.getElementById('pgBuild'), bS=document.getElementById('pgStep'),
+      bA=document.getElementById('pgAll');
+  if(bB) bB.addEventListener('click',build);
+  if(bS) bS.addEventListener('click',step);
+  if(bA) bA.addEventListener('click',all);
+  load('random');
+})();
+
+/* ---------- 14 the harness ---------- */
+(function(){
+  var out=document.getElementById('mOut'), inp=document.getElementById('mN');
+  if(!out) return;
+  function row(name,cmp,swp,worst,extra,alert){
+    return '<tr><td>'+name+'</td><td class="num'+(alert?' alert':'')+'">'+fmt(cmp)+
+      '</td><td class="num">'+fmt(swp)+'</td><td class="num">'+worst+'</td><td class="num">'+extra+'</td></tr>';
+  }
+  function run(kind,label){
+    var n=Math.max(100,Math.min(8000,parseInt(inp.value,10)||2000));
+    var base=genInput(kind,n,makeRng(n*31+5));
+    var quad=n*(n-1)/2, rows='';
+
+    var h=hsStats(); var ha=heapSort(base.slice(),h);
+    rows+=row('heap sort',h.cmp,h.swp,h.maxSift+' levels','O(1)',false);
+
+    ['last','rand'].forEach(function(rule){
+      var q=hsStats(), name='quicksort — '+(rule==='last'?'last-element pivot':'random pivot');
+      try{
+        quickSort(base.slice(),q,rule,makeRng(4242));
+        rows+=row(name,q.cmp,q.swp,q.depth+' frames','O(1) + stack',q.cmp>quad/2);
+      }catch(e){
+        rows+='<tr><td>'+name+'</td><td class="num alert" colspan="4">recursion depth exceeded — '+
+              'the worst case is not theoretical</td></tr>';
+      }
+    });
+
+    out.innerHTML='<table><thead><tr><th>'+label+', n = '+fmt(n)+'</th><th>comparisons</th>'+
+      '<th>swaps</th><th>worst single op</th><th>extra memory</th></tr></thead><tbody>'+rows+
+      '</tbody></table><p class="small">n(n−1)/2 = <b>'+fmt(quad)+
+      '</b> &nbsp;·&nbsp; 2n log₂ n ≈ <b>'+fmt(Math.round(2*n*Math.log(n)/Math.LN2))+
+      '</b> &nbsp;·&nbsp; ⌊log₂ n⌋ = <b>'+Math.floor(Math.log(n)/Math.LN2)+
+      '</b> &nbsp;·&nbsp; heap sort output sorted: <b>'+(isSorted(ha)?'yes':'NO')+'</b></p>';
+  }
+  [['mRandom','random','random input'],['mSorted','sorted','ascending input'],
+   ['mReverse','reverse','descending input'],['mEqual','equal','all elements equal'],
+   ['mFew','fewuniq','only 8 distinct values']].forEach(function(b){
+    var el=document.getElementById(b[0]);
+    if(el) el.addEventListener('click',function(){ run(b[1],b[2]); });
+  });
+})();
+
+/* ---------- boot (keep last) ---------- */
+(function(){var h=parseInt((location.hash||'').replace('#',''),10);show(isNaN(h)?0:h-1);})();
+
+/* ============================================================
+   theme -- auto / light / dark
+   The choice is stored under one key shared by every deck in this
+   set, so switching here switches the rest of them too.
+   ============================================================ */
+(function(){
+  var KEY = 'deck-theme';
+  var root = document.documentElement;
+  var btn = document.getElementById('theme');
+  var modes = ['auto', 'light', 'dark'];
+  var labels = { auto:'\u25D0 Auto', light:'\u2600 Light', dark:'\u263E Dark' };
+  var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  var mode = 'auto';
+  try { var v = localStorage.getItem(KEY); if (modes.indexOf(v) >= 0) mode = v; } catch (e) {}
+
+  function apply(persist){
+    if (mode === 'auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', mode);
+    if (btn) {
+      btn.textContent = labels[mode];
+      btn.setAttribute('aria-label', 'Colour theme: ' + mode + '. Click to change.');
+    }
+    if (persist) { try { localStorage.setItem(KEY, mode); } catch (e) {} }
+    /* The diagrams are SVG strings built from the old custom-property values,
+       so they are stale the moment the palette moves. Draw them again. */
+    repaintAll();
+  }
+  function cycle(){ mode = modes[(modes.indexOf(mode) + 1) % modes.length]; apply(true); }
+
+  if (btn) btn.addEventListener('click', cycle);
+  document.addEventListener('keydown', function(e){
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') return;
+    if (e.key === 't' || e.key === 'T') cycle();
+  });
+  if (mq) {
+    var onSys = function(){ if (mode === 'auto') apply(false); };
+    if (mq.addEventListener) mq.addEventListener('change', onSys);
+    else if (mq.addListener) mq.addListener(onSys);
+  }
+  apply(false);
+})();
+</script>
+</body>
+</html>

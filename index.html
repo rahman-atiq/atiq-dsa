@@ -4,53 +4,241 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Atiq's DSA Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: light dark; }
+  :root {
+    color-scheme: dark;
+    --bg: #05070d;
+    --bg-alt: #0a0e18;
+    --line: rgba(148, 178, 255, 0.14);
+    --line-strong: rgba(148, 178, 255, 0.28);
+    --fg: #e8ecf7;
+    --fg-dim: #8993ac;
+    --fg-faint: #565f78;
+    --accent: #5eead4;
+    --accent-2: #7c9dff;
+    --card-bg: rgba(255, 255, 255, 0.025);
+    --card-bg-hover: rgba(255, 255, 255, 0.05);
+    --glow: 0 0 0 1px var(--line-strong), 0 8px 30px -8px rgba(94, 234, 212, 0.15);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      color-scheme: light;
+      --bg: #f6f7fb;
+      --bg-alt: #ffffff;
+      --line: rgba(30, 41, 82, 0.1);
+      --line-strong: rgba(30, 41, 82, 0.2);
+      --fg: #12172b;
+      --fg-dim: #565f78;
+      --fg-faint: #8993ac;
+      --accent: #0f9d8c;
+      --accent-2: #3a5fdb;
+      --card-bg: rgba(20, 30, 70, 0.02);
+      --card-bg-hover: rgba(20, 30, 70, 0.045);
+      --glow: 0 0 0 1px var(--line-strong), 0 8px 30px -10px rgba(15, 157, 140, 0.18);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 2rem 1.25rem 4rem;
+    margin: 0;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(124, 157, 255, 0.13), transparent),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--fg);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
   }
-  h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
-  p.sub { opacity: 0.7; margin-top: 0; }
-  h2 { font-size: 1.05rem; margin-top: 2rem; border-bottom: 1px solid currentColor; padding-bottom: 0.25rem; opacity: 0.85; }
-  ul { list-style: none; padding: 0; }
-  li { padding: 0.4rem 0; }
-  a {
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 6vw, 5rem) 1.5rem 5rem;
+  }
+
+  header {
+    margin-bottom: clamp(2.5rem, 6vw, 4rem);
+  }
+
+  .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .kicker::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px 1px var(--accent);
+  }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: clamp(1.9rem, 4.5vw, 2.7rem);
+    letter-spacing: -0.02em;
+    margin: 0 0 0.6rem;
+    background: linear-gradient(120deg, var(--fg) 40%, var(--fg-dim));
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  p.sub {
+    color: var(--fg-dim);
+    font-size: 1rem;
+    max-width: 46ch;
+    margin: 0;
+  }
+
+  h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
+    margin: 0 0 1.1rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  h2 span.count {
+    color: var(--fg-faint);
+    opacity: 0.6;
+    font-weight: 400;
+  }
+
+  section + section {
+    margin-top: clamp(2.25rem, 5vw, 3rem);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.85rem;
+  }
+
+  a.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1.6rem;
+    padding: 1.15rem 1.2rem;
+    border-radius: 12px;
+    background: var(--card-bg);
+    box-shadow: 0 0 0 1px var(--line);
     text-decoration: none;
-    color: #0969da;
+    color: var(--fg);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
   }
-  a:hover { text-decoration: underline; }
+
+  a.card:hover,
+  a.card:focus-visible {
+    background: var(--card-bg-hover);
+    box-shadow: var(--glow);
+    transform: translateY(-2px);
+    outline: none;
+  }
+
+  .card-title {
+    font-weight: 500;
+    font-size: 0.98rem;
+    letter-spacing: -0.01em;
+  }
+
+  .card-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--fg-faint);
+    transition: transform 0.18s ease, color 0.18s ease;
+  }
+
+  a.card:hover .card-arrow {
+    color: var(--accent);
+    transform: translateX(3px);
+  }
+
+  footer {
+    margin-top: clamp(3rem, 7vw, 4.5rem);
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--fg-faint);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  footer a {
+    color: var(--fg-faint);
+  }
+  footer a:hover {
+    color: var(--accent);
+  }
 </style>
 </head>
 <body>
-  <h1>Data Structures &amp; Algorithms</h1>
-  <p class="sub">Teaching decks and interactive labs.</p>
+  <div class="wrap">
+    <header>
+      <div class="kicker">Data Structures &amp; Algorithms</div>
+      <h1>Atiq's DSA Deck</h1>
+      <p class="sub">Interactive teaching decks and hands-on labs — pick a topic and dig in.</p>
+    </header>
 
-  <h2>Decks</h2>
-  <ul>
-    <li><a href="recursion.html">Recursion</a></li>
-    <li><a href="binary-trees.html">Binary Trees</a></li>
-    <li><a href="avl-trees.html">AVL Trees</a></li>
-    <li><a href="red-black-trees.html">Red-Black Trees</a></li>
-    <li><a href="b-trees.html">B-Trees</a></li>
-    <li><a href="heap-sort.html">Heap Sort</a></li>
-    <li><a href="hashing.html">Hashing</a></li>
-    <li><a href="graphs.html">Graphs</a></li>
-  </ul>
+    <section>
+      <h2>Decks <span class="count">08</span></h2>
+      <div class="grid">
+        <a class="card" href="recursion.html"><span class="card-title">Recursion</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="binary-trees.html"><span class="card-title">Binary Trees</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="avl-trees.html"><span class="card-title">AVL Trees</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="red-black-trees.html"><span class="card-title">Red-Black Trees</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="b-trees.html"><span class="card-title">B-Trees</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="heap-sort.html"><span class="card-title">Heap Sort</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="hashing.html"><span class="card-title">Hashing</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="graphs.html"><span class="card-title">Graphs</span><span class="card-arrow">&#8594;</span></a>
+      </div>
+    </section>
 
-  <h2>Labs</h2>
-  <ul>
-    <li><a href="LinkedListLab.html">Linked List Lab</a></li>
-    <li><a href="BinaryTreeLab.html">Binary Tree Lab</a></li>
-    <li><a href="AVLTreeLab.html">AVL Tree Lab</a></li>
-    <li><a href="RedBlackTreeLab.html">Red-Black Tree Lab</a></li>
-    <li><a href="BTreeLab.html">B-Tree Lab</a></li>
-    <li><a href="HeapSortLab.html">Heap Sort Lab</a></li>
-    <li><a href="SortingLab.html">Sorting Lab</a></li>
-    <li><a href="MemoryLab.html">Memory Lab</a></li>
-  </ul>
+    <section>
+      <h2>Labs <span class="count">08</span></h2>
+      <div class="grid">
+        <a class="card" href="LinkedListLab.html"><span class="card-title">Linked List Lab</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="BinaryTreeLab.html"><span class="card-title">Binary Tree Lab</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="AVLTreeLab.html"><span class="card-title">AVL Tree Lab</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="RedBlackTreeLab.html"><span class="card-title">Red-Black Tree Lab</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="BTreeLab.html"><span class="card-title">B-Tree Lab</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="HeapSortLab.html"><span class="card-title">Heap Sort Lab</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="SortingLab.html"><span class="card-title">Sorting Lab</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card" href="MemoryLab.html"><span class="card-title">Memory Lab</span><span class="card-arrow">&#8594;</span></a>
+      </div>
+    </section>
+
+    <footer>
+      <span>rahman-atiq/atiq-dsa</span>
+      <a href="https://github.com/rahman-atiq/atiq-dsa">source on GitHub</a>
+    </footer>
+  </div>
 </body>
 </html>

@@ -14,7 +14,7 @@
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B-Trees — when the cost model breaks, and how to fix it in C</title>
+<title>B-Trees, B⁺ and B* — when the cost model breaks, and how to fix it in C</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -263,6 +263,8 @@ svg.tree.mini{max-width:420px;margin:0 auto}
 .swatch.i{background:var(--svg-node)}
 .swatch.l{background:var(--cell)}
 .swatch.h{background:var(--block-soft);border-color:var(--block)}
+.swatch.s{background:var(--accent-soft);border-color:var(--accent)}
+.swatch.ch{background:none;border:0;border-top:1.5px dashed var(--faint);height:0;width:16px;align-self:center}
 
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
 .controls button,.controls select{font-family:var(--mono);font-size:12px;padding:7px 11px;border:1px solid var(--rule);background:var(--btn-bg);color:var(--ink);border-radius:3px;cursor:pointer}
@@ -306,7 +308,7 @@ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)
   </div>
   <h1>B-trees</h1>
   <p class="sub">A search tree built for a machine where reading one byte and reading four thousand bytes cost exactly the same — which is every machine you have ever used.</p>
-  <p class="small">Red-black trees asked how cheaply a tree can be kept balanced. B-trees ask a different question: what if counting comparisons was the wrong thing to count all along? Arrow keys, or the buttons below, to move through the deck.</p>
+  <p class="small">Red-black trees asked how cheaply a tree can be kept balanced. B-trees ask a different question: what if counting comparisons was the wrong thing to count all along? The second half of the deck follows the idea into the two variants that came out of it — the B⁺ tree every database actually ships, and the B* tree that tried to fix the space it wastes. Arrow keys, or the buttons below, to move through the deck.</p>
  </div>
 </section>
 
@@ -737,9 +739,378 @@ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)
 </section>
 
 <!-- 16 -->
+<section class="slide" data-chapter="B+ trees">
+ <div class="inner">
+  <p class="kicker">15 — the structure, stated properly</p>
+  <h2>Two kinds of node, and only one of them holds data</h2>
+  <div class="cols wide-left">
+   <div>
+    <ol class="props">
+      <li><b>Internal nodes hold no records.</b> Separator keys and child pointers, nothing else. A node with <i>k</i> separators has <i>k</i> + 1 children, exactly as before.</li>
+      <li><b>Every record lives in a leaf</b>, and every leaf is at the same depth. The leaf level holds the entire data set, in sorted order, with nothing missing.</li>
+      <li><b>Each leaf points at the next one.</b> The leaf level is a sorted linked list that happens to have an index bolted on top of it.</li>
+      <li>A separator is a <b>copy</b> of the smallest key in the subtree to its right. So routing is <code>&lt; s</code> left, <code>&gt;= s</code> right — not the strict-on-both-sides rule a B-tree uses.</li>
+      <li>Occupancy is unchanged: at least t − 1 keys, at most 2t − 1, root exempt.</li>
+    </ol>
+    <p class="small">Same minimum degree t, same split-on-the-way-down insertion, same all-leaves-level invariant. Everything you have already learned still applies.</p>
+   </div>
+   <div class="panel">
+    <h3>The separator is not a key</h3>
+    <p>This is the mental shift, and everything else follows from it. In a B-tree, finding your key at an internal node means <b>you are done</b>. In a B⁺ tree it means <b>go right</b>, and nothing more.</p>
+    <p>A separator is a routing decision that happens to be spelled like a key. It is not a member of the set. It can outlive the key it was copied from, and frequently does.</p>
+    <p style="margin-bottom:0">Which means the validator has to be <b>loosened</b>: the lower bound on a subtree becomes inclusive, because the separator above it is a duplicate of the smallest key inside it.</p>
+   </div>
+  </div>
+  <div class="cols" style="margin-top:20px">
+    <div class="treebox">
+      <svg class="tree mini" id="bpCmpB" role="img" aria-label="Sixteen keys in a plain B-tree"></svg>
+      <div class="legend"><span id="bpCmpBCap"></span></div>
+    </div>
+    <div class="treebox">
+      <svg class="tree mini" id="bpCmpP" role="img" aria-label="The same sixteen keys in a B-plus tree, with the leaves chained"></svg>
+      <div class="legend"><span id="bpCmpPCap"></span></div>
+    </div>
+  </div>
+  <p class="small" style="margin-top:10px">Same sixteen keys, same t. On the left every node is data. On the right the top row is a routing table you could throw away and rebuild, and the dashed arrows are the structure the next four slides are about.</p>
+ </div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-chapter="B+ trees">
+ <div class="inner">
+  <p class="kicker">16 — insertion and deletion</p>
+  <h2>There are now two kinds of split, and that is the whole implementation</h2>
+  <div class="cols">
+   <div class="treebox"><svg class="tree mini" id="bpSplitA"></svg><div class="legend"><span>before — the leaf is full, t = 3</span></div></div>
+   <div class="treebox"><svg class="tree mini" id="bpSplitB"></svg><div class="legend"><span>after — 40 is now in two places, and only one of them counts</span></div></div>
+  </div>
+  <div class="cols" style="margin-top:18px">
+   <div>
+    <table>
+     <thead><tr><th>splitting a…</th><th>the median is</th><th>because</th></tr></thead>
+     <tbody>
+      <tr><td><b>leaf</b></td><td><b>copied</b> up — it stays in the right-hand leaf as well</td><td>the leaf level is the data. Removing a key from it would delete the record.</td></tr>
+      <tr><td><b>internal node</b></td><td><b>moved</b> up — it leaves the node entirely</td><td>separators are routing, and routing may be relocated freely.</td></tr>
+     </tbody>
+    </table>
+    <p>Get those two lines right and you have a B⁺ tree. Get them confused and you have a structure that loses one record per split and passes every test you thought to write.</p>
+    <h3>Deletion gets easier, not harder</h3>
+    <p>The key you want is always in a leaf, so the predecessor/successor swap that dominated B-tree deletion <b>disappears entirely</b>. What remains is underflow, handled by the same borrow-or-merge you already wrote — with one simplification: merging two leaves <b>discards</b> the separator between them instead of pulling it down, because that separator was only ever a copy.</p>
+   </div>
+   <div class="panel">
+    <h3>Stale separators are legal — leave them</h3>
+    <p>Delete key 40 from the leaf and the separator 40 upstairs still says "40 and above goes right". It is now pointing at a key that no longer exists, and it is still <b>correct</b>: everything left of it is below 40, everything right of it is 40 or above. That is the entire contract.</p>
+    <p>Cleaning it up would cost a write to an internal node on nearly every delete — which is precisely the I/O you built this structure to avoid.</p>
+    <div class="note io">
+      <p style="margin-bottom:0">So a B⁺ deletion usually touches <b>one node</b>: the leaf. A B-tree deletion of an internal key touches a leaf, an internal node, and everything between them.</p>
+    </div>
+    <h3>The case table, in full</h3>
+    <ul class="tight">
+      <li>Key in a leaf with more than t − 1 keys → remove it. Done.</li>
+      <li>Leaf would underflow, a sibling can spare a key → borrow, then <b>fix the separator</b> to the new first key of the right-hand node.</li>
+      <li>Neither sibling can spare → merge the two leaves, drop the separator, re-stitch <code>next</code>.</li>
+      <li>The parent underflows as a result → it is an internal node, so apply plain B-tree borrow-or-merge to it.</li>
+    </ul>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 18 -->
+<section class="slide" data-chapter="B+ trees">
+ <div class="inner">
+  <p class="kicker">17 — where the extra level comes from</p>
+  <h2>Payload in an internal node is stolen fanout</h2>
+  <p class="sub">Every byte of record you store beside a separator is a byte not available for another child pointer — and fanout is the only lever that matters.</p>
+  <div class="cols wide-left">
+   <div>
+    <div class="controls">
+      <label class="stat">page</label>
+      <select id="foPage"><option>4096</option><option>8192</option><option>16384</option></select>
+      <label class="stat">record bytes</label>
+      <input type="number" id="foRec" value="100" min="0" max="2000">
+      <label class="stat">rows</label>
+      <select id="foN"><option value="1000000">10⁶</option><option value="1000000000" selected>10⁹</option><option value="1000000000000">10¹²</option></select>
+    </div>
+    <div id="foOut"></div>
+    <p class="small">8-byte keys, 8-byte pointers, no compression, no slotted-page overhead — a real engine loses a further 5–10% to headers. The shape of the answer does not change.</p>
+   </div>
+   <div class="panel">
+    <h3>Read the two fanouts, not the two heights</h3>
+    <p>A B-tree node that must carry a record next to every key runs out of room after a few dozen children. A B⁺ internal node carries 16 bytes per child and gets hundreds.</p>
+    <p>The leaves are just as fat in both — they hold the same records. The difference is that in a B⁺ tree that weight is confined to <b>one level</b>, the one you were going to read anyway.</p>
+    <div class="note io">
+      <p style="margin-bottom:0">Fatten the record and watch the B-tree lose levels to it while the B⁺ tree barely moves. That divergence is the entire argument.</p>
+    </div>
+    <p class="small" style="margin-bottom:0">This is also why a covering index is so effective: put the columns you actually select into the leaf and the query never leaves the index at all.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-chapter="B+ trees">
+ <div class="inner">
+  <p class="kicker">18 — play with it, and scan it</p>
+  <h2>One descent, then a walk</h2>
+  <div class="controls">
+    <input type="number" id="bpKey" placeholder="key">
+    <button id="bpInsert">Insert</button>
+    <button id="bpDelete">Delete</button>
+    <button id="bpRandom">Add random key</button>
+    <label class="stat">t</label>
+    <select id="bpT"><option>2</option><option selected>3</option><option>4</option></select>
+    <button id="bpClear">Clear</button>
+  </div>
+  <div class="controls" style="margin-top:0">
+    <label class="stat">range</label>
+    <input type="number" id="bpLo" placeholder="from" value="20">
+    <input type="number" id="bpHi" placeholder="to" value="55">
+    <button id="bpScan">Scan</button>
+    <button id="bpClearScan">Clear highlight</button>
+  </div>
+  <div class="treebox">
+    <svg class="tree" id="bpTree" role="img" aria-label="Interactive B-plus tree with the leaves chained"></svg>
+    <div class="legend">
+      <span><i class="swatch i"></i> internal — separators only</span>
+      <span><i class="swatch l"></i> leaf — the data</span>
+      <span><i class="swatch s"></i> touched by the scan</span>
+      <span><i class="swatch ch"></i> leaf chain</span>
+    </div>
+  </div>
+  <div class="stat" id="bpStats" style="margin-top:12px"></div>
+  <div class="stat" id="bpScanOut" style="margin-top:6px"></div>
+  <div class="cols" style="margin-top:16px">
+    <div class="panel">
+      <h3>Things to try deliberately</h3>
+      <ul class="tight">
+        <li>Scan a wide range and read the node count: <b>h descents, then one read per leaf</b>, and the descents never repeat.</li>
+        <li>Delete a key that a separator was copied from — 30 is usually a good target. The separator stays. The tree stays valid. Confirm it.</li>
+        <li>Set t = 2 and insert 1…20 in order. Compare the node count with the B-tree playground on slide 12 for the same input.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Why a B-tree cannot do this</h3>
+      <p>A B-tree can scan in order too — keep an explicit stack and walk it. But its records are spread over <b>every level</b>, so an in-order traversal bounces up and down the tree between consecutive keys, holding the whole path pinned as it goes.</p>
+      <p style="margin-bottom:0">A B⁺ scan never leaves the bottom row, never re-reads an internal node, and touches pages that the storage layer can see coming. On an SSD that is the difference between queued sequential reads and a random walk.</p>
+    </div>
+  </div>
+ </div>
+</section>
+
+<!-- 20 -->
+<section class="slide" data-chapter="B+ trees">
+ <div class="inner">
+  <p class="kicker">19 — implementation in C</p>
+  <h2>The diff against the B-tree is about forty lines</h2>
+  <div class="cols">
+   <div>
+<pre><code>/* Two node shapes, one allocation. A real engine uses two page
+   layouts with different capacities -- leaves carry fat records,
+   internal nodes carry thin separators -- but the logic is this. */
+typedef struct BPNode {
+    int   n;
+    int   leaf;
+    int   key[MAXK];
+    union {
+        struct BPNode *child[MAXC];        /* internal */
+        struct {
+            Record          val[MAXK];     /* leaf: the data  */
+            struct BPNode  *next;          /* leaf: the chain */
+        } l;
+    } u;
+} BPNode;
+
+/* Routing is right-biased, because the separator is a COPY of the
+   first key on its right. Getting this backwards hides the first
+   key of every leaf. */
+static int route(BPNode *x, int k)
+{
+    int i = 0;
+    while (i &lt; x-&gt;n &amp;&amp; k &gt;= x-&gt;key[i]) i++;
+    return i;
+}
+
+/* One descent, then a walk. The whole reason the structure exists. */
+int bp_range(BPTree *t, int lo, int hi, int *out)
+{
+    BPNode *x = t-&gt;root;
+    while (!x-&gt;leaf) x = x-&gt;u.child[route(x, lo)];
+
+    int m = 0;
+    for (; x; x = x-&gt;u.l.next)
+        for (int j = 0; j &lt; x-&gt;n; j++) {
+            if (x-&gt;key[j] &gt; hi) return m;
+            if (x-&gt;key[j] &gt;= lo) out[m++] = x-&gt;key[j];
+        }
+    return m;
+}</code></pre>
+   </div>
+   <div>
+<pre><code>static void split_child(BPNode *x, int i)
+{
+    BPNode *y = x-&gt;u.child[i];
+    BPNode *z = node_new(y-&gt;leaf);
+    int j;
+
+    if (y-&gt;leaf) {
+        z-&gt;n = T - 1;                  /* y keeps T, z takes T-1 */
+        for (j = 0; j &lt; T - 1; j++) {
+            z-&gt;key[j]     = y-&gt;key[j + T];
+            z-&gt;u.l.val[j] = y-&gt;u.l.val[j + T];
+        }
+        y-&gt;n = T;
+        z-&gt;u.l.next = y-&gt;u.l.next;     /* stitch the chain       */
+        y-&gt;u.l.next = z;
+
+        for (j = x-&gt;n; j &gt; i; j--) x-&gt;key[j] = x-&gt;key[j - 1];
+        x-&gt;key[i] = z-&gt;key[0];         /* COPIED up -- still below */
+    } else {
+        z-&gt;n = T - 1;
+        for (j = 0; j &lt; T - 1; j++) z-&gt;key[j]      = y-&gt;key[j + T];
+        for (j = 0; j &lt; T;     j++) z-&gt;u.child[j]  = y-&gt;u.child[j + T];
+        y-&gt;n = T - 1;
+
+        for (j = x-&gt;n; j &gt; i; j--) x-&gt;key[j] = x-&gt;key[j - 1];
+        x-&gt;key[i] = y-&gt;key[T - 1];     /* MOVED up, as in a B-tree */
+    }
+    for (j = x-&gt;n + 1; j &gt; i + 1; j--)
+        x-&gt;u.child[j] = x-&gt;u.child[j - 1];
+    x-&gt;u.child[i + 1] = z;
+    x-&gt;n++;
+}</code></pre>
+    <div class="note io">
+      <p style="margin-bottom:0"><b>One extra check in the validator, and it is the important one.</b> Walk the chain from the leftmost leaf: it must visit every leaf, exactly once, in ascending key order, and the key count must equal the tree's size.</p>
+    </div>
+    <p class="small" style="margin-bottom:0">A merge that forgets to re-stitch <code>next</code> produces a tree that answers <b>every point query correctly</b> and silently truncates every range query. Nothing but the chain check finds it.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-chapter="B* trees">
+ <div class="inner">
+  <p class="kicker">20 — the other variant</p>
+  <h2>B* trees: 69% occupancy is a choice, not a law</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Two slides ago the playground told you that a B-tree built from random keys settles at about <b>ln 2 ≈ 69%</b> full. State that in bytes and it stops sounding academic:</p>
+    <div class="note io">
+      <p style="margin-bottom:0">A 100 GB index is carrying roughly <b>31 GB of nothing</b> — paid for in disk, in page cache, and in every block transfer that reads a third of a page of empty slots.</p>
+    </div>
+    <p>The 69% is not a property of B-trees. It is a property of <b>one decision</b>: when a node fills up, we split it in half. Half of a full node is half empty, and the tree is mostly nodes that were recently split.</p>
+    <h3>Knuth's question</h3>
+    <p>A full node is not alone in the world. It has siblings, and they usually have room. So why manufacture a new half-empty node when you could <b>push keys sideways</b> into a neighbour that is already there and already going to be written?</p>
+    <p style="margin-bottom:0">That is the whole idea. Split only when you and your neighbour are <b>both</b> full — and when you finally do, split <b>two nodes into three</b> rather than one into two, so all three come out about two-thirds full instead of one-half.</p>
+   </div>
+   <div class="panel">
+    <h3>What it buys, stated as an invariant</h3>
+    <p>A B-tree guarantees every non-root node is at least <b>half</b> full. A B* tree raises that floor to <b>two-thirds</b>:</p>
+    <div class="note" style="margin-top:0">
+      <p style="margin-bottom:0">every non-root node holds at least <b>⌈(2m − 1) / 3⌉</b> children, where m is the maximum.</p>
+    </div>
+    <p>Same height formula, bigger effective base. Fewer nodes for the same keys, so fewer blocks to read and fewer bytes to cache.</p>
+    <h3>A note on notation</h3>
+    <p style="margin-bottom:0">This section switches to <b>order m</b> = maximum children, the way Knuth states it, because two-thirds does not sit neatly in the minimum-degree notation the rest of the deck uses. m = 2t is the bridge.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 22 -->
+<section class="slide" data-chapter="B* trees">
+ <div class="inner">
+  <p class="kicker">21 — the mechanism, and what it costs</p>
+  <h2>Shuffle first. Split two into three only when you must.</h2>
+  <div class="cols">
+   <div class="treebox"><svg class="tree mini" id="bsShuffleA"></svg><div class="legend"><span>the shaded node overflows, m = 5 — but its neighbour has room</span></div></div>
+   <div class="treebox"><svg class="tree mini" id="bsShuffleB"></svg><div class="legend"><span>shuffle — keys move sideways through the separator, no new node</span></div></div>
+  </div>
+  <div class="cols" style="margin-top:18px">
+   <div>
+<pre><code>/* The entire B* difference: one policy function.
+   Called when child i has gone over capacity. */
+static void overflow(BNode *x, int i)
+{
+    if (i &gt; 0 &amp;&amp; x-&gt;child[i-1]-&gt;n &lt; MAXK)   /* left has room  */
+        { shuffle(x, i - 1); return; }
+    if (i &lt; x-&gt;n &amp;&amp; x-&gt;child[i+1]-&gt;n &lt; MAXK) /* right has room */
+        { shuffle(x, i);     return; }
+
+    split_two_into_three(x, i &lt; x-&gt;n ? i : i - 1);
+}</code></pre>
+    <h3>The arithmetic of a 2-to-3 split</h3>
+    <p style="margin-bottom:0">Two full nodes hold 2(m − 1) keys; add the separator between them and you are holding <b>2m − 1</b> keys and 2m children. Lay them out as three nodes, send <b>two</b> separators up, and each of the three comes out at <b>(2m − 3) / 3 ≈ ⅔m</b>. That is the two-thirds floor — and the button on the right is how you check it rather than believe it.</p>
+   </div>
+   <div>
+    <div class="controls">
+      <label class="stat">max keys</label>
+      <select id="bsK"><option>8</option><option selected>32</option><option>128</option></select>
+      <label class="stat">keys</label>
+      <input type="number" id="bsN" value="100000" min="1000" max="400000">
+      <button id="bsRun">Build both and measure</button>
+    </div>
+    <div id="bsOut"></div>
+    <div class="note">
+      <p style="margin-bottom:0">Predict the two occupancies before you press it. The analysis says <b>ln 2 = 69.3%</b> for splitting one into two, and <b>2·ln(3/2) = 81.1%</b> for splitting two into three. Shuffling before splitting pushes the measured number higher still.</p>
+    </div>
+    <h3>One exception, and it is the root</h3>
+    <p style="margin-bottom:0">When the <b>root</b> overflows there is no sibling to shuffle with, so it splits in half like a B-tree's and its two children start life half full. Knuth's fix is to let the root hold <b>more</b> keys than an ordinary node, so that splitting it yields two ⅔-full children — the B* root is special in the opposite direction from a B-tree's. The code here does not bother, which is exactly why the measurement asks about the tree <i>below</i> the root's children.</p>
+   </div>
+  </div>
+  <div class="note io" style="margin-top:4px">
+   <p style="margin-bottom:0"><b>The cost is structural, not cosmetic.</b> A 2-to-3 split pushes <b>two</b> separators into the parent, and the split-on-the-way-down trick from slide 10 only ever guarantees room for <b>one</b>. So a B* tree cannot repair on the way down. It has to insert first and fix overflow on the way back up — which means holding the path, which is exactly what made B-tree concurrency tractable.</p>
+  </div>
+ </div>
+</section>
+
+<!-- 23 -->
+<section class="slide" data-chapter="B* trees">
+ <div class="inner">
+  <p class="kicker">22 — the three of them, side by side</p>
+  <h2>These are not three competing structures. They are two independent knobs.</h2>
+  <p class="sub">B⁺ is about <i>where the data lives</i>. B* is about <i>when you split</i>. Nothing stops you turning both.</p>
+  <table>
+   <thead><tr><th></th><th>B-tree</th><th>B⁺ tree</th><th>B* tree</th></tr></thead>
+   <tbody>
+    <tr><td>records live</td><td>in every node, at every level</td><td>in the leaves only</td><td>wherever the base tree puts them</td></tr>
+    <tr><td>leaves linked</td><td>no</td><td><b>yes</b></td><td>inherited from the base tree</td></tr>
+    <tr><td>minimum occupancy</td><td class="num">1/2</td><td class="num">1/2</td><td class="num slow">2/3 — ⌈(2m−1)/3⌉ children</td></tr>
+    <tr><td>on overflow</td><td>split 1 → 2</td><td>split 1 → 2, copying at a leaf</td><td>shuffle sideways; split 2 → 3 only when both are full</td></tr>
+    <tr><td>point lookup</td><td>1 … h reads, depending where the key sits</td><td>always h reads — predictable</td><td>fewer reads than B, because the tree is smaller</td></tr>
+    <tr><td>range scan</td><td>bounces between levels, path stays pinned</td><td><b>one descent, then sequential</b></td><td>same as the base tree</td></tr>
+    <tr><td>repair direction</td><td>on the way down, single pass</td><td>on the way down, single pass</td><td class="slow">on the way back up — two separators, one free slot</td></tr>
+    <tr><td>writes per insert</td><td>1 node, occasionally 2</td><td>1 node, occasionally 2</td><td class="slow">frequently 2 — a shuffle dirties a sibling too</td></tr>
+    <tr><td>deletion</td><td>predecessor swap, borrow, merge</td><td><b>simplest</b> — stops at the leaf</td><td>hardest — a higher floor means merges fire sooner</td></tr>
+   </tbody>
+  </table>
+  <div class="cols" style="margin-top:14px">
+   <div class="panel">
+    <h3>What actually shipped</h3>
+    <p>B⁺ trees won outright. B* trees did not — <b>as a data structure</b>. The idea survived as a <b>split policy</b>: InnoDB and PostgreSQL detect ascending inserts and split asymmetrically instead of 50/50, bulk loads set a fill factor, and <code>REINDEX</code> recovers occupancy when it drifts.</p>
+    <p style="margin-bottom:0">Those get most of the space back without giving up the single downward pass or latching a sibling on every insert. The occupancy problem was real; the B* answer to it lost to cheaper answers.</p>
+   </div>
+   <div class="panel">
+    <h3>Names lie — check the behaviour</h3>
+    <ul class="tight">
+      <li>Apple's HFS and HFS+ call their catalog file a <b>B*-tree</b>. It is a B⁺ tree. The name is historical.</li>
+      <li>Several papers use <b>B*</b> to mean the B-link tree — a concurrency variant, unrelated to occupancy.</li>
+      <li>"B-tree" in a database manual almost always means B⁺ tree.</li>
+    </ul>
+    <p class="small" style="margin-bottom:0">Ask what a structure does on overflow and where it keeps its records. Those two answers identify it. The label does not.</p>
+   </div>
+  </div>
+  <div class="note">
+   <p style="margin-bottom:0"><b>If you are choosing one: build the B⁺ tree.</b> It is the one every production system converged on, it has the simplest deletion of the three, and its range scan is the operation real workloads spend their time in. Reach for a B* split policy only after you have measured that space — not latency — is what is hurting you, and that your insert pattern is not already fixed by an asymmetric split.</p>
+  </div>
+ </div>
+</section>
+
+<!-- 24 -->
 <section class="slide" data-chapter="C implementation">
  <div class="inner">
-  <p class="kicker">15 — implementation in C</p>
+  <p class="kicker">23 — implementation in C</p>
   <h2>The node layout is the design decision</h2>
   <div class="cols">
    <div>
@@ -793,10 +1164,10 @@ BTree *bt_create(void)
  </div>
 </section>
 
-<!-- 17 -->
+<!-- 25 -->
 <section class="slide" data-chapter="C implementation">
  <div class="inner">
-  <p class="kicker">16 — implementation in C</p>
+  <p class="kicker">24 — implementation in C</p>
   <h2>Search, and splitting a full child</h2>
   <div class="cols">
    <div>
@@ -852,10 +1223,10 @@ static void split_child(BNode *x, int i)
  </div>
 </section>
 
-<!-- 18 -->
+<!-- 26 -->
 <section class="slide" data-chapter="C implementation">
  <div class="inner">
-  <p class="kicker">17 — implementation in C</p>
+  <p class="kicker">25 — implementation in C</p>
   <h2>Insert: split everything full on the way down</h2>
   <div class="cols">
    <div>
@@ -910,10 +1281,10 @@ static void insert_nonfull(BNode *x, int k)
  </div>
 </section>
 
-<!-- 19 -->
+<!-- 27 -->
 <section class="slide" data-chapter="C implementation">
  <div class="inner">
-  <p class="kicker">18 — implementation in C</p>
+  <p class="kicker">26 — implementation in C</p>
   <h2>Delete: the five cases, in code</h2>
   <div class="cols">
    <div>
@@ -992,10 +1363,10 @@ void bt_delete(BTree *t, int k)
  </div>
 </section>
 
-<!-- 20 -->
+<!-- 28 -->
 <section class="slide" data-chapter="C implementation">
  <div class="inner">
-  <p class="kicker">19 — implementation in C</p>
+  <p class="kicker">27 — implementation in C</p>
   <h2>Topping up a thin child: borrow and merge</h2>
   <div class="cols">
    <div>
@@ -1075,10 +1446,10 @@ static void fill(BNode *x, int i)
  </div>
 </section>
 
-<!-- 21 -->
+<!-- 29 -->
 <section class="slide" data-chapter="C implementation">
  <div class="inner">
-  <p class="kicker">20 — prove it works</p>
+  <p class="kicker">28 — prove it works</p>
   <h2>Write the validator before you write delete</h2>
   <p class="sub">A broken B-tree answers most searches correctly for a long time. Only a structural check finds the damage on the operation that caused it.</p>
   <div class="cols">
@@ -1150,10 +1521,10 @@ int main(void)
  </div>
 </section>
 
-<!-- 22 -->
+<!-- 30 -->
 <section class="slide" data-chapter="Closing">
  <div class="inner">
-  <p class="kicker">21 — where it lives, and what to do next</p>
+  <p class="kicker">29 — where it lives, and what to do next</p>
   <h2>In production, and when not to reach for one</h2>
   <div class="cols">
    <div>
@@ -1167,6 +1538,17 @@ int main(void)
       <p style="margin-bottom:0"><b>When not to.</b> Random-key write-heavy workloads are the weak spot: every insert dirties a different page, so the disk sees random writes. That is the case LSM trees (RocksDB, Cassandra, LevelDB) were built for — they buffer in memory and write sequentially, paying for it with slower reads.</p>
     </div>
     <p class="small" style="margin-bottom:0">If a database uses a B⁺ tree and its competitor uses an LSM tree, they are not disagreeing about data structures. They are disagreeing about read/write ratio.</p>
+    <p class="small">And if you take one thing from the last eight slides: the B⁺ tree is the one to build. The B* tree is the one to understand, so you recognise its split policy when you meet it wearing someone else's name.</p>
+    <div class="panel">
+      <h3 style="margin-top:0">Exercises — the variants</h3>
+      <ol class="tight" style="margin-bottom:0">
+        <li>Implement <code>bp_range</code> and the chain check. Then break a leaf merge so it forgets to re-stitch <code>next</code>, and watch every point-query test keep passing.</li>
+        <li>After 10⁵ random insertions with t = 3, what fraction of the stored keys are separators rather than records? Predict it from the fanout before you count.</li>
+        <li>Delete every key a separator was copied from, then run the validator. Say why it still passes, in one sentence, without using the word "duplicate".</li>
+        <li>Implement <code>shuffle</code> and the 2-to-3 split; check the occupancy against 2·ln(3/2). Then write down why the single downward pass had to go.</li>
+        <li>Find the record size at which a B-tree and a B⁺ tree have the same height — then explain why that number is not the interesting one.</li>
+      </ol>
+    </div>
    </div>
    <div class="panel">
     <h3>Exercises — write the prediction down first</h3>
@@ -1188,7 +1570,7 @@ int main(void)
 </main>
 
 <nav id="bar">
-  <span id="count">1 / 22</span>
+  <span id="count">1 / 30</span>
   <button id="prev" aria-label="Previous slide">Back</button>
   <button id="next" aria-label="Next slide">Next</button>
   <span class="chapter" id="chapter"></span>
@@ -1398,6 +1780,252 @@ function makeBT(t){
   return T;
 }
 
+/* ---------------- B+ tree (mirrors the C) ----------------
+   Same minimum degree t as the B-tree above, so the two are directly
+   comparable. Only three things differ, and every one of them is in this
+   file: a leaf split *copies* its separator up instead of moving it, every
+   leaf points at the next one, and a search never stops early. */
+function makeBPlus(t){
+  function nn(leaf){ return { leaf:leaf, keys:[], children:[], next:null }; }
+  var T = { t:t, root:nn(true), size:0, splits:0, merges:0, borrows:0, visits:0, hops:0 };
+
+  /* Routing is right-biased: a separator s sends everything < s left and
+     everything >= s right, because s is itself the smallest key of the right
+     subtree. A plain B-tree uses strict inequality on both sides; it can,
+     because its separator is a key that lives nowhere else. */
+  function route(x, k){ var i = 0; while (i < x.keys.length && k >= x.keys[i]) i++; return i; }
+
+  function splitChild(x, i){
+    T.splits++;
+    var y = x.children[i], z = nn(y.leaf);
+    if (y.leaf) {
+      z.keys = y.keys.splice(t);         /* y keeps t, z takes t-1   */
+      z.next = y.next; y.next = z;       /* stitch the chain         */
+      x.keys.splice(i, 0, z.keys[0]);    /* COPIED up -- still below */
+    } else {
+      z.keys = y.keys.splice(t);
+      z.children = y.children.splice(t);
+      x.keys.splice(i, 0, y.keys.pop()); /* MOVED up, as in a B-tree */
+    }
+    x.children.splice(i + 1, 0, z);
+  }
+  function insertNonFull(x, k){
+    if (x.leaf) { var j = 0; while (j < x.keys.length && x.keys[j] < k) j++; x.keys.splice(j, 0, k); return; }
+    var i = route(x, k);
+    if (x.children[i].keys.length === 2 * t - 1) { splitChild(x, i); if (k >= x.keys[i]) i++; }
+    insertNonFull(x.children[i], k);
+  }
+
+  function borrowPrev(x, i){
+    T.borrows++;
+    var c = x.children[i], s = x.children[i - 1];
+    if (c.leaf) { c.keys.unshift(s.keys.pop()); x.keys[i - 1] = c.keys[0]; }
+    else { c.keys.unshift(x.keys[i - 1]); c.children.unshift(s.children.pop()); x.keys[i - 1] = s.keys.pop(); }
+  }
+  function borrowNext(x, i){
+    T.borrows++;
+    var c = x.children[i], s = x.children[i + 1];
+    if (c.leaf) { c.keys.push(s.keys.shift()); x.keys[i] = s.keys[0]; }
+    else { c.keys.push(x.keys[i]); c.children.push(s.children.shift()); x.keys[i] = s.keys.shift(); }
+  }
+  function mergeAt(x, i){
+    T.merges++;
+    var c = x.children[i], s = x.children[i + 1];
+    /* Leaves discard the separator -- it was only ever a copy of s.keys[0].
+       Internal nodes pull it down, exactly as a B-tree does. */
+    if (c.leaf) { c.keys = c.keys.concat(s.keys); c.next = s.next; }
+    else { c.keys.push(x.keys[i]); c.keys = c.keys.concat(s.keys); c.children = c.children.concat(s.children); }
+    x.keys.splice(i, 1);
+    x.children.splice(i + 1, 1);
+  }
+  function fill(x, i){
+    if (i !== 0 && x.children[i - 1].keys.length >= t) borrowPrev(x, i);
+    else if (i !== x.keys.length && x.children[i + 1].keys.length >= t) borrowNext(x, i);
+    else if (i !== x.keys.length) mergeAt(x, i);
+    else mergeAt(x, i - 1);
+  }
+  function rm(x, k){
+    if (x.leaf) { var j = x.keys.indexOf(k); if (j >= 0) x.keys.splice(j, 1); return; }
+    var i = route(x, k);
+    if (x.children[i].keys.length < t) { fill(x, i); i = route(x, k); }
+    rm(x.children[i], k);
+  }
+
+  T.search = function(k){
+    var x = T.root, v = 0;
+    while (!x.leaf) { v++; x = x.children[route(x, k)]; }
+    T.visits = v + 1;
+    return x.keys.indexOf(k) >= 0;
+  };
+  T.insert = function(k, distinct){
+    if (!distinct && T.search(k)) return false;
+    var r = T.root;
+    if (r.keys.length === 2 * t - 1) {
+      var s = nn(false); s.children = [r]; T.root = s; splitChild(s, 0); insertNonFull(s, k);
+    } else insertNonFull(r, k);
+    T.size++; return true;
+  };
+  T.remove = function(k){
+    if (!T.search(k)) return false;
+    rm(T.root, k);
+    if (!T.root.leaf && T.root.keys.length === 0) T.root = T.root.children[0];
+    T.size--; return true;
+  };
+  T.first = function(){ var x = T.root; while (!x.leaf) x = x.children[0]; return x; };
+  /* One descent, then a walk. This is the whole reason B+ trees exist. */
+  T.range = function(lo, hi){
+    var x = T.root, path = [], out = [], leaves = [];
+    while (!x.leaf) { path.push(x); x = x.children[route(x, lo)]; }
+    for (; x; x = x.next) {
+      leaves.push(x);
+      for (var j = 0; j < x.keys.length; j++) if (x.keys[j] >= lo && x.keys[j] <= hi) out.push(x.keys[j]);
+      if (!x.next || x.next.keys[0] > hi) break;
+    }
+    T.visits = path.length + leaves.length;
+    T.hops = leaves.length - 1;
+    return { keys:out, path:path, leaves:leaves, descents:path.length, hops:leaves.length - 1 };
+  };
+  T.height = function(){ var d = 0, x = T.root; while (!x.leaf) { x = x.children[0]; d++; } return d; };
+  T.stats = function(){
+    var nodes = 0, leaves = 0, keys = 0;
+    (function w(x){ nodes++; keys += x.keys.length; if (x.leaf) leaves++; else x.children.forEach(w); })(T.root);
+    return { nodes:nodes, leaves:leaves, keys:keys, fill: keys / (nodes * (2 * t - 1)) };
+  };
+  T.valid = function(){
+    var ok = true, ld = -1, order = [];
+    (function chk(x, d, lo, hi, root){
+      if (x.keys.length > 2 * t - 1) ok = false;
+      if (!root && x.keys.length < t - 1) ok = false;
+      if (root && !x.leaf && x.keys.length < 1) ok = false;
+      for (var j = 0; j < x.keys.length; j++) {
+        if (j && x.keys[j - 1] >= x.keys[j]) ok = false;
+        /* lo is inclusive here, not exclusive -- the separator is a copy of
+           the first key in the subtree it points at. */
+        if (lo !== null && x.keys[j] < lo) ok = false;
+        if (hi !== null && x.keys[j] >= hi) ok = false;
+      }
+      if (x.leaf) {
+        if (x.children.length) ok = false;
+        if (ld < 0) ld = d; else if (ld !== d) ok = false;
+        order.push(x);
+        return;
+      }
+      if (x.children.length !== x.keys.length + 1) { ok = false; return; }
+      for (var c = 0; c <= x.keys.length; c++)
+        chk(x.children[c], d + 1, c === 0 ? lo : x.keys[c - 1], c === x.keys.length ? hi : x.keys[c], false);
+    })(T.root, 0, null, null, true);
+    /* The check a plain B-tree does not need, and the one that catches a
+       botched merge: the chain must thread every leaf, left to right,
+       exactly once, in ascending key order. */
+    var x = T.first(), i = 0, last = null, seen = 0;
+    while (x) {
+      if (x !== order[i++]) ok = false;
+      for (var j = 0; j < x.keys.length; j++) { if (last !== null && x.keys[j] <= last) ok = false; last = x.keys[j]; seen++; }
+      x = x.next;
+    }
+    if (i !== order.length || seen !== T.size) ok = false;
+    return ok;
+  };
+  return T;
+}
+
+/* ---------------- B* tree, insertion policy only ----------------
+   Stated in order m = K + 1 children, because that is how Knuth states it
+   and because 2/3 does not sit neatly in the minimum-degree notation.
+   Both trees here repair on the way *back up*: a 2-to-3 split pushes two
+   separators into the parent, and the split-on-the-way-down trick only ever
+   guarantees room for one. */
+function makeStar(K, starPolicy){
+  function nn(leaf){ return { leaf:leaf, keys:[], ch:[] }; }
+  var T = { K:K, root:nn(true), size:0, splits:0, splits23:0, shuffles:0 };
+
+  function splitPlain(x, i){                        /* 1 -> 2, median up */
+    T.splits++;
+    var y = x.ch[i], half = (y.keys.length >> 1), z = nn(y.leaf);
+    z.keys = y.keys.splice(half + 1);
+    if (!y.leaf) z.ch = y.ch.splice(half + 1);
+    x.keys.splice(i, 0, y.keys.pop());
+    x.ch.splice(i + 1, 0, z);
+  }
+  function shuffle(x, i){                           /* even out i and i+1 */
+    T.shuffles++;
+    var a = x.ch[i], b = x.ch[i + 1];
+    var keys = a.keys.concat([x.keys[i]], b.keys);
+    var ch   = a.leaf ? null : a.ch.concat(b.ch);
+    var na = keys.length >> 1;
+    a.keys = keys.slice(0, na);
+    x.keys[i] = keys[na];
+    b.keys = keys.slice(na + 1);
+    if (ch) { a.ch = ch.slice(0, na + 1); b.ch = ch.slice(na + 1); }
+  }
+  function split23(x, i){                           /* 2 full -> 3, two seps up */
+    T.splits23++;
+    var a = x.ch[i], b = x.ch[i + 1], c = nn(a.leaf);
+    var keys = a.keys.concat([x.keys[i]], b.keys);
+    var ch   = a.leaf ? null : a.ch.concat(b.ch);
+    var n = keys.length, n1 = Math.floor((n - 2) / 3), n2 = Math.floor((n - 2 - n1) / 2);
+    a.keys = keys.slice(0, n1);
+    b.keys = keys.slice(n1 + 1, n1 + 1 + n2);
+    c.keys = keys.slice(n1 + n2 + 2);
+    if (ch) { a.ch = ch.slice(0, n1 + 1); b.ch = ch.slice(n1 + 1, n1 + n2 + 2); c.ch = ch.slice(n1 + n2 + 2); }
+    x.keys.splice(i, 1, keys[n1], keys[n1 + 1 + n2]);
+    x.ch.splice(i + 1, 1, b, c);
+  }
+  function overflow(x, i){                          /* child i holds K+1 keys */
+    if (!starPolicy) { splitPlain(x, i); return; }
+    if (i > 0 && x.ch[i - 1].keys.length < K)               { shuffle(x, i - 1); return; }
+    if (i < x.ch.length - 1 && x.ch[i + 1].keys.length < K) { shuffle(x, i); return; }
+    if (i < x.ch.length - 1) split23(x, i); else split23(x, i - 1);
+  }
+  function ins(x, k){
+    var i = 0;
+    while (i < x.keys.length && x.keys[i] < k) i++;
+    if (x.leaf) { x.keys.splice(i, 0, k); return; }
+    ins(x.ch[i], k);
+    if (x.ch[i].keys.length > K) overflow(x, i);
+  }
+  T.insert = function(k){
+    ins(T.root, k);
+    if (T.root.keys.length > K) {                   /* the root is exempt */
+      var s = nn(false); s.ch = [T.root]; T.root = s; splitPlain(s, 0);
+    }
+    T.size++;
+  };
+  T.height = function(){ var d = 0, x = T.root; while (!x.leaf) { x = x.ch[0]; d++; } return d; };
+  T.stats = function(){
+    /* minK counts every non-root node; minDeep skips the root's two children
+       as well, because those are the one documented place the two-thirds
+       floor does not hold -- see the note on the slide. */
+    var nodes = 0, keys = 0, minK = Infinity, minDeep = Infinity;
+    (function w(x, d){
+      nodes++; keys += x.keys.length;
+      if (d >= 1) minK = Math.min(minK, x.keys.length);
+      if (d >= 2) minDeep = Math.min(minDeep, x.keys.length);
+      if (!x.leaf) x.ch.forEach(function(c){ w(c, d + 1); });
+    })(T.root, 0);
+    if (!isFinite(minK)) minK = 0;
+    if (!isFinite(minDeep)) minDeep = minK;
+    return { nodes:nodes, keys:keys, fill: keys / (nodes * K), minK:minK, minDeep:minDeep };
+  };
+  T.valid = function(){
+    var ok = true, ld = -1;
+    (function chk(x, d, lo, hi){
+      if (x.keys.length > K) ok = false;
+      for (var j = 0; j < x.keys.length; j++) {
+        if (j && x.keys[j - 1] >= x.keys[j]) ok = false;
+        if (lo !== null && x.keys[j] <= lo) ok = false;
+        if (hi !== null && x.keys[j] >= hi) ok = false;
+      }
+      if (x.leaf) { if (ld < 0) ld = d; else if (ld !== d) ok = false; return; }
+      if (x.ch.length !== x.keys.length + 1) { ok = false; return; }
+      for (var c = 0; c <= x.keys.length; c++)
+        chk(x.ch[c], d + 1, c === 0 ? lo : x.keys[c - 1], c === x.keys.length ? hi : x.keys[c]);
+    })(T.root, 0, null, null);
+    return ok;
+  };
+  return T;
+}
+
 /* ---------------- red-black tree, for comparison only ---------------- */
 function makeRB(){
   var NIL = { colour:'B', key:null };
@@ -1446,7 +2074,7 @@ function makeRB(){
    them. These diagrams are SVG *strings*, not styled elements, so nothing
    already on screen updates by itself: each render records how to repeat
    itself and repaintAll() replays the lot once the palette has changed. */
-var C_INK, C_RULE, C_FAINT, C_ACCENT, C_BLOCK, C_BLOCKSOFT, C_CELL,
+var C_INK, C_RULE, C_FAINT, C_ACCENT, C_ACCENTSOFT, C_BLOCK, C_BLOCKSOFT, C_CELL,
     C_NODE, C_RED, C_RED_EDGE, C_BLACK, C_BLACK_EDGE, C_ON_NODE;
 
 function readTokens(){
@@ -1456,6 +2084,7 @@ function readTokens(){
   C_RULE       = t('--svg-rule','#9FB3C0');
   C_FAINT      = t('--faint','#8CA0AE');
   C_ACCENT     = t('--accent','#116A83');
+  C_ACCENTSOFT = t('--accent-soft','#E1EEF2');
   C_BLOCK      = t('--block','#9C6510');
   C_BLOCKSOFT  = t('--block-soft','#F6EEE0');
   C_CELL       = t('--cell','#F4F8FA');
@@ -1488,8 +2117,10 @@ function sizeSVG(svg, W){
 }
 function boxSVG(x, y, keys, cw, bh, leaf, hl){
   var w = Math.max(keys.length, 1) * cw + 6;
-  var fill = hl ? C_BLOCKSOFT : (leaf ? C_CELL : C_NODE);
-  var stroke = hl ? C_BLOCK : C_RULE;
+  var fill, stroke;
+  if (hl === 'scan')  { fill = C_ACCENTSOFT; stroke = C_ACCENT; }
+  else if (hl)        { fill = C_BLOCKSOFT;  stroke = C_BLOCK; }
+  else                { fill = leaf ? C_CELL : C_NODE; stroke = C_RULE; }
   var s = '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + bh +
           '" rx="2" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + (hl ? 2 : 1.2) + '"/>';
   for (var i = 0; i < keys.length; i++) {
@@ -1566,6 +2197,84 @@ function renderB(svg, T, opts){
   svg.innerHTML = edges + boxes;
 }
 
+/* renderBP -- same layout engine as renderB, plus the thing that makes a B+
+   tree a B+ tree: the arrows along the bottom. opts.hl(n) may return
+   'scan' (accent) or any other truthy value (block) to shade a node. */
+function renderBP(svg, T, opts){
+  opts = opts || {};
+  if (!svg) return;
+  _paints(svg, function(){ renderBP(svg, T, opts); });
+  var root = T.root;
+  if (!root.keys.length && root.leaf) {
+    svg.setAttribute('viewBox', '0 0 400 80');
+    svg.style.width = '100%';
+    svg.innerHTML = '<text x="200" y="46" text-anchor="middle" fill="' + C_FAINT +
+      '" font-family="JetBrains Mono, monospace" font-size="13">empty tree</text>';
+    return;
+  }
+  var maxK = 0;
+  (function w(x){ x.keys.forEach(function(k){ if (k > maxK) maxK = k; }); if (!x.leaf) x.children.forEach(w); })(root);
+  var digits = String(maxK).length;
+  var cw = 14 + 8 * digits, bh = 26, vgap = 56, hgap = 22, pad = 3;
+  function nw(n){ return Math.max(n.keys.length, 1) * cw + pad * 2; }
+  (function measure(n){
+    n._w = nw(n);
+    if (n.leaf) { n._tw = n._w; return n._tw; }
+    var s = 0;
+    for (var i = 0; i < n.children.length; i++) { s += measure(n.children[i]); if (i) s += hgap; }
+    n._tw = Math.max(s, n._w);
+    return n._tw;
+  })(root);
+  (function place(n, x, d){
+    n._d = d;
+    if (n.leaf) { n._x = x + (n._tw - n._w) / 2; return; }
+    var total = 0, i;
+    for (i = 0; i < n.children.length; i++) { total += n.children[i]._tw; if (i) total += hgap; }
+    var cx = x + (n._tw - total) / 2;
+    for (i = 0; i < n.children.length; i++) { place(n.children[i], cx, d + 1); cx += n.children[i]._tw + hgap; }
+    var f = n.children[0], l = n.children[n.children.length - 1];
+    n._x = (f._x + f._w / 2 + l._x + l._w / 2) / 2 - n._w / 2;
+  })(root, 0, 0);
+
+  var maxd = 0, all = [];
+  (function w(n){ all.push(n); if (n._d > maxd) maxd = n._d; if (!n.leaf) n.children.forEach(w); })(root);
+
+  var W = Math.ceil(root._tw) + 20, H = 12 + maxd * vgap + bh + 30;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  sizeSVG(svg, W);
+
+  all.forEach(function(n){ n._px = n._x + 10; n._py = 12 + n._d * vgap; });
+
+  var edges = '', boxes = '', chain = '';
+  all.forEach(function(n){
+    if (n.leaf) return;
+    for (var i = 0; i < n.children.length; i++) {
+      var c = n.children[i];
+      edges += lineSVG(n._px + pad + i * cw, n._py + bh, c._px + c._w / 2, c._py);
+    }
+  });
+  /* the chain, drawn under the leaf row so it never crosses a box */
+  var leaves = [], p = T.first();
+  while (p) { leaves.push(p); p = p.next; }
+  var cy = 12 + maxd * vgap + bh + 11;
+  for (var i = 0; i + 1 < leaves.length; i++) {
+    var a = leaves[i], b = leaves[i + 1];
+    var lit = opts.chain && opts.chain(a, b);
+    var col = lit ? C_ACCENT : C_FAINT;
+    var x1 = a._px + a._w / 2, x2 = b._px + b._w / 2;
+    chain += '<path d="M' + x1 + ' ' + (a._py + bh) + ' L' + x1 + ' ' + cy + ' L' + (x2 - 6) + ' ' + cy +
+             '" fill="none" stroke="' + col + '" stroke-width="' + (lit ? 1.8 : 1.1) +
+             '" stroke-dasharray="3 3"/>' +
+             '<path d="M' + (x2 - 7) + ' ' + (cy - 3.4) + ' L' + (x2 - 0.5) + ' ' + cy + ' L' + (x2 - 7) + ' ' + (cy + 3.4) + ' Z" fill="' + col + '"/>' +
+             '<line x1="' + x2 + '" y1="' + cy + '" x2="' + x2 + '" y2="' + (b._py + bh) + '" stroke="' + col +
+             '" stroke-width="' + (lit ? 1.8 : 1.1) + '" stroke-dasharray="3 3"/>';
+  }
+  all.forEach(function(n){
+    boxes += boxSVG(n._px, n._py, n.keys, cw, bh, n.leaf, opts.hl && opts.hl(n));
+  });
+  svg.innerHTML = edges + chain + boxes;
+}
+
 function renderRB(svg, T){
   if (!svg) return;
   _paints(svg, function(){ renderRB(svg, T); });
@@ -1611,6 +2320,16 @@ function drawBMini(id, spec){
   (spec.edges || []).forEach(function(e){
     var a = map[e[0]], b = map[e[2]];
     s += lineSVG(a.x + pad + e[1] * cw, a.y + bh, b.x + b._w / 2, b.y);
+  });
+  (spec.chain || []).forEach(function(e){
+    var a = map[e[0]], b = map[e[1]];
+    var cy = Math.max(a.y, b.y) + bh + 12, x1 = a.x + a._w / 2, x2 = b.x + b._w / 2;
+    s += '<path d="M' + x1 + ' ' + (a.y + bh) + ' L' + x1 + ' ' + cy + ' L' + (x2 - 6) + ' ' + cy +
+         '" fill="none" stroke="' + C_FAINT + '" stroke-width="1.1" stroke-dasharray="3 3"/>' +
+         '<path d="M' + (x2 - 7) + ' ' + (cy - 3.4) + ' L' + (x2 - 0.5) + ' ' + cy + ' L' + (x2 - 7) + ' ' + (cy + 3.4) +
+         ' Z" fill="' + C_FAINT + '"/>' +
+         '<line x1="' + x2 + '" y1="' + cy + '" x2="' + x2 + '" y2="' + (b.y + bh) + '" stroke="' + C_FAINT +
+         '" stroke-width="1.1" stroke-dasharray="3 3"/>';
   });
   spec.nodes.forEach(function(n){ s += boxSVG(n.x, n.y, n.keys, cw, bh, !!n.leaf, !!n.hl); });
   svg.innerHTML = s;
@@ -1777,6 +2496,201 @@ drawBMini('borrowB', { w:400, h:140, cw:30, nodes:[
   });
   [10,20,5,6,12,30,7,17,3,25,40,50,18,22,45,60].forEach(function(k){ T.insert(k, true); });
   draw();
+})();
+
+/* ---------------- slide 16: the same keys, both structures ---------------- */
+(function(){
+  var keys = [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80];
+  var B = makeBT(3), P = makeBPlus(3);
+  keys.forEach(function(k){ B.insert(k, true); P.insert(k, true); });
+  renderB(document.getElementById('bpCmpB'), B);
+  renderBP(document.getElementById('bpCmpP'), P);
+  var bs = B.stats(), ps = P.stats(), above = 0;
+  (function w(x){ if (x.leaf) return; above += x.keys.length; x.children.forEach(w); })(B.root);
+  document.getElementById('bpCmpBCap').textContent =
+    'B-tree — ' + keys.length + ' keys over ' + bs.nodes + ' nodes, ' + above +
+    ' of them above the leaf level';
+  document.getElementById('bpCmpPCap').textContent =
+    'B⁺ tree — all ' + P.size + ' keys in ' + ps.leaves + ' leaves, plus ' +
+    (ps.keys - P.size) + ' separators above them';
+})();
+
+/* ---------------- slide 17: the leaf split, copy-up ----------------
+   Deliberately the same node as the B-tree split on slide 11, so the two
+   diagrams can be read against each other. There the median left the leaf
+   level; here nothing does. */
+drawBMini('bpSplitA', { w:380, h:150, cw:30, nodes:[
+  { id:'p', x:160, y:14, keys:[70] },
+  { id:'c', x:30,  y:92, keys:[10,20,40,50,60], leaf:true, hl:true },
+  { id:'r', x:270, y:92, keys:[80], leaf:true }
+], edges:[['p',0,'c'],['p',1,'r']], chain:[['c','r']] });
+
+drawBMini('bpSplitB', { w:380, h:150, cw:30, nodes:[
+  { id:'p', x:130, y:14, keys:[50,70] },
+  { id:'a', x:20,  y:92, keys:[10,20,40], leaf:true },
+  { id:'b', x:150, y:92, keys:[50,60], leaf:true, hl:true },
+  { id:'r', x:270, y:92, keys:[80], leaf:true }
+], edges:[['p',0,'a'],['p',1,'b'],['p',2,'r']], chain:[['a','b'],['b','r']] });
+
+/* ---------------- slide 18: fanout calculator ---------------- */
+(function(){
+  var out = document.getElementById('foOut');
+  if (!out) return;
+  var KEY = 8, PTR = 8, FILL = Math.log(2);   /* the 69% from slide 12 */
+  function run(){
+    var page = parseInt(document.getElementById('foPage').value, 10);
+    var rec  = Math.max(0, Math.min(2000, parseInt(document.getElementById('foRec').value, 10) || 0));
+    var n    = parseFloat(document.getElementById('foN').value);
+
+    var kB = Math.max(1, Math.floor((page - PTR) / (KEY + rec + PTR)));  /* B-tree: record beside every key */
+    var kI = Math.max(1, Math.floor((page - PTR) / (KEY + PTR)));        /* B+ internal: pure routing      */
+    var cL = Math.max(1, Math.floor((page - PTR) / (KEY + rec)));        /* B+ leaf: key + record          */
+
+    function lv(total, fan){ return Math.max(1, Math.ceil(Math.log(total) / Math.log(Math.max(1.0001, fan)))); }
+    var hB = lv(n, FILL * (kB + 1));
+    var leaves = Math.ceil(n / (FILL * cL));
+    var hP = (leaves <= 1 ? 0 : lv(leaves, FILL * (kI + 1))) + 1;
+
+    var scanRows = 1000;
+    var scanB = hB + Math.ceil(scanRows / (FILL * kB));
+    var scanP = hP + Math.ceil(scanRows / (FILL * cL));
+
+    function row(l, a, b, note){
+      return '<tr><td>' + l + '</td><td class="num">' + a + '</td><td class="num">' + b +
+             '</td><td class="small">' + (note || '') + '</td></tr>';
+    }
+    var h = '<table><thead><tr><th>' + page + '-byte page</th><th>B-tree</th><th>B⁺ tree</th><th></th></tr></thead><tbody>';
+    h += row('children per internal node', kB + 1, kI + 1, 'the only number that sets the height');
+    h += row('rows per leaf page', kB, cL, 'a B-tree leaf gives ' + PTR + ' bytes per row to a child pointer it never follows');
+    h += row('levels', hB, hP, 'at ' + (100 * FILL).toFixed(0) + '% occupancy');
+    h += row('reads per point lookup', hB, hP, hB === hP ? 'no difference at this record size' :
+             (hB - hP) + ' fewer, every lookup, forever');
+    h += row('pages for a ' + scanRows + '-row scan', scanB, scanP,
+             'similar counts — see below');
+    h += '</tbody></table>';
+    out.innerHTML = h;
+  }
+  ['foPage','foRec','foN'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.addEventListener('change', run);
+    el.addEventListener('input', run);
+  });
+  run();
+})();
+
+/* ---------------- slide 19: B+ playground and range scan ---------------- */
+(function(){
+  var svg = document.getElementById('bpTree');
+  if (!svg) return;
+  var T = makeBPlus(3), lit = null;
+  var stats = document.getElementById('bpStats'), scanOut = document.getElementById('bpScanOut');
+  var input = document.getElementById('bpKey');
+
+  function inLit(n){ return lit && (lit.path.indexOf(n) >= 0 || lit.leaves.indexOf(n) >= 0); }
+  function draw(){
+    renderBP(svg, T, {
+      hl: function(n){ return inLit(n) ? 'scan' : false; },
+      chain: function(a, b){ return !!lit && lit.leaves.indexOf(a) >= 0 && lit.leaves.indexOf(b) >= 0; }
+    });
+    var s = T.stats();
+    stats.innerHTML = 'keys <b>' + T.size + '</b> &nbsp; levels <b>' + (T.height() + 1) +
+      '</b> &nbsp; nodes <b>' + s.nodes + '</b> &nbsp; leaves <b>' + s.leaves +
+      '</b> &nbsp; separators <b>' + (s.keys - T.size) + '</b> &nbsp; fill <b>' + (100 * s.fill).toFixed(0) +
+      '%</b> &nbsp; splits <b>' + T.splits + '</b> &nbsp; merges <b>' + T.merges +
+      '</b> &nbsp; borrows <b>' + T.borrows + '</b> &nbsp; valid <b>' + (T.valid() ? 'yes' : 'NO') + '</b>';
+  }
+  function clearScan(){ lit = null; scanOut.textContent = ''; draw(); }
+  function ins(k){ if (!isNaN(k)) { T.insert(k); lit = null; scanOut.textContent = ''; draw(); } }
+
+  document.getElementById('bpInsert').addEventListener('click', function(){ ins(parseInt(input.value, 10)); input.value = ''; input.focus(); });
+  input.addEventListener('keydown', function(e){ if (e.key === 'Enter') { ins(parseInt(input.value, 10)); input.value = ''; } });
+  document.getElementById('bpDelete').addEventListener('click', function(){
+    var k = parseInt(input.value, 10);
+    if (!isNaN(k)) { T.remove(k); lit = null; scanOut.textContent = ''; draw(); }
+    input.value = ''; input.focus();
+  });
+  document.getElementById('bpRandom').addEventListener('click', function(){ ins(1 + ((Math.random() * 99) | 0)); });
+  document.getElementById('bpClear').addEventListener('click', function(){
+    T = makeBPlus(parseInt(document.getElementById('bpT').value, 10)); clearScan();
+  });
+  document.getElementById('bpT').addEventListener('change', function(){
+    T = makeBPlus(parseInt(this.value, 10)); clearScan();
+  });
+  document.getElementById('bpClearScan').addEventListener('click', clearScan);
+  document.getElementById('bpScan').addEventListener('click', function(){
+    var lo = parseInt(document.getElementById('bpLo').value, 10);
+    var hi = parseInt(document.getElementById('bpHi').value, 10);
+    if (isNaN(lo) || isNaN(hi) || hi < lo) { scanOut.textContent = 'give a range with to ≥ from.'; return; }
+    lit = T.range(lo, hi);
+    draw();
+    var found = lit.keys.length;
+    scanOut.innerHTML = '[' + lo + ', ' + hi + '] → <b>' + found + '</b> key' + (found === 1 ? '' : 's') +
+      (found ? ' &nbsp;<b>' + lit.keys.join(' ') + '</b>' : '') +
+      ' &nbsp;·&nbsp; <b>' + lit.descents + '</b> descent' + (lit.descents === 1 ? '' : 's') +
+      ' + <b>' + lit.leaves.length + '</b> leaf read' + (lit.leaves.length === 1 ? '' : 's') +
+      ' = <b>' + (lit.descents + lit.leaves.length) + '</b> node reads' +
+      (found ? ' &nbsp;·&nbsp; ' + found + ' separate point lookups would cost <b>' +
+        (found * (T.height() + 1)) + '</b>' : '');
+  });
+  [10,20,5,6,12,30,7,17,3,25,40,50,18,22,45,60].forEach(function(k){ T.insert(k, true); });
+  draw();
+})();
+
+/* ---------------- slide 22: the B* shuffle ----------------
+   m = 5, so four keys is full. The shaded node is holding five and its
+   right-hand neighbour has room, so nothing is allocated: the keys and the
+   separator are simply re-dealt across the pair. */
+drawBMini('bsShuffleA', { w:420, h:150, cw:30, nodes:[
+  { id:'p', x:180, y:14, keys:[50] },
+  { id:'a', x:20,  y:92, keys:[10,20,25,30,40], leaf:true, hl:true },
+  { id:'b', x:270, y:92, keys:[60,70], leaf:true }
+], edges:[['p',0,'a'],['p',1,'b']] });
+
+drawBMini('bsShuffleB', { w:420, h:150, cw:30, nodes:[
+  { id:'p', x:180, y:14, keys:[40] },
+  { id:'a', x:40,  y:92, keys:[10,20,25,30], leaf:true },
+  { id:'b', x:250, y:92, keys:[50,60,70], leaf:true, hl:true }
+], edges:[['p',0,'a'],['p',1,'b']] });
+
+/* ---------------- slide 22: occupancy, measured ---------------- */
+(function(){
+  var out = document.getElementById('bsOut');
+  if (!out) return;
+  document.getElementById('bsRun').addEventListener('click', function(){
+    var K = parseInt(document.getElementById('bsK').value, 10);
+    var n = Math.max(1000, Math.min(400000, parseInt(document.getElementById('bsN').value, 10) || 100000));
+    var a = [], i;
+    for (i = 1; i <= n; i++) a.push(i);
+    for (i = n - 1; i > 0; i--) { var j = (Math.random() * (i + 1)) | 0, tmp = a[i]; a[i] = a[j]; a[j] = tmp; }
+
+    var B = makeStar(K, false), S = makeStar(K, true);
+    var t0 = performance.now();
+    a.forEach(function(k){ B.insert(k); S.insert(k); });
+    var ms = performance.now() - t0;
+    var b = B.stats(), s = S.stats();
+    var bound = Math.ceil((2 * (K + 1) - 1) / 3) - 1;
+
+    function row(l, x, y, note){
+      return '<tr><td>' + l + '</td><td class="num">' + x + '</td><td class="num">' + y +
+             '</td><td class="small">' + (note || '') + '</td></tr>';
+    }
+    var h = '<table><thead><tr><th>max ' + K + ' keys/node</th><th>B-tree</th><th>B* tree</th><th></th></tr></thead><tbody>';
+    h += row('average occupancy', (100 * b.fill).toFixed(1) + '%', (100 * s.fill).toFixed(1) + '%',
+             'predicted 69.3% and 81.1%');
+    h += row('nodes allocated', b.nodes.toLocaleString(), s.nodes.toLocaleString(),
+             (100 * (1 - s.nodes / b.nodes)).toFixed(0) + '% fewer blocks to store and to cache');
+    h += row('levels', B.height() + 1, S.height() + 1, 'same n, denser nodes');
+    h += row('emptiest node below the root\'s children', b.minDeep + ' keys', s.minDeep + ' keys',
+             'the B* floor is ⌈(2m−1)/3⌉ children, so ' + bound + ' keys');
+    h += row('splits', B.splits.toLocaleString(), (S.splits + S.splits23).toLocaleString(),
+             'B* also performed ' + S.shuffles.toLocaleString() + ' shuffles — each one a second dirty node');
+    h += row('structure still valid', B.valid() ? 'yes' : 'NO', S.valid() ? 'yes' : 'NO');
+    h += '</tbody></table><p class="small">' + n.toLocaleString() +
+         ' keys in random order into both, built in ' + ms.toFixed(0) +
+         ' ms. Insert-only: deletion under a two-thirds floor is a different and nastier problem.</p>';
+    out.innerHTML = h;
+  });
+  out.innerHTML = '<p class="small">Nothing measured yet. Write both percentages down, then press the button.</p>';
 })();
 
 /* ---------------- boot ---------------- */

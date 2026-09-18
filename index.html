@@ -3,7 +3,7 @@
 <head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#05070d">
+<meta name="theme-color" content="#04060f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -17,240 +17,608 @@
 <title>Atiq's DSA Deck</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     color-scheme: dark;
-    --bg: #05070d;
-    --bg-alt: #0a0e18;
-    --line: rgba(148, 178, 255, 0.14);
-    --line-strong: rgba(148, 178, 255, 0.28);
-    --fg: #e8ecf7;
-    --fg-dim: #8993ac;
-    --fg-faint: #565f78;
-    --accent: #5eead4;
-    --accent-2: #7c9dff;
-    --card-bg: rgba(255, 255, 255, 0.025);
-    --card-bg-hover: rgba(255, 255, 255, 0.05);
-    --glow: 0 0 0 1px var(--line-strong), 0 8px 30px -8px rgba(94, 234, 212, 0.15);
-  }
 
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-      color-scheme: light;
-      --bg: #f6f7fb;
-      --bg-alt: #ffffff;
-      --line: rgba(30, 41, 82, 0.1);
-      --line-strong: rgba(30, 41, 82, 0.2);
-      --fg: #12172b;
-      --fg-dim: #565f78;
-      --fg-faint: #8993ac;
-      --accent: #0f9d8c;
-      --accent-2: #3a5fdb;
-      --card-bg: rgba(20, 30, 70, 0.02);
-      --card-bg-hover: rgba(20, 30, 70, 0.045);
-      --glow: 0 0 0 1px var(--line-strong), 0 8px 30px -10px rgba(15, 157, 140, 0.18);
-    }
+    --bg:        #04060f;
+    --bg-deep:   #010206;
+    --fg:        #eef2ff;
+    --fg-dim:    #9aa6c8;
+    --fg-faint:  #5f6a8d;
+
+    --line:        rgba(140, 170, 255, 0.13);
+    --line-strong: rgba(140, 170, 255, 0.30);
+
+    --cyan:   #46e8d2;
+    --violet: #8b6cff;
+    --pink:   #ff5fa8;
+    --amber:  #ffb347;
+    --blue:   #56a8ff;
+
+    --glass:       rgba(255, 255, 255, 0.032);
+    --glass-hover: rgba(255, 255, 255, 0.062);
+
+    --card-h: 190;
   }
 
   * { box-sizing: border-box; }
 
+  html { scroll-behavior: smooth; }
+
   body {
     margin: 0;
-    background:
-      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(124, 157, 255, 0.13), transparent),
-      var(--bg);
-    background-attachment: fixed;
+    min-height: 100vh;
+    background: var(--bg);
     color: var(--fg);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    line-height: 1.5;
-    min-height: 100vh;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
+
+  /* ---------- animated backdrop ---------- */
+
+  .sky {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+      radial-gradient(ellipse 1200px 700px at 50% -20%, rgba(90, 80, 220, 0.30), transparent 70%),
+      radial-gradient(ellipse 900px 600px at 100% 10%, rgba(70, 232, 210, 0.13), transparent 65%),
+      radial-gradient(ellipse 800px 700px at 0% 45%, rgba(255, 95, 168, 0.11), transparent 65%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+  }
+
+  .sky::after {
+    /* fine holographic grid, faded toward the bottom */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(140, 170, 255, 0.075) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(140, 170, 255, 0.075) 1px, transparent 1px);
+    background-size: 62px 62px;
+    -webkit-mask-image: radial-gradient(ellipse 100% 70% at 50% 0%, #000 10%, transparent 75%);
+    mask-image: radial-gradient(ellipse 100% 70% at 50% 0%, #000 10%, transparent 75%);
+  }
+
+  .orb {
+    position: fixed;
+    z-index: -1;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.5;
+    pointer-events: none;
+    will-change: transform;
+  }
+  .orb.a { width: 46vw; height: 46vw; top: -14vw; left: -10vw;  background: radial-gradient(circle, rgba(139,108,255,0.85), transparent 68%); animation: drift-a 26s ease-in-out infinite; }
+  .orb.b { width: 38vw; height: 38vw; top: 12vh;  right: -12vw; background: radial-gradient(circle, rgba(70,232,210,0.60), transparent 68%);  animation: drift-b 32s ease-in-out infinite; }
+  .orb.c { width: 40vw; height: 40vw; top: 58vh;  left: 14vw;   background: radial-gradient(circle, rgba(255,95,168,0.45), transparent 68%);  animation: drift-c 38s ease-in-out infinite; }
+
+  @keyframes drift-a { 50% { transform: translate3d(7vw, 6vh, 0) scale(1.14); } }
+  @keyframes drift-b { 50% { transform: translate3d(-8vw, 10vh, 0) scale(0.88); } }
+  @keyframes drift-c { 50% { transform: translate3d(10vw, -8vh, 0) scale(1.1); } }
+
+  /* ---------- layout ---------- */
 
   .wrap {
-    max-width: 880px;
+    position: relative;
+    max-width: 1080px;
     margin: 0 auto;
-    padding: clamp(2.5rem, 6vw, 5rem) 1.5rem 5rem;
+    padding: clamp(2.5rem, 7vw, 5.5rem) max(1rem, 4vw) 4rem;
   }
 
-  header {
-    margin-bottom: clamp(2.5rem, 6vw, 4rem);
-  }
+  /* ---------- header ---------- */
 
-  .kicker {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--accent);
-    display: flex;
+  header { margin-bottom: clamp(2.75rem, 6vw, 4.5rem); }
+
+  .chip {
+    display: inline-flex;
     align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 1.1rem;
+    gap: 0.55rem;
+    padding: 0.4rem 0.9rem 0.4rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: rgba(70, 232, 210, 0.06);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 1.4rem;
   }
 
-  .kicker::before {
-    content: '';
-    width: 6px;
-    height: 6px;
+  .chip .dot {
+    width: 7px; height: 7px;
     border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px 1px var(--accent);
+    background: var(--cyan);
+    box-shadow: 0 0 10px 2px rgba(70, 232, 210, 0.85);
+    animation: pulse 2.4s ease-in-out infinite;
   }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.75); } }
 
   h1 {
     font-family: 'Space Grotesk', sans-serif;
-    font-weight: 600;
-    font-size: clamp(1.9rem, 4.5vw, 2.7rem);
-    letter-spacing: -0.02em;
-    margin: 0 0 0.6rem;
-    background: linear-gradient(120deg, var(--fg) 40%, var(--fg-dim));
+    font-weight: 700;
+    font-size: clamp(2.4rem, 7.5vw, 4.6rem);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    margin: 0 0 1rem;
+    background: linear-gradient(100deg, #ffffff 0%, var(--cyan) 26%, var(--blue) 48%, var(--violet) 68%, var(--pink) 88%, #ffffff 100%);
+    background-size: 250% 100%;
     -webkit-background-clip: text;
     background-clip: text;
+    color: transparent;
+    animation: sheen 12s linear infinite;
   }
+  @keyframes sheen { to { background-position: 250% 0; } }
 
   p.sub {
     color: var(--fg-dim);
-    font-size: 1rem;
-    max-width: 46ch;
-    margin: 0;
+    font-size: clamp(1rem, 2vw, 1.12rem);
+    max-width: 52ch;
+    margin: 0 0 1.9rem;
   }
 
-  h2 {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 500;
-    font-size: 0.78rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--fg-faint);
-    margin: 0 0 1.1rem;
-    padding-bottom: 0.9rem;
-    border-bottom: 1px solid var(--line);
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .stat {
     display: flex;
     align-items: baseline;
-    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--glass);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
-
-  h2 span.count {
+  .stat b {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  .stat span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     color: var(--fg-faint);
-    opacity: 0.6;
-    font-weight: 400;
   }
 
-  section + section {
-    margin-top: clamp(2.25rem, 5vw, 3rem);
+  /* ---------- section headings ---------- */
+
+  section + section { margin-top: clamp(2.75rem, 6vw, 4rem); }
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: 0.76rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+    margin: 0 0 1.35rem;
   }
+  h2::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--line-strong), transparent);
+  }
+  h2 .count {
+    font-size: 0.7rem;
+    color: var(--fg-faint);
+    letter-spacing: 0.1em;
+  }
+
+  /* ---------- cards ---------- */
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+    gap: 0.9rem;
   }
 
   a.card {
+    --spot-x: 50%;
+    --spot-y: 0%;
     position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 1.6rem;
-    padding: 1.15rem 1.2rem;
-    border-radius: 12px;
-    background: var(--card-bg);
-    box-shadow: 0 0 0 1px var(--line);
+    gap: 0.85rem;
+    padding: 1.25rem 1.3rem 1.15rem;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: var(--glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     text-decoration: none;
     color: var(--fg);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    overflow: hidden;
+    isolation: isolate;
+    transition: transform 0.25s cubic-bezier(.2,.7,.3,1), border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  /* cursor-tracking spotlight */
+  a.card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    background: radial-gradient(360px circle at var(--spot-x) var(--spot-y),
+                hsla(var(--card-h), 95%, 62%, 0.20), transparent 62%);
+  }
+
+  /* gradient hairline along the top edge */
+  a.card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 12%; right: 12%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent,
+                hsl(var(--card-h) 95% 68%), transparent);
+    opacity: 0.35;
+    transition: opacity 0.25s ease, left 0.35s ease, right 0.35s ease;
   }
 
   a.card:hover,
   a.card:focus-visible {
-    background: var(--card-bg-hover);
-    box-shadow: var(--glow);
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    background: var(--glass-hover);
+    border-color: hsla(var(--card-h), 90%, 65%, 0.45);
+    box-shadow:
+      0 18px 40px -18px hsla(var(--card-h), 90%, 50%, 0.55),
+      0 0 0 1px hsla(var(--card-h), 90%, 65%, 0.12);
     outline: none;
   }
+  a.card:hover::before,
+  a.card:focus-visible::before { opacity: 1; }
+  a.card:hover::after,
+  a.card:focus-visible::after { opacity: 1; left: 0; right: 0; }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .glyph {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    border: 1px solid hsla(var(--card-h), 90%, 65%, 0.28);
+    background: hsla(var(--card-h), 90%, 60%, 0.11);
+    color: hsl(var(--card-h) 90% 72%);
+    transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  }
+  .glyph svg { width: 21px; height: 21px; display: block; }
+
+  a.card:hover .glyph,
+  a.card:focus-visible .glyph {
+    transform: translateY(-1px) scale(1.06);
+    background: hsla(var(--card-h), 90%, 60%, 0.2);
+    box-shadow: 0 0 22px -4px hsla(var(--card-h), 95%, 60%, 0.65);
+  }
+
+  .idx {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: var(--fg-faint);
+    transition: color 0.25s ease;
+  }
+  a.card:hover .idx { color: hsl(var(--card-h) 80% 70%); }
 
   .card-title {
-    font-weight: 500;
-    font-size: 0.98rem;
-    letter-spacing: -0.01em;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 1.08rem;
+    letter-spacing: -0.015em;
+    margin-top: 0.1rem;
   }
 
-  .card-arrow {
+  .card-desc {
+    font-size: 0.84rem;
+    color: var(--fg-dim);
+    line-height: 1.5;
+    margin: -0.45rem 0 0;
+  }
+
+  .card-go {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: auto;
+    padding-top: 0.35rem;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     color: var(--fg-faint);
-    transition: transform 0.18s ease, color 0.18s ease;
+    transition: color 0.25s ease;
   }
+  .card-go i { font-style: normal; transition: transform 0.25s ease; }
+  a.card:hover .card-go { color: hsl(var(--card-h) 85% 72%); }
+  a.card:hover .card-go i { transform: translateX(5px); }
 
-  a.card:hover .card-arrow {
-    color: var(--accent);
-    transform: translateX(3px);
+  /* ---------- entrance animation ---------- */
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
   }
+  .reveal.in {
+    animation: rise 0.6s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  /* ---------- footer ---------- */
 
   footer {
     margin-top: clamp(3rem, 7vw, 4.5rem);
-    padding-top: 1.5rem;
+    padding-top: 1.4rem;
     border-top: 1px solid var(--line);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
     color: var(--fg-faint);
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.6rem;
+  }
+  footer .mark {
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
-  footer a {
-    color: var(--fg-faint);
+  @media (max-width: 420px) {
+    .grid { grid-template-columns: 1fr; }
   }
-  footer a:hover {
-    color: var(--accent);
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .orb, .chip .dot, h1 { animation: none; }
+    .reveal, .reveal.in { opacity: 1; transform: none; animation: none; }
+    a.card { transition: border-color 0.2s ease, background 0.2s ease; }
+    a.card:hover, a.card:focus-visible { transform: none; }
   }
 </style>
+<noscript><style>.reveal { opacity: 1; transform: none; }</style></noscript>
 </head>
 <body>
+  <div class="sky"></div>
+  <div class="orb a"></div>
+  <div class="orb b"></div>
+  <div class="orb c"></div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="i-recursion" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 7h9a4 4 0 0 1 0 8H8"/><path d="M10.5 12.5 7.5 15l3 2.5"/><path d="M4 7v10"/>
+      </g>
+      <g id="i-binary" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <circle cx="12" cy="4.5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="12" r="2"/>
+        <circle cx="3.5" cy="19.5" r="1.7"/><circle cx="9" cy="19.5" r="1.7"/>
+        <path d="M10.7 6.1 7.3 10.4M13.3 6.1l3.4 4.3M5.2 13.7l-.9 4.2M6.9 13.7l1.6 4.2"/>
+      </g>
+      <g id="i-avl" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <circle cx="12" cy="5" r="2"/><circle cx="5.5" cy="13" r="2"/><circle cx="18.5" cy="13" r="2"/>
+        <path d="M10.6 6.6 6.9 11.4M13.4 6.6l3.7 4.8"/>
+        <path d="M3 19.5h6M15 19.5h6"/>
+      </g>
+      <g id="i-rb" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <circle cx="12" cy="5" r="2"/><circle cx="6" cy="13" r="2" fill="currentColor"/><circle cx="18" cy="13" r="2"/>
+        <path d="M10.7 6.6 7.3 11.4M13.3 6.6l3.4 4.8"/>
+        <circle cx="18" cy="20" r="1.7" fill="currentColor"/><path d="M18 15v3.3"/>
+      </g>
+      <g id="i-btree" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="7" y="3.5" width="10" height="4.5" rx="1.4"/><path d="M11.3 3.5v4.5M14 3.5v4.5"/>
+        <rect x="2" y="15.5" width="7" height="4.5" rx="1.4"/>
+        <rect x="15" y="15.5" width="7" height="4.5" rx="1.4"/>
+        <path d="M9.5 8.3 6.3 15.2M14.5 8.3l3.2 6.9"/>
+      </g>
+      <g id="i-heap" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <path d="M10.6 6.6 7.4 10.4M13.4 6.6l3.2 3.8M5.4 14.1 4.1 17.2M8.1 14.1l1.3 3.1M14.6 14.1l1.3 3.1M17.3 14.1l1.3 3.1"/>
+        <circle cx="12" cy="4.6" r="2" fill="currentColor"/>
+        <circle cx="6.2" cy="12" r="1.9"/><circle cx="17.8" cy="12" r="1.9"/>
+        <circle cx="3.2" cy="19.2" r="1.5"/><circle cx="9.2" cy="19.2" r="1.5"/>
+        <circle cx="14.8" cy="19.2" r="1.5"/><circle cx="20.8" cy="19.2" r="1.5"/>
+      </g>
+      <g id="i-hash" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <path d="M9 3 7 21M17 3l-2 18M3.5 8.5h18M2.5 15.5h18"/>
+      </g>
+      <g id="i-graph" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <circle cx="5" cy="6" r="2"/><circle cx="19" cy="7.5" r="2"/><circle cx="12" cy="13" r="2"/>
+        <circle cx="6" cy="19" r="2"/><circle cx="18" cy="18.5" r="2"/>
+        <path d="M6.7 7.4 10.4 11.7M17.3 8.8 13.6 11.7M11.2 14.8 7.4 17.6M13.4 14.2l3.2 3"/>
+      </g>
+      <g id="i-list" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="9" width="6" height="6" rx="1.4"/><rect x="16" y="9" width="6" height="6" rx="1.4"/>
+        <path d="M8.5 12h7"/><path d="m13 9.8 2.6 2.2L13 14.2"/>
+      </g>
+      <g id="i-sort" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <path d="M4 19V9.5M9.3 19V4.5M14.7 19v-7M20 19v-4"/>
+      </g>
+      <g id="i-memory" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="5" width="14" height="14" rx="2"/>
+        <path d="M9.5 5v14M14.5 5v14M5 9.5h14M5 14.5h14"/>
+        <path d="M9.5 2.5v2.5M14.5 2.5v2.5M9.5 19v2.5M14.5 19v2.5"/>
+      </g>
+    </defs>
+  </svg>
+
   <div class="wrap">
     <header>
-      <div class="kicker">Data Structures &amp; Algorithms</div>
-      <h1>Atiq's DSA Deck</h1>
-      <p class="sub">Interactive teaching decks and hands-on labs — pick a topic and dig in.</p>
+      <div class="chip reveal"><span class="dot"></span>Data Structures &amp; Algorithms</div>
+      <h1 class="reveal">Atiq's DSA Deck</h1>
+      <p class="sub reveal">Interactive teaching decks and hands-on labs. Every structure explained from the problem up, with live implementations you can run, break, and measure.</p>
+      <div class="stats reveal">
+        <div class="stat"><b>16</b><span>Modules</span></div>
+        <div class="stat"><b>08</b><span>Decks</span></div>
+        <div class="stat"><b>08</b><span>Labs</span></div>
+        <div class="stat"><b>C</b><span>Reference impls</span></div>
+      </div>
     </header>
 
     <section>
       <h2>Decks <span class="count">08</span></h2>
       <div class="grid">
-        <a class="card" href="recursion.html"><span class="card-title">Recursion</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="binary-trees.html"><span class="card-title">Binary Trees</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="avl-trees.html"><span class="card-title">AVL Trees</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="red-black-trees.html"><span class="card-title">Red-Black Trees</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="b-trees.html"><span class="card-title">B-Trees</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="heap-sort.html"><span class="card-title">Heap Sort</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="hashing.html"><span class="card-title">Hashing</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="graphs.html"><span class="card-title">Graphs</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card reveal" style="--card-h:265" href="recursion.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-recursion"/></svg></span><span class="idx">01</span></div>
+          <span class="card-title">Recursion</span>
+          <p class="card-desc">Base cases, the call stack, and learning to trust the recursive leap.</p>
+          <span class="card-go">Open deck <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:205" href="binary-trees.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-binary"/></svg></span><span class="idx">02</span></div>
+          <span class="card-title">Binary Trees</span>
+          <p class="card-desc">Traversals, search trees, and what happens when order goes wrong.</p>
+          <span class="card-go">Open deck <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:168" href="avl-trees.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-avl"/></svg></span><span class="idx">03</span></div>
+          <span class="card-title">AVL Trees</span>
+          <p class="card-desc">Height balance, four rotation cases, and a hard O(log n) guarantee.</p>
+          <span class="card-go">Open deck <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:345" href="red-black-trees.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-rb"/></svg></span><span class="idx">04</span></div>
+          <span class="card-title">Red-Black Trees</span>
+          <p class="card-desc">Five colour rules that keep a tree honest without obsessing over height.</p>
+          <span class="card-go">Open deck <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:28" href="b-trees.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-btree"/></svg></span><span class="idx">05</span></div>
+          <span class="card-title">B-Trees</span>
+          <p class="card-desc">Wide nodes, shallow depth, and why disks and caches demand both.</p>
+          <span class="card-go">Open deck <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:45" href="heap-sort.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-heap"/></svg></span><span class="idx">06</span></div>
+          <span class="card-title">Heap Sort</span>
+          <p class="card-desc">An array that thinks it's a tree: sift, swap, and sort in place.</p>
+          <span class="card-go">Open deck <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:300" href="hashing.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-hash"/></svg></span><span class="idx">07</span></div>
+          <span class="card-title">Hashing</span>
+          <p class="card-desc">Buckets, collisions, load factors, and the cost of a bad hash function.</p>
+          <span class="card-go">Open deck <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:225" href="graphs.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-graph"/></svg></span><span class="idx">08</span></div>
+          <span class="card-title">Graphs</span>
+          <p class="card-desc">Representations, BFS and DFS, and the paths that fall out of them.</p>
+          <span class="card-go">Open deck <i>&#8594;</i></span>
+        </a>
       </div>
     </section>
 
     <section>
       <h2>Labs <span class="count">08</span></h2>
       <div class="grid">
-        <a class="card" href="LinkedListLab.html"><span class="card-title">Linked List Lab</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="BinaryTreeLab.html"><span class="card-title">Binary Tree Lab</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="AVLTreeLab.html"><span class="card-title">AVL Tree Lab</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="RedBlackTreeLab.html"><span class="card-title">Red-Black Tree Lab</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="BTreeLab.html"><span class="card-title">B-Tree Lab</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="HeapSortLab.html"><span class="card-title">Heap Sort Lab</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="SortingLab.html"><span class="card-title">Sorting Lab</span><span class="card-arrow">&#8594;</span></a>
-        <a class="card" href="MemoryLab.html"><span class="card-title">Memory Lab</span><span class="card-arrow">&#8594;</span></a>
+        <a class="card reveal" style="--card-h:190" href="LinkedListLab.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-list"/></svg></span><span class="idx">01</span></div>
+          <span class="card-title">Linked List Lab</span>
+          <p class="card-desc">Pointer surgery, one link at a time, with nothing hidden.</p>
+          <span class="card-go">Launch lab <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:205" href="BinaryTreeLab.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-binary"/></svg></span><span class="idx">02</span></div>
+          <span class="card-title">Binary Tree Lab</span>
+          <p class="card-desc">Insert, traverse, and deliberately degenerate a tree into a list.</p>
+          <span class="card-go">Launch lab <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:168" href="AVLTreeLab.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-avl"/></svg></span><span class="idx">03</span></div>
+          <span class="card-title">AVL Tree Lab</span>
+          <p class="card-desc">Watch balance factors drift and rotations fire in real time.</p>
+          <span class="card-go">Launch lab <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:345" href="RedBlackTreeLab.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-rb"/></svg></span><span class="idx">04</span></div>
+          <span class="card-title">Red-Black Tree Lab</span>
+          <p class="card-desc">Recolour and rotate your way through insert and delete, step by step.</p>
+          <span class="card-go">Launch lab <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:28" href="BTreeLab.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-btree"/></svg></span><span class="idx">05</span></div>
+          <span class="card-title">B-Tree Lab</span>
+          <p class="card-desc">Splits, merges, and what node fill factor does to tree height.</p>
+          <span class="card-go">Launch lab <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:45" href="HeapSortLab.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-heap"/></svg></span><span class="idx">06</span></div>
+          <span class="card-title">Heap Sort Lab</span>
+          <p class="card-desc">Build the heap, drain it, and see the sorted tail grow.</p>
+          <span class="card-go">Launch lab <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:135" href="SortingLab.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-sort"/></svg></span><span class="idx">07</span></div>
+          <span class="card-title">Sorting Lab</span>
+          <p class="card-desc">Race the classic sorts on the same data and count the real work.</p>
+          <span class="card-go">Launch lab <i>&#8594;</i></span>
+        </a>
+        <a class="card reveal" style="--card-h:280" href="MemoryLab.html">
+          <div class="card-top"><span class="glyph"><svg viewBox="0 0 24 24"><use href="#i-memory"/></svg></span><span class="idx">08</span></div>
+          <span class="card-title">Memory Lab</span>
+          <p class="card-desc">Cache lines, locality, and why the constant factor wins arguments.</p>
+          <span class="card-go">Launch lab <i>&#8594;</i></span>
+        </a>
       </div>
     </section>
 
     <footer>
-      <span>Atiq's DSA Deck</span>
+      <span class="mark">Atiq's DSA Deck</span>
+      <span>Built to be read, run, and argued with</span>
     </footer>
   </div>
+
 <script>
+// Cursor-tracking spotlight on cards.
+document.querySelectorAll('a.card').forEach(card => {
+  card.addEventListener('pointermove', e => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--spot-x', (e.clientX - r.left) + 'px');
+    card.style.setProperty('--spot-y', (e.clientY - r.top) + 'px');
+  });
+});
+
+// Staggered entrance as sections scroll into view.
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const items = document.querySelectorAll('.reveal');
+if (reduced || !('IntersectionObserver' in window)) {
+  items.forEach(el => el.classList.add('in'));
+} else {
+  const io = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const group = [...entry.target.parentElement.children].indexOf(entry.target);
+      entry.target.style.animationDelay = Math.min(group, 8) * 55 + 'ms';
+      entry.target.classList.add('in');
+      obs.unobserve(entry.target);
+    });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+  items.forEach(el => io.observe(el));
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }

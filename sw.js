@@ -1,4 +1,4 @@
-const CACHE = 'dsa-deck-v1';
+const CACHE = 'dsa-deck-v2';
 
 const PRECACHE_URLS = [
   'index.html',

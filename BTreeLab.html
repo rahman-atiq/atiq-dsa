@@ -485,330 +485,316 @@ body.laser,body.laser *{cursor:none !important}
 <div id="fit"><div id="stage">
 
 <!-- ==================== 1. TITLE ==================== -->
-<section class="slide" data-name="Title" data-act="The bill">
+<section class="slide" data-name="Title" data-act="The problem">
   <div class="hero">
-    <div class="chips"><span class="kicker k-c">Data Structures &middot; Lab 09</span></div>
-    <h1>B-Trees<br><span class="grad">Stop counting comparisons. Start counting page reads.</span></h1>
-    <p class="sub">Every tree you have built so far &mdash; BST, AVL, red-black &mdash; optimises the same number:
-      <b>comparisons</b>. That number has been the right one because everything lived in RAM. Today the data does not fit
-      in RAM, the machine starts charging you for something else entirely, and <b>every balanced binary tree you know
-      becomes the wrong shape.</b> You are going to work out the right one.</p>
+    <div class="chips"><span class="kicker k-c">Data Structures</span></div>
+    <h1>B-Trees<br><span class="grad">The tree every database actually uses.</span></h1>
+    <p class="sub">You already know balanced binary trees — BST, AVL, red-black. They all assume that visiting
+      any node costs roughly the same. That assumption is true while your data lives in RAM. The moment it
+      doesn't, every one of those trees becomes the wrong shape for the job. This lesson explains why, and
+      walks you through the tree that fixes it: what problem it solves, how it's built, and exactly how it
+      inserts and deletes keys.</p>
     <div class="chips">
       <span class="chip"><span class="dot dot-c"></span>1 node = 1 disk page</span>
-      <span class="chip"><span class="dot dot-v"></span>2 rules you'll invent</span>
-      <span class="chip"><span class="dot dot-a"></span>5 drills</span>
-      <span class="chip"><span class="dot dot-r"></span>2 boss fights</span>
+      <span class="chip"><span class="dot dot-v"></span>No rotations, ever</span>
+      <span class="chip"><span class="dot dot-a"></span>Ends in working C code</span>
     </div>
     <div class="keycaps">
       <kbd>&rarr;</kbd><kbd>Space</kbd> next &nbsp; <kbd>&larr;</kbd> back &nbsp; <kbd>M</kbd> menu &nbsp;
-      <kbd>T</kbd> theme &nbsp; <kbd>S</kbd> timer &nbsp; <kbd>L</kbd> laser &nbsp; <kbd>F</kbd> fullscreen
+      <kbd>T</kbd> theme &nbsp; <kbd>L</kbd> laser &nbsp; <kbd>F</kbd> fullscreen
     </div>
   </div>
 </section>
 
-<!-- ==================== 2. THINK FIRST — the disk bill ==================== -->
-<section class="slide" data-name="A billion keys — think first" data-act="The bill">
-  <div class="head"><span class="kicker k-r">Think first</span><h2>Your red-black tree is flawless. It is also about to take a quarter of a second.</h2></div>
+<!-- ==================== 2. THE PROBLEM ==================== -->
+<section class="slide" data-name="Why a fast tree gets slow" data-act="The problem">
+  <div class="head"><span class="kicker k-r">The problem</span><h2>Your red-black tree is perfectly balanced. It's still going to feel slow.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="col grow" style="flex:0 0 452px">
-        <div class="card tint-c"><h3 style="color:var(--cyan)">The setup &mdash; write these three numbers down</h3>
+        <div class="card tint-c"><h3 style="color:var(--cyan)">Start with real numbers</h3>
           <div class="ledger" style="margin-top:10px">
             <div class="lrow"><span class="lk">Keys in the index</span><span class="lv">10<sup>9</sup></span></div>
-            <div class="lrow"><span class="lk">One comparison, data already in RAM</span><span class="lv ok">~1 ns</span></div>
-            <div class="lrow"><span class="lk">One random 4&nbsp;KB read from an SSD</span><span class="lv bad">~80 &micro;s</span></div>
-            <div class="lrow"><span class="lk">One random seek on a spinning disk</span><span class="lv bad">~9 ms</span></div>
+            <div class="lrow"><span class="lk">Comparing two keys already in RAM</span><span class="lv ok">~1 ns</span></div>
+            <div class="lrow"><span class="lk">Reading a random 4&nbsp;KB block from an SSD</span><span class="lv bad">~80 &micro;s</span></div>
+            <div class="lrow"><span class="lk">Seeking on a spinning disk</span><span class="lv bad">~9 ms</span></div>
           </div>
-          <p class="tiny" style="margin-top:10px">The index does not fit in RAM. Each node you visit is somewhere
-            else on the device, so visiting it costs one of those bottom two numbers.</p></div>
+          <p class="tiny" style="margin-top:10px">A billion keys don't fit in RAM. Every node your tree visits
+            lives somewhere else on the device — so each visit costs one of the bottom two numbers, not the top one.</p></div>
       </div>
-      <div class="col" style="flex:1 1 0">
-        <div class="card tint-a qcard"><h3 style="color:var(--amber)">1 &middot; How tall is the tree?</h3>
-          <p style="margin-top:7px;font-size:16px">A red-black tree with 10<sup>9</sup> keys. Give me its <b>typical</b>
-            height and its <b>worst-case</b> height. You derived both last lab.</p></div>
-        <div class="card tint-v qcard"><h3 style="color:var(--violet)">2 &middot; Multiply.</h3>
-          <p style="margin-top:7px;font-size:16px">One lookup walks root&rarr;leaf, touching one node per level, each on
-            a different page. <b>How long does a single lookup take</b> on the SSD? On the spinning disk?</p></div>
-        <div class="card tint-r qcard"><h3 style="color:var(--rose)">3 &middot; Now the killer.</h3>
-          <p style="margin-top:7px;font-size:16px">Of that total time, <b>what fraction was spent comparing keys?</b>
-            Work it out. The answer should make you angry at every tree you have written this term.</p></div>
+      <div class="col grow">
+        <div class="card tint-a"><h3 style="color:var(--amber)">Do the arithmetic</h3>
+          <div class="ledger" style="margin-top:9px">
+            <div class="lrow"><span class="lk">Red-black tree height, 10<sup>9</sup> keys</span><span class="lv bad">~30</span></div>
+            <div class="lrow"><span class="lk">A lookup visits 30 nodes &mdash; on an SSD</span><span class="lv bad">2.4 ms</span></div>
+            <div class="lrow"><span class="lk">&hellip;on a spinning disk</span><span class="lv bad">270 ms</span></div>
+            <div class="lrow"><span class="lk">Of that, time spent actually <i>comparing</i> keys</span><span class="lv ok">30 ns</span></div>
+          </div>
+          <p style="margin-top:10px">Almost none of that 2.4&nbsp;ms is spent thinking. It's spent waiting for
+            the disk to hand over pages. <b>AVL trims height from 2log&#8322;n to 1.44log&#8322;n</b> &mdash; a real
+            win, but it only removes about ten of those thirty waits. You're still optimising the wrong number.</p></div>
       </div>
     </div>
     <div class="card tint-e">
-      <h3 style="color:var(--emerald)">Your turn &mdash; before anyone says the answer</h3>
-      <p style="margin-top:7px">AVL and red-black both fight to shave the tree's height from 2&nbsp;log&#8322;n down to
-        1.44&nbsp;log&#8322;n. In the numbers you just computed, <b>how much time did that fight save you?</b>
-        And then the question that opens this whole lab: <b>if height is what costs money, what actually controls height?</b></p>
+      <p><b>So what actually sets the cost of a lookup?</b> Not how cleverly you compare keys &mdash; how many
+        <i>separate reads</i> you do. And the number of reads is just the height of the tree. Which raises the
+        real question this lesson answers: <b>if height is the cost, what actually controls it?</b></p>
     </div>
   </div>
 </section>
 
-<!-- ==================== 3. PENS DOWN — the invoice ==================== -->
-<section class="slide" data-name="Pens down — the invoice" data-act="The bill">
-  <div class="head"><span class="kicker k-e">Pens down</span><h2>You fetched 4096 bytes. You used 24 of them.</h2></div>
+<!-- ==================== 3. PAGES, NOT BYTES ==================== -->
+<section class="slide" data-name="Pages, not bytes" data-act="The problem">
+  <div class="head"><span class="kicker k-e">The real cost unit</span><h2>You asked the disk for 20 bytes. It handed you 4096.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
-      <div class="card tint-r grow"><h3 style="color:var(--rose)">The arithmetic nobody does</h3>
-        <div class="ledger" style="margin-top:9px">
-          <div class="lrow"><span class="lk">Red-black height, 10<sup>9</sup> keys (typical / worst)</span><span class="lv bad">~30 / 60</span></div>
-          <div class="lrow"><span class="lk">Lookup on SSD &mdash; 30 &times; 80&nbsp;&micro;s</span><span class="lv bad">2.4 ms</span></div>
-          <div class="lrow"><span class="lk">Lookup on spinning disk &mdash; 30 &times; 9&nbsp;ms</span><span class="lv bad">270 ms</span></div>
-          <div class="lrow"><span class="lk">Time actually spent <i>comparing</i> &mdash; 30 &times; 1&nbsp;ns</span><span class="lv ok">30 ns</span></div>
-          <div class="lrow"><span class="lk">Fraction of the bill that was comparisons &mdash; SSD</span><span class="lv bad">0.001&nbsp;%</span></div>
-          <div class="lrow"><span class="lk">&hellip; on the spinning disk</span><span class="lv bad">0.00001&nbsp;%</span></div>
-        </div>
-        <p style="margin-top:11px">AVL's heroic 1.44 saves you ten levels out of thirty. <b>Ten fewer seeks.</b>
-          Real, but it is a <b>33&nbsp;% discount on the wrong bill</b> &mdash; you are still paying thirty times
-          for a structure that should be paying four.</p></div>
-      <div class="col grow">
-        <div class="card tint-a"><h3 style="color:var(--amber)">The hardware does not sell you bytes. It sells you <b>pages</b>.</h3>
-          <p style="margin-top:8px">You cannot read 20 bytes off a disk. The smallest thing the device will hand over is a
-            <b>block</b> &mdash; 4096 bytes, typically. Ask for one byte, pay for 4096. Ask for 20, pay for 4096.</p>
-          <div style="margin-top:12px">
-            <div class="blk"><i class="used" style="width:0.5%"></i><i class="waste" style="width:99.5%"></i></div>
-            <p class="tiny" style="margin-top:7px">One red-black node in one 4&nbsp;KB page: <b>key 8B + two pointers 16B
-              + a colour bit</b> = <b>24 bytes</b>. The hatched 4072 are what you paid for and threw away, <b>on every single level</b>.</p>
-          </div></div>
-        <div class="card tint-v frag"><h3 style="color:var(--violet)">So the cost model was never "comparisons"</h3>
-          <p style="margin-top:7px">The unit that costs money is the <b>page touch</b>. A lookup's price is
-            the <b>number of nodes on the root&rarr;leaf path</b> &mdash; which is the <b>height</b> &mdash; and nothing else.
-            Comparisons inside a page you have already paid for are <b>free</b>.</p>
-          <div class="math" style="margin-top:10px">cost of a lookup &asymp; height &times; <i>page&nbsp;read</i></div></div>
-      </div>
+      <div class="card tint-a grow"><h3 style="color:var(--amber)">Disks don't sell you bytes. They sell you <b>blocks</b>.</h3>
+        <p style="margin-top:8px">A disk can't hand back one byte at a time. The smallest unit it will read is a
+          block &mdash; typically 4096 bytes. Ask for 20 bytes, you still pay for all 4096.</p>
+        <div style="margin-top:12px">
+          <div class="blk"><i class="used" style="width:0.5%"></i><i class="waste" style="width:99.5%"></i></div>
+          <p class="tiny" style="margin-top:7px">One red-black node &mdash; a key, two pointers, a colour bit &mdash;
+            is about <b>24 bytes</b>. The hatched part is the 4072 bytes you paid for and threw away.
+            <b>On every single level you visit.</b></p>
+        </div></div>
+      <div class="card tint-v grow"><h3 style="color:var(--violet)">So the real cost formula is simple</h3>
+        <p style="margin-top:7px">The thing that costs money is a <b>page read</b>. A lookup's price is the number
+          of nodes on the path from root to leaf &mdash; the height &mdash; times one page read. Comparisons inside
+          a page you've already paid for are free.</p>
+        <div class="math" style="margin-top:10px">cost of a lookup &asymp; height &times; <i>page&nbsp;read</i></div>
+        <p style="margin-top:10px">Every tree you've built so far has height O(log n) with base 2. If a page
+          read costs 80,000&times; more than a comparison, base 2 is a bad trade &mdash; you want a tree that
+          uses far fewer, far fatter pages.</p></div>
     </div>
   </div>
 </section>
 
 <!-- ==================== 4. THE REFRAME ==================== -->
-<section class="slide" data-name="The reframe — height is not the enemy, branching is the cure" data-act="The bill">
-  <div class="head"><span class="kicker k-a">The turn</span><h2>Height is set by one thing, and it was never the balance rule.</h2></div>
+<section class="slide" data-name="Raise the branching factor" data-act="The problem">
+  <div class="head"><span class="kicker k-a">The idea</span><h2>Height comes from one number, and it was never the balance rule.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="col grow">
-        <div class="card dense tint-c"><h3 style="color:var(--cyan)">Where does height come from?</h3>
-          <p style="margin-top:8px">A perfectly balanced tree where every node has <b>m</b> children stores n keys in</p>
-          <div class="math" style="margin-top:9px">h &asymp; log<sub>m</sub> n = log&#8322;n / log&#8322;m</div>
-          <p style="margin-top:9px">Every balanced binary tree in the world is stuck at <b>m = 2</b>, so
-            log&#8322;m = 1 and there is <b>nothing left to optimise</b>. AVL and red-black are not fighting over the
-            height formula &mdash; they are fighting over the constant in front of it.</p></div>
-        <div class="card dense tint-a frag"><h3 style="color:var(--amber)">Raise m instead. Watch what happens.</h3>
+        <div class="card dense tint-c"><h3 style="color:var(--cyan)">Where height actually comes from</h3>
+          <p style="margin-top:8px">A tree where every node has <b>m</b> children stores n keys in roughly</p>
+          <div class="math" style="margin-top:9px">h &asymp; log<sub>m</sub> n</div>
+          <p style="margin-top:9px">Every balanced <i>binary</i> tree is stuck at m&nbsp;=&nbsp;2. AVL and
+            red-black aren't fighting over that formula &mdash; they're fighting over the constant in front of it.
+            <b>There's a much bigger lever nobody's touched: m itself.</b></p></div>
+        <div class="card dense tint-a frag"><h3 style="color:var(--amber)">Raise m and watch the height fall</h3>
           <table class="tbl-compact" style="margin-top:8px">
             <tr><th>branching factor m</th><th>levels for 10<sup>9</sup> keys</th><th>SSD lookup</th></tr>
             <tr><td class="c">2 &nbsp;<span class="tiny">(red-black, typical)</span></td><td class="c">~30</td><td class="c">2.4 ms</td></tr>
             <tr><td class="c">16</td><td class="c">8</td><td class="c">0.64 ms</td></tr>
             <tr><td class="c">256</td><td class="c">4</td><td class="c">0.32 ms</td></tr>
           </table>
-          <p class="tiny" style="margin-top:8px">Nothing about balance changed. We only changed how many children a node has.</p></div>
+          <p class="tiny" style="margin-top:8px">Nothing about balance changed here. We only let each node hold more children.</p></div>
       </div>
       <div class="card dense tint-r" style="flex:0 0 468px;display:flex;flex-direction:column;justify-content:center">
-        <h3 style="color:var(--rose)">Your design brief &mdash; write this one down</h3>
-        <p style="margin-top:9px">You get <b>one 4&nbsp;KB page per node</b>. Spend all of it. Invent a tree that obeys
-          all four:</p>
+        <h3 style="color:var(--rose)">What that tree needs to look like</h3>
+        <p style="margin-top:9px">Give a node a whole 4&nbsp;KB page to itself, and it has to satisfy four things:</p>
         <div class="ladder" style="margin-top:11px">
-          <div class="rung dense"><span class="rn">a</span><span class="rt">A node holds <b>many</b> keys and <b>many</b> child pointers &mdash; enough to fill a page.
-            <span class="pgx"><span>10</span><span>20</span><span>30</span><span class="f">&hellip;</span></span></span></div>
-          <div class="rung dense"><span class="rn">b</span><span class="rt">The height stays <b>O(log<sub>m</sub> n)</b> no matter what order the keys arrive in. Same demand as always.</span></div>
-          <div class="rung dense"><span class="rn">c</span><span class="rt">Pages must actually be <b>full</b>. A tree of half-empty pages has a fanout of 2 and you are back where you started.</span></div>
-          <div class="rung dense"><span class="rn">d</span><span class="rt">Repairs must not shuffle pages around. <b>Moving a page is a disk write</b>, and rotations move pages.</span></div>
+          <div class="rung dense"><span class="rn">a</span><span class="rt">Hold <b>many</b> keys and <b>many</b> child pointers &mdash; enough to fill the page.</span></div>
+          <div class="rung dense"><span class="rt"><span class="rn" style="visibility:hidden">b</span></span></div>
+          <div class="rung dense"><span class="rn">b</span><span class="rt">Keep height at <b>O(log<sub>m</sub> n)</b> no matter what order keys arrive in.</span></div>
+          <div class="rung dense"><span class="rn">c</span><span class="rt">Actually stay <b>full</b>. A tree of half-empty pages has fanout 2 again, and we're back where we started.</span></div>
+          <div class="rung dense"><span class="rn">d</span><span class="rt">Repair itself <b>without moving pages around</b> &mdash; moving a page means a disk write, and rotations move pages.</span></div>
         </div>
-        <p class="tiny" style="margin-top:12px">Five minutes, in pairs. Constraint <b>(d)</b> is the one that gives the game away &mdash;
-          if you can't rotate, then every rebalancing trick you learned in the last two labs is <b>off the table</b>.
-          You need a completely different way to fix a broken tree.</p>
+        <p class="tiny" style="margin-top:12px">Constraint <b>(d)</b> is the one that changes everything: if you
+          can't rotate, none of the rebalancing tricks from AVL or red-black trees are available to you.
+          You need a genuinely different way to fix a broken tree.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 5. GENERALISE THE NODE ==================== -->
-<section class="slide" data-name="Spend the whole page" data-act="Inventing the m-way tree">
-  <div class="head"><span class="kicker k-v">Build it live</span><h2>You have 4096 bytes. Spend them.</h2></div>
+<!-- ==================== 5. THE M-WAY SEARCH TREE ==================== -->
+<section class="slide" data-name="Meet the m-way search tree" data-act="Building the B-tree">
+  <div class="head"><span class="kicker k-v">The structure</span><h2>Stop stopping at one key per node.</h2></div>
   <div class="body">
-    <div class="ba" style="grid-template-columns:1fr 104px 1.35fr">
-      <div class="panel before"><span class="plabel">what you have</span>
+    <div class="ba" style="grid-template-columns:1fr 100px 1.35fr">
+      <div class="panel before"><span class="plabel">what a BST node holds</span>
         <div class="tree" data-t="[30]([&lt;30],[&gt;30])"></div>
-        <div class="psub"><b>1 key, 2 pointers.</b> One key splits the universe into <b>two</b> ranges.
+        <div class="psub"><b>1 key, 2 pointers.</b> One key splits the world into two ranges &mdash; about
           24 bytes of a 4096-byte page.</div></div>
-      <div class="arrowcol"><div class="glyph">&#8594;</div><div class="op">keep going<br>until the<br>page is full</div></div>
-      <div class="panel after"><span class="plabel">what fits</span>
+      <div class="arrowcol"><div class="glyph">&#8594;</div><div class="op">keep adding<br>keys until<br>the page is full</div></div>
+      <div class="panel after"><span class="plabel">what actually fits</span>
         <div class="tree" data-t="[10 20 30]([&lt;10],[10&ndash;20],[20&ndash;30],[&gt;30])"></div>
-        <div class="psub"><b>3 keys, 4 pointers.</b> Three keys split the universe into <b>four</b> ranges.
-          Nothing new was invented &mdash; we just stopped stopping at one.</div></div>
+        <div class="psub"><b>3 keys, 4 pointers.</b> Three keys split the world into four ranges.
+          Nothing new here &mdash; we just stopped stopping.</div></div>
     </div>
     <div class="row" style="gap:14px">
-      <div class="card tint-c grow"><h3 style="color:var(--cyan)">The keys were never the data. They are <b>fences</b>.</h3>
-        <p style="margin-top:7px">In a BST the key at a node answers <i>left or right?</i> Here, <b>k</b> sorted keys
-          answer <i>which of my k+1 buckets?</i> A node's job is unchanged: <b>narrow the search</b>.
-          You simply gave it a bigger vocabulary.</p></div>
-      <div class="card tint-v grow frag"><h3 style="color:var(--violet)">Name it, and then read it back to yourself</h3>
-        <p style="margin-top:7px">A node with at most <b>m</b> children and at most <b>m&minus;1</b> keys is an
-          <b>m-way search tree</b>. Set m = 2 and every word of that sentence collapses into the definition of a
-          <b>binary</b> search tree. The BST was the special case all along.</p></div>
+      <div class="card tint-c grow"><h3 style="color:var(--cyan)">Keys were never "the data". They're <b>fences</b>.</h3>
+        <p style="margin-top:7px">In a BST, a node's key answers one question: left or right? Here, <b>k</b> sorted
+          keys answer: which of my k+1 buckets does your search key fall into? A node's job hasn't changed &mdash;
+          you just gave it a bigger vocabulary.</p></div>
+      <div class="card tint-v grow frag"><h3 style="color:var(--violet)">Now name it</h3>
+        <p style="margin-top:7px">A node with sorted keys <span class="mono">k&#8321; &lt; k&#8322; &lt; &hellip; &lt; k<sub>j</sub></span>
+          and <span class="mono">j+1</span> children, where every key in child <span class="mono">c<sub>i</sub></span>
+          lies strictly between <span class="mono">k<sub>i</sub></span> and <span class="mono">k<sub>i+1</sub></span>,
+          is an <b>m-way search tree</b>. Set m&nbsp;=&nbsp;2 and this is exactly the definition of a binary
+          search tree. The BST was the special case all along.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 6. M-WAY SEARCH TREE, DEFINED ==================== -->
-<section class="slide" data-name="The m-way search tree, defined" data-act="Inventing the m-way tree">
-  <div class="head"><span class="kicker k-c">The definition</span><h2>One node, one page, one scan. Then descend.</h2></div>
+<!-- ==================== 6. SEARCHING AN M-WAY TREE ==================== -->
+<section class="slide" data-name="Searching it" data-act="Building the B-tree">
+  <div class="head"><span class="kicker k-e">The operation</span><h2>Scan the page you're on. Then follow one pointer.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
-      <div class="col" style="flex:0 0 470px">
-        <div class="card tint-v"><h3 style="color:var(--violet)">The ordering rule, in full</h3>
-          <p style="margin-top:8px">A node holds sorted keys <span class="mono">k&#8321; &lt; k&#8322; &lt; &hellip; &lt; k<sub>j</sub></span>
-            and <span class="mono">j+1</span> child pointers <span class="mono">c&#8320; &hellip; c<sub>j</sub></span>, interleaved:</p>
-          <div class="math" style="margin-top:9px;font-size:15.5px">c&#8320; &nbsp;k&#8321;&nbsp; c&#8321; &nbsp;k&#8322;&nbsp; c&#8322; &nbsp;&hellip;&nbsp; k<sub>j</sub> &nbsp;c<sub>j</sub></div>
-          <p style="margin-top:9px">Every key in subtree <span class="mono">c<sub>i</sub></span> lies
-            <b>strictly between</b> <span class="mono">k<sub>i</sub></span> and <span class="mono">k<sub>i+1</sub></span>.
-            The two ends are open: <span class="mono">c&#8320;</span> holds everything below k&#8321;,
-            <span class="mono">c<sub>j</sub></span> everything above k<sub>j</sub>.</p></div>
-        <div class="card tint-e frag"><h3 style="color:var(--emerald)">Search &mdash; and notice what it costs</h3>
-          <p style="margin-top:8px">Scan the keys in the node for your target. Miss? You land <b>between</b> two fences,
-            and that gap <i>is</i> the pointer to follow. Repeat.</p>
-          <p style="margin-top:8px"><b>One page read per level.</b> The scan inside the page is free &mdash;
-            you already paid for those bytes.</p></div>
+      <div class="col" style="flex:0 0 430px">
+        <div class="card tint-e"><h3 style="color:var(--emerald)">The whole algorithm</h3>
+          <p style="margin-top:8px">Scan the sorted keys in the current node for your target. Find it? Done.
+            Miss? You've landed <b>between</b> two keys &mdash; and that gap tells you exactly which child to
+            follow. Repeat there.</p>
+          <p style="margin-top:8px"><b>One page read per level.</b> The scan inside a page is essentially free
+            &mdash; you already paid for those bytes when you read the page in.</p></div>
       </div>
       <div class="panel neutral grow">
         <span class="plabel long">Searching for <b>55</b> in a 3-way search tree</span>
         <div class="tree" data-t="[40 70]([10 25],[45 55 60],[80 90])" data-path="40-45" data-k="55:hit" data-tag="40:read 1,45:read 2"></div>
-        <div class="psub"><b>55 &gt; 40</b>, <b>55 &lt; 70</b> &rarr; take the middle gap. Scan that page: found.
-          <b>Two page reads.</b> A BST holding the same 8 keys needs <b>three or four</b>.</div></div>
+        <div class="psub"><b>55 &gt; 40</b> and <b>55 &lt; 70</b>, so take the middle branch. Scan that page: found.
+          <b>Two page reads total.</b> A BST holding the same 8 keys would need three or four.</div></div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 7. TEST IT BEFORE YOU TRUST IT ==================== -->
-<section class="slide" data-name="m-way alone is worth nothing" data-act="Inventing the m-way tree">
-  <div class="head"><span class="kicker k-r">Test it before you trust it</span><h2>We have built the BST's problem again, just wider.</h2></div>
+<!-- ==================== 7. M-WAY ALONE ISN'T ENOUGH ==================== -->
+<section class="slide" data-name="But that's not enough on its own" data-act="Building the B-tree">
+  <div class="head"><span class="kicker k-r">The catch</span><h2>We just built the BST's original problem again &mdash; wider.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="col grow">
         <div class="ladder">
-          <div class="rung"><span class="rn">1</span><span class="rt">The m-way <b>search</b> tree is only an <b>ordering</b> rule.
-            Exactly like the BST, it says where a key must go &mdash; and <b>nothing at all</b> about shape.</span></div>
-          <div class="rung dead"><span class="rn">&#10007;</span><span class="rt">The tree on the right is a <b>perfectly legal</b> 3-way search tree.
-            Every ordering rule holds. It is a <b>chain of height 5</b> with <b>one key per page</b>.
-            You are reading a whole 4&nbsp;KB block to learn a single number.</span></div>
-          <div class="rung dead frag"><span class="rn">&#10007;</span><span class="rt">And it is not an exotic input. That is what you get from
-            <b>10, 20, 30, 40, 50</b> &mdash; sorted keys, the most normal input there is.</span></div>
-          <div class="rung done frag"><span class="rn">2</span><span class="rt">So m-way buys the <b>fanout you want</b> and gives <b>no guarantee you will get it</b>.
-            It needs the same thing the BST needed: <b>discipline</b>.</span></div>
+          <div class="rung"><span class="rn">1</span><span class="rt">The m-way search tree is only an <b>ordering</b> rule.
+            Exactly like a plain BST, it says where a key must go &mdash; and says nothing about shape.</span></div>
+          <div class="rung dead"><span class="rn">&#10007;</span><span class="rt">The tree on the right is a perfectly
+            legal 3-way search tree. Every ordering rule holds. It's also a chain of height 5 with <b>one key per page</b>
+            &mdash; a full 4&nbsp;KB read to learn a single number.</span></div>
+          <div class="rung dead frag"><span class="rn">&#10007;</span><span class="rt">And it's not a weird input.
+            That's exactly what you get from inserting <b>10, 20, 30, 40, 50</b> in order &mdash; the most ordinary
+            input there is.</span></div>
+          <div class="rung done frag"><span class="rn">2</span><span class="rt">So an m-way tree gives you the
+            <i>potential</i> for wide, shallow pages, with <b>no guarantee you'll get it</b>. It needs the same
+            thing a BST needed: a discipline that forces good shape.</span></div>
         </div>
-        <div class="card tint-a frag"><p><b>The relationship is exactly the one you already know.</b>
-          <span class="mono">BST : AVL</span> &nbsp;is&nbsp; <span class="mono">m-way search tree : B-tree</span>.
-          The first member of each pair is the ordering; the second adds the rule that makes the ordering
-          <i>pay</i>. Everything left in this lab is inventing that rule.</p></div>
+        <div class="card tint-a frag"><p>The relationship is one you already know: <span class="mono">BST : AVL</span>
+          is to <span class="mono">m-way search tree : B-tree</span>. The first of each pair is just the ordering rule;
+          the second adds the rule that makes the ordering actually pay off. That's what we build next.</p></div>
       </div>
       <div class="panel before" style="flex:0 0 396px">
         <span class="plabel long">A legal 3-way search tree. Height 5.</span>
         <div class="tree" data-t="[10](.,[20](.,[30](.,[40](.,[50]))))" data-path="10-20,20-30,30-40,40-50"></div>
-        <div class="psub">Fanout <b>2</b> in a structure built for <b>3</b>. Change m to 256 and it is still a chain &mdash;
-          now wasting <b>essentially the entire page</b> at every level.</div></div>
+        <div class="psub">Fanout 2, in a structure that was built for 3. At m&nbsp;=&nbsp;256 it would still be a
+          chain &mdash; now wasting almost an entire page at every level.</div></div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 8. THE INVENTION ==================== -->
-<section class="slide" data-name="The invention — two rules" data-act="Inventing the m-way tree">
-  <div class="head"><span class="kicker k-v">The invention</span><h2>You cannot rotate. So stop trying to fix the tree, and refuse to break it.</h2></div>
+<!-- ==================== 8. THE TWO RULES ==================== -->
+<section class="slide" data-name="The two rules that fix it" data-act="Building the B-tree">
+  <div class="head"><span class="kicker k-v">The invention</span><h2>You can't rotate. So instead of fixing a broken tree, refuse to let it break.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="col grow" style="flex:1 1 0">
         <div class="ladder">
-          <div class="rung dense"><span class="rn">1</span><span class="rt"><b>Attack the height directly.</b> Don't bound it, <b>fix</b> it:
-            <b>every leaf sits at exactly the same depth.</b> Not "within one". The same. There is now no such
-            thing as a long path, because <b>every</b> path is the same length.</span></div>
-          <div class="rung dense frag"><span class="rn">&#10007;</span><span class="rt"><b>Test it before you trust it.</b> That chain on the last slide?
-            Its leaves are all at depth 4 &mdash; there is only <b>one</b> leaf. Rule 1 alone permits it. Rule 1 is worth
-            <i>nothing</i> on its own, and for exactly the reason you already guessed: nothing forces the pages to be <b>full</b>.</span></div>
-          <div class="rung dense done frag"><span class="rn">2</span><span class="rt"><b>Every node is at least half full:</b> at least
-            <b>&lceil;m/2&rceil;</b> children. Now a tree of height h is forced to contain at least
-            <span class="mono">2&lceil;m/2&rceil;<sup>h&minus;1</sup>&minus;1</span> keys &mdash; so h <b>cannot</b> grow unless n grows <b>exponentially</b>.</span></div>
-          <div class="rung dense done frag"><span class="rn">3</span><span class="rt">Two exemptions, both forced: the <b>root</b> is excused
-            (a tree with three keys can't have a half-full root), and leaves have no children to count.</span></div>
+          <div class="rung dense"><span class="rn">1</span><span class="rt"><b>Every leaf sits at exactly the same
+            depth.</b> Not "within one" like AVL &mdash; the same, always. There's no such thing as a long path
+            anymore, because every path is the same length.</span></div>
+          <div class="rung dense frag"><span class="rn">&#10007;</span><span class="rt">On its own that rule is
+            worthless: the one-key-per-page chain from the last slide has exactly one leaf, so it trivially
+            satisfies "all leaves at the same depth". Nothing yet forces pages to be <b>full</b>.</span></div>
+          <div class="rung dense done frag"><span class="rn">2</span><span class="rt"><b>Every node is at least half
+            full:</b> at least &lceil;m/2&rceil; children. Now a tree of height h is forced to hold at least
+            <span class="mono">2&lceil;m/2&rceil;<sup>h&minus;1</sup>&minus;1</span> keys &mdash; so height can only
+            grow if the key count grows <b>exponentially</b> with it.</span></div>
+          <div class="rung dense done frag"><span class="rn">3</span><span class="rt">Two exceptions, both forced by
+            reality: the <b>root</b> is exempt (a tree with 3 keys can't have a half-full root), and leaves have no
+            children to count.</span></div>
         </div>
-        <div class="card dense tint-a frag"><p><b>Stop. That is the whole invention.</b> An m-way search tree obeying those two rules is a
-          <b>B-tree</b>. Everything from here &mdash; splitting, merging, borrowing, the C code &mdash; is nothing but
-          <i>how you keep those two promises</i> while keys arrive and leave.</p></div>
+        <div class="card dense tint-a frag"><p><b>That's the whole invention.</b> An m-way search tree that obeys
+          those two rules is a <b>B-tree</b>. Everything left &mdash; splitting, merging, borrowing, the C code
+          &mdash; is just how you keep those two promises while keys come and go.</p></div>
       </div>
       <div class="col" style="flex:0 0 420px">
         <div class="panel after grow"><span class="plabel long">The same five keys, obeying both rules</span>
           <div class="tree" data-t="[30]([10 20],[40 50])" data-o="lvl"></div>
-          <div class="psub">Height <b>2</b>, not 5. Both leaves on the green line. Every page carries real keys.</div></div>
-        <div class="card dense tint-r frag"><h3 style="color:var(--rose)">The question you should be asking</h3>
-          <p style="margin-top:7px;font-size:16px">"All leaves at the same depth" is a <b>brutal</b> promise.
-            Add one key to a full leaf and it must split &mdash; so that leaf gets <b>deeper</b> than its siblings.
-            <b>How can any insertion possibly keep that promise?</b></p>
-          <p style="margin-top:8px;font-size:16px">Hold that thought for four slides. The answer is the single most
-            elegant idea in this lab.</p></div>
+          <div class="psub">Height 2, not 5. Both leaves sit on the same line. Every page holds real keys.</div></div>
+        <div class="card dense tint-r frag"><h3 style="color:var(--rose)">One question worth sitting with</h3>
+          <p style="margin-top:7px;font-size:16px">"All leaves at the same depth" is a strict promise. Add one key
+            to a full leaf and it has to split &mdash; which would normally make that leaf deeper than its
+            neighbours. <b>How can insertion possibly keep every leaf level?</b></p>
+          <p style="margin-top:8px;font-size:16px">Hold that question. The answer, a few slides from now, is the
+            single most elegant idea in this whole structure.</p></div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ==================== 9. THE PROPERTIES ==================== -->
-<section class="slide" data-name="The five properties, exam language" data-act="The B-tree, properly">
-  <div class="head"><span class="kicker k-c">Same idea, exam language</span><h2>You invented both rules. Here are all five, as they will be marked.</h2></div>
+<section class="slide" data-name="Stated precisely" data-act="Building the B-tree">
+  <div class="head"><span class="kicker k-c">Written out formally</span><h2>Same two rules, written the way you'll see them elsewhere.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="col grow">
         <div class="ladder">
           <div class="rung dense"><span class="rn">1</span><span class="rt">Every node holds at most <b>m&minus;1</b> keys and at most <b>m</b> children.</span></div>
-          <div class="rung dense"><span class="rn">2</span><span class="rt">Every node except the root holds at least <b>&lceil;m/2&rceil;&minus;1</b> keys,
-            and every <i>internal</i> one has at least <b>&lceil;m/2&rceil;</b> children.</span></div>
-          <div class="rung dense"><span class="rn">3</span><span class="rt">The <b>root</b> is exempt: at least <b>1</b> key, and at least
-            <b>2</b> children if it is not itself a leaf.</span></div>
-          <div class="rung dense"><span class="rn">4</span><span class="rt"><b>All leaves appear on the same level.</b> This is the one that does the work.</span></div>
-          <div class="rung dense"><span class="rn">5</span><span class="rt">Keys inside a node are <b>sorted</b>, and subtree <span class="mono">c<sub>i</sub></span>
-            holds exactly the keys between <span class="mono">k<sub>i</sub></span> and <span class="mono">k<sub>i+1</sub></span>.</span></div>
+          <div class="rung dense"><span class="rn">2</span><span class="rt">Every node except the root holds at least
+            <b>&lceil;m/2&rceil;&minus;1</b> keys, and every internal one has at least <b>&lceil;m/2&rceil;</b> children.</span></div>
+          <div class="rung dense"><span class="rn">3</span><span class="rt">The <b>root</b> is exempt: at least 1 key,
+            and at least 2 children if it isn't itself a leaf.</span></div>
+          <div class="rung dense"><span class="rn">4</span><span class="rt"><b>All leaves are on the same level.</b> This is the rule doing the real work.</span></div>
+          <div class="rung dense"><span class="rn">5</span><span class="rt">Keys inside a node are sorted, and child
+            <span class="mono">c<sub>i</sub></span> holds exactly the keys between <span class="mono">k<sub>i</sub></span>
+            and <span class="mono">k<sub>i+1</sub></span>.</span></div>
         </div>
-        <div class="card dense tint-a frag" style="margin-top:2px"><h3 style="color:var(--amber)">The convention trap &mdash; check which one your exam uses</h3>
-          <p style="margin-top:7px">This deck uses <b>order m = the maximum number of children</b>, which is what your
-            syllabus means. <b>CLRS does not.</b> CLRS uses <i>minimum degree</i> <span class="mono">t</span>:
-            at least <span class="mono">t&minus;1</span> and at most <span class="mono">2t&minus;1</span> keys, so
-            <span class="mono">m = 2t</span>. A "B-tree of order 5" and a "B-tree with t = 5" are <b>completely different trees</b>.
-            Some books even define order as the maximum number of <i>keys</i>. <b>State your convention in the first line of every answer.</b></p></div>
+        <p class="tiny frag" style="margin-top:2px">One naming note: this deck defines <b>order m</b> as the maximum
+          number of children. Some textbooks (CLRS included) instead define a <i>minimum degree</i> t, where
+          m&nbsp;=&nbsp;2t. Same tree, different label &mdash; always check which convention a source is using
+          before comparing numbers.</p>
       </div>
       <div class="col" style="flex:0 0 462px">
-        <div class="card dense tint-v"><h3 style="color:var(--violet)">Read the numbers off, per order</h3>
+        <div class="card dense tint-v"><h3 style="color:var(--violet)">What those bounds look like in practice</h3>
           <table class="tbl-compact" style="margin-top:8px">
             <tr><th>order m</th><th>keys</th><th>children (internal)</th><th>known as</th></tr>
             <tr><td class="c">3</td><td class="c">1&ndash;2</td><td class="c">2&ndash;3</td><td class="tiny">2-3 tree</td></tr>
             <tr><td class="c">4</td><td class="c">1&ndash;3</td><td class="c">2&ndash;4</td><td class="tiny">2-3-4 tree</td></tr>
-            <tr><td class="c">5</td><td class="c"><b>2&ndash;4</b></td><td class="c"><b>3&ndash;5</b></td><td class="tiny">used for every drill here</td></tr>
+            <tr><td class="c">5</td><td class="c"><b>2&ndash;4</b></td><td class="c"><b>3&ndash;5</b></td><td class="tiny">used in the examples ahead</td></tr>
             <tr><td class="c">256</td><td class="c">127&ndash;255</td><td class="c">128&ndash;256</td><td class="tiny">a real 4&nbsp;KB index page</td></tr>
           </table>
-          <p class="tiny" style="margin-top:9px">Root row is always the exception: <b>1 key minimum</b>, whatever m is.</p></div>
-        <div class="panel after grow"><span class="plabel long">Order 5. Commit this picture to memory.</span>
+          <p class="tiny" style="margin-top:9px">The root row is always the exception: 1 key minimum, whatever m is.</p></div>
+        <div class="panel after grow"><span class="plabel long">Order 5, all rules satisfied</span>
           <div class="tree" data-t="[30 60]([10 20],[40 50],[70 80])" data-o="lvl"></div>
-          <div class="psub">Root: 2 keys (&ge;1 &#10003;). Leaves: 2 keys each (&ge;2 &#10003;, &le;4 &#10003;).
-            All three on the line &#10003;.</div></div>
+          <div class="psub">Root: 2 keys (&ge;1 &#10003;). Leaves: 2 keys each (&ge;2, &le;4 &#10003;).
+            All three leaves on the line &#10003;.</div></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 10. THE HEIGHT BOUND ==================== -->
-<section class="slide" data-name="Derive the height bound" data-act="The B-tree, properly">
-  <div class="head"><span class="kicker k-a">Do the algebra yourself</span><h2>Three lines. Follow along on paper &mdash; you will be asked to reproduce this.</h2></div>
+<!-- ==================== 10. HOW TALL DOES IT GET ==================== -->
+<section class="slide" data-name="How tall does it actually get" data-act="Building the B-tree">
+  <div class="head"><span class="kicker k-a">Why the rules work</span><h2>Rule 2 is what puts m in the height formula.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="col grow">
         <div class="ladder">
-          <div class="rung dense"><span class="rn">1</span><span class="rt"><b>Count the nodes the rules force to exist.</b> Write <span class="mono">t = &lceil;m/2&rceil;</span>.
-            Level 1 is the root. Level 2 has <b>at least 2</b> nodes (rule 3), and every node below drags in at least
-            t children &mdash; so level i has <b>&ge; 2t<sup>i&minus;2</sup></b> nodes.</span></div>
-          <div class="rung dense frag"><span class="rn">2</span><span class="rt"><b>Give every node its minimum keys.</b> Root &ge; 1, everyone else &ge; t&minus;1. Sum the levels:
-            <span class="mono">n &ge; 1 + (t&minus;1)&middot;&sum;2t<sup>i&minus;2</sup> = <b>2t<sup>h&minus;1</sup> &minus; 1</b></span></span></div>
-          <div class="rung dense frag"><span class="rn">3</span><span class="rt"><b>Rearrange for h.</b> Every step was a <i>minimum</i>,
-            so that many keys are <i>required</i> &mdash; which caps h from above.</span></div>
+          <div class="rung dense"><span class="rn">1</span><span class="rt">Write <span class="mono">t = &lceil;m/2&rceil;</span>.
+            The root sits alone at level 1. Level 2 has at least 2 nodes (rule 3), and every level below drags in
+            at least t children per node &mdash; so level i has at least <span class="mono">2t<sup>i&minus;2</sup></span> nodes.</span></div>
+          <div class="rung dense frag"><span class="rn">2</span><span class="rt">Give every node its minimum key
+            count and sum across levels: <span class="mono">n &ge; 2t<sup>h&minus;1</sup> &minus; 1</span>.</span></div>
+          <div class="rung dense frag"><span class="rn">3</span><span class="rt">Rearrange for h. Every step used a
+            <i>minimum</i>, so this bounds height from <b>above</b> &mdash; a B-tree can never be taller than this.</span></div>
         </div>
         <div class="math frag">h &le; 1 + log<sub>&lceil;m/2&rceil;</sub> ( (n+1) / 2 )</div>
-        <div class="card dense tint-e frag"><p><b>Read the base of that logarithm.</b> Not 2 &mdash; <b>&lceil;m/2&rceil;</b>.
-          Rule 2 is what puts <b>m</b> in the denominator of the height. Without it the base collapses to 2 and you have
-          written a red-black tree with extra steps.</p></div>
+        <p class="tiny frag" style="margin-top:8px">Notice the base of that log isn't 2 &mdash; it's &lceil;m/2&rceil;.
+          Rule 2 is exactly what put m into the denominator. Drop rule 2 and the base collapses back to 2, and
+          you've reinvented a red-black tree with extra steps.</p>
       </div>
       <div class="col" style="flex:0 0 470px">
-        <div class="card dense tint-c"><h3 style="color:var(--cyan)">Put real numbers in it &mdash; order 256</h3>
+        <div class="card dense tint-c"><h3 style="color:var(--cyan)">Put numbers in it &mdash; order 256</h3>
           <table class="tbl-compact" style="margin-top:8px">
             <tr><th>keys n</th><th>worst-case levels</th><th>typical levels</th><th>SSD lookup</th></tr>
             <tr><td class="c">1 000</td><td class="c">2</td><td class="c">2</td><td class="c">0.16 ms</td></tr>
@@ -816,185 +802,136 @@ body.laser,body.laser *{cursor:none !important}
             <tr><td class="c">1 000 000 000</td><td class="c"><b>5</b></td><td class="c"><b>4</b></td><td class="c">0.32 ms</td></tr>
             <tr><td class="c">1 000 000 000 000</td><td class="c">6</td><td class="c">6</td><td class="c">0.48 ms</td></tr>
           </table>
-          <p class="tiny" style="margin-top:8px">"Worst case" assumes every page exactly half full. Random insertions leave pages
-            <b>69&nbsp;%</b> full (ln&nbsp;2, not a coincidence) &mdash; a fanout of <b>177</b>, which gives the typical column.</p></div>
-        <div class="card dense tint-r frag"><h3 style="color:var(--rose)">In practice it beats the table</h3>
-          <p style="margin-top:7px">The root is read on <i>every</i> lookup so it stays in RAM, and level 2 caches too.
-            A billion-key index costs <b>one or two</b> real reads &mdash; whereas the red-black tree's <b>30</b> touches
-            were <i>all</i> misses.</p></div>
+          <p class="tiny" style="margin-top:8px">"Worst case" assumes every page is exactly half full. Random
+            insertions actually leave pages about 69% full, which is closer to the typical column.</p></div>
+        <div class="card dense tint-r frag"><h3 style="color:var(--rose)">In practice it's even better</h3>
+          <p style="margin-top:7px">The root is read on every lookup, so it stays cached in RAM &mdash; often
+            level 2 as well. A billion-key index typically costs <b>one or two</b> real disk reads, while the
+            red-black tree's 30 touches were all misses.</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 11. THE COMPARISON REVEAL ==================== -->
-<section class="slide" data-name="The comparison count never changed" data-act="The B-tree, properly">
-  <div class="head"><span class="kicker k-e">The honest version</span><h2>A B-tree does not do fewer comparisons. It does exactly the same number.</h2></div>
+<!-- ==================== 11. THE HONEST COMPARISON ==================== -->
+<section class="slide" data-name="What actually got faster" data-act="Building the B-tree">
+  <div class="head"><span class="kicker k-e">Being precise</span><h2>A B-tree doesn't compare fewer keys. It reads far fewer pages.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="col grow">
-        <div class="card dense tint-v"><h3 style="color:var(--violet)">Do the multiplication</h3>
-          <p style="margin-top:8px">Binary-search the keys inside each page: <span class="mono">log&#8322;m</span> comparisons per page.
-            Visit <span class="mono">log<sub>m</sub>n</span> pages. Multiply:</p>
-          <div class="math" style="margin-top:10px">log&#8322;m &times; log<sub>m</sub>n = log&#8322;m &times; <sup>log&#8322;n</sup>&frasl;<sub>log&#8322;m</sub> = <b>log&#8322;n</b></div>
-          <p style="margin-top:10px">The m cancels. <b>Identical</b> to a perfectly balanced binary tree &mdash; because it
-            <i>is</i> one. A B-tree of order 256 is a binary search over the same sorted keys, with the comparisons
-            <b>grouped 8 at a time into pages you already paid for</b>.</p></div>
-        <div class="card dense tint-a frag"><h3 style="color:var(--amber)">And if you scan the page linearly instead?</h3>
-          <p style="margin-top:7px">Then it is <b>m/2</b> per level &mdash; about <b>500</b> comparisons for our billion keys
-            instead of 30. <b>Seventeen times more work, and still the right choice</b>, because 500 ns of sequential
-            scanning inside a cached page loses to <i>one</i> 80&nbsp;&micro;s page read by a factor of 160.</p></div>
+        <div class="card dense tint-v"><h3 style="color:var(--violet)">Multiply it out</h3>
+          <p style="margin-top:8px">Binary-searching the keys inside one page costs <span class="mono">log&#8322;m</span>
+            comparisons. You visit <span class="mono">log<sub>m</sub>n</span> pages. Multiply the two:</p>
+          <div class="math" style="margin-top:10px">log&#8322;m &times; log<sub>m</sub>n = <b>log&#8322;n</b></div>
+          <p style="margin-top:10px">The m cancels out. Total comparisons are <b>identical</b> to a perfectly
+            balanced binary tree &mdash; because a B-tree effectively is one, with its comparisons grouped into
+            pages you'd already paid to read.</p></div>
+        <div class="card dense tint-a frag"><h3 style="color:var(--amber)">So what actually changed?</h3>
+          <p style="margin-top:7px">Not the comparisons &mdash; the number of <b>separate reads</b>. That's the
+            whole win: fewer, fatter reads instead of many tiny ones.</p></div>
       </div>
       <div class="col" style="flex:0 0 476px">
-        <div class="card dense tint-c"><h3 style="color:var(--cyan)">So say it properly in the viva</h3>
-          <p style="margin-top:8px">A B-tree is not faster because it is cleverer at searching. It is faster because
-            it <b>changed the unit of cost</b>:</p>
+        <div class="card dense tint-c"><h3 style="color:var(--cyan)">Say it this way, not the other way</h3>
           <div class="ledger" style="margin-top:11px">
             <div class="lrow"><span class="lk">Comparisons per lookup</span><span class="lv">unchanged</span></div>
-            <div class="lrow"><span class="lk">Pointer dereferences</span><span class="lv ok">30 &rarr; 4</span></div>
+            <div class="lrow"><span class="lk">Pointer dereferences (reads)</span><span class="lv ok">30 &rarr; 4</span></div>
             <div class="lrow"><span class="lk">Bytes usefully read per page</span><span class="lv ok">24 &rarr; 4096</span></div>
-            <div class="lrow"><span class="lk">Cache / page faults</span><span class="lv ok">~30 &rarr; ~1</span></div>
-          </div></div>
-        <div class="card dense tint-e frag"><h3 style="color:var(--emerald)">The generalisable lesson</h3>
-          <p style="margin-top:7px">Same move as arrays beating linked lists, as <b>cache-oblivious</b> algorithms, as every
-            database on earth: <b>when one operation costs a thousand times more than another, minimise the expensive
-            one</b> &mdash; even by doing far more of the cheap one. Big-O with the wrong unit is a
-            <b>confident wrong answer</b>.</p></div>
+            <div class="lrow"><span class="lk">Cache / page misses</span><span class="lv ok">~30 &rarr; ~1</span></div>
+          </div>
+          <p style="margin-top:10px">"B-trees are faster than AVL trees" is the wrong sentence. The right one:
+            a B-tree does the <i>same</i> search with far fewer boundary crossings &mdash; and boundary crossings
+            are what the hardware actually bills you for. If your data already fits in cache, an AVL tree can
+            still win.</p></div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ==================== 12. QUIZ ==================== -->
-<section class="slide" data-name="Quiz: legal or impostor?" data-act="The B-tree, properly">
-  <div class="head"><span class="kicker k-a">30-second check</span><h2>Order 3 &mdash; legal B-tree, or impostor? <span style="font-size:19px;color:var(--ink3);font-weight:700">&mdash; name the broken property, then tap</span></h2></div>
+<section class="slide" data-name="Quick check: legal or not?" data-act="Building the B-tree">
+  <div class="head"><span class="kicker k-a">Try it yourself</span><h2>Order 3 &mdash; legal B-tree, or not? <span style="font-size:19px;color:var(--ink3);font-weight:700">&mdash; name the broken rule, then tap to check</span></h2></div>
   <div class="body">
     <div class="quiz">
       <div class="qcell" data-ans="yes"><span class="qtag">A</span><span class="hintme">tap</span>
         <div class="tree" data-t="[30]([10 20],[40 50])"></div>
-        <div class="qv">&#10003; Legal. 1&ndash;2 keys everywhere, both leaves level 2.</div></div>
+        <div class="qv">&#10003; Legal. 1&ndash;2 keys everywhere, both leaves on level 2.</div></div>
       <div class="qcell" data-ans="no"><span class="qtag">B</span><span class="hintme">tap</span>
         <div class="tree" data-t="[30]([10 20],[50]([40],[60]))"></div>
-        <div class="qv">&#10007; <b>Property 4.</b> [10 20] is on level 2; [40] and [60] are on level 3.</div></div>
+        <div class="qv">&#10007; <b>Rule 4.</b> [10 20] is on level 2; [40] and [60] are on level 3.</div></div>
       <div class="qcell" data-ans="no"><span class="qtag">C</span><span class="hintme">tap</span>
         <div class="tree" data-t="[10 20 30]([5],[15],[25],[35])"></div>
-        <div class="qv">&#10007; <b>Property 1.</b> 3 keys and 4 children, but m = 3 allows only 2 and 3.</div></div>
+        <div class="qv">&#10007; <b>Rule 1.</b> 3 keys and 4 children, but m = 3 allows at most 2 and 3.</div></div>
       <div class="qcell" data-ans="no"><span class="qtag">D</span><span class="hintme">tap</span>
         <div class="tree" data-t="[30]([10 20],[25 40])"></div>
-        <div class="qv">&#10007; Fills and levels are flawless &mdash; but <b>25</b> sits right of <b>30</b>. Property 5.</div></div>
+        <div class="qv">&#10007; Fill and levels look fine &mdash; but <b>25</b> sits to the right of <b>30</b>. Rule 5.</div></div>
     </div>
     <div class="card tint-a frag">
-      <p><b>Card D is the trap, and it is the same trap as every other tree lab.</b> A B-tree is
-      <b>m-way ordering</b> <i>plus</i> the shape rules. Fills and levels you check with your eyes; ordering you check with an
-      <b>in-order walk</b>, which must come out sorted. Card D reads <span class="mono">10, 20, 30, 25, 40</span> &mdash; busted.
-      Every split, merge and borrow you write from here must protect <i>both</i>, and the marker will check both.</p>
+      <p><b>Card D is the one that catches people out.</b> A B-tree needs its shape rules <i>and</i> correct
+      ordering. You check fill and level by eye; you check ordering with an in-order walk, which must come out
+      sorted. Card D reads <span class="mono">10, 20, 30, 25, 40</span> &mdash; not sorted. Every operation you
+      write from here has to protect both.</p>
     </div>
   </div>
 </section>
 
-<!-- ==================== 13. THINK FIRST — the full leaf ==================== -->
-<section class="slide" data-name="The leaf is full — think first" data-act="Insertion">
-  <div class="head"><span class="kicker k-r">Think first</span><h2>New keys always land in a leaf. This one is full. Now what?</h2></div>
+<!-- ==================== 13. INSERTION: THE PROBLEM AND THE FIX ==================== -->
+<section class="slide" data-name="Insertion: what happens when a leaf is full" data-act="Insertion">
+  <div class="head"><span class="kicker k-r">Insertion</span><h2>New keys always land in a leaf. What if that leaf is already full?</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="panel neutral grow">
-        <span class="plabel long">Order 5, so a page holds 4 keys. Now <b>insert 52</b>.</span>
+        <span class="plabel long">Order 5, so a page holds at most 4 keys. Insert 52.</span>
         <div class="tree" data-t="[30 60]([10 20],[40 45 50 55],[70 80])" data-hl="40:full" data-o="lvl"></div>
-        <div class="psub">The search takes you to the middle leaf, as it must. There is nowhere to put 52.</div></div>
+        <div class="psub">The search correctly lands on the middle leaf. There's no room left for 52.</div></div>
       <div class="col" style="flex:0 0 462px">
-        <div class="card tint-a qcard"><h3 style="color:var(--amber)">1 &middot; Hang it below?</h3>
-          <p style="margin-top:7px;font-size:16px">Give the full leaf a child and put 52 there. Which property breaks
-            <b>instantly</b> &mdash; and how many other leaves would you have to move to repair it?</p></div>
-        <div class="card tint-c qcard"><h3 style="color:var(--cyan)">2 &middot; Push it sideways?</h3>
-          <p style="margin-top:7px;font-size:16px">The left leaf has room. Shove a key into it through the parent.
-            This one <b>actually works</b> &mdash; so why can it not be the whole answer? <i>What if every sibling is full too?</i></p></div>
-        <div class="card tint-v qcard"><h3 style="color:var(--violet)">3 &middot; Break it in half.</h3>
-          <p style="margin-top:7px;font-size:16px">Two half-leaves where one full leaf stood. But a parent with
-            <b>2 keys and 4 children</b> is nonsense &mdash; so <b>one key has to leave the leaf and join the parent</b>.
-            <b>Which key?</b> There are five candidates and only one is legal. Find it.</p></div>
-      </div>
-    </div>
-    <div class="card tint-e">
-      <h3 style="color:var(--emerald)">Your turn &mdash; and this is the whole lab in one question</h3>
-      <p style="margin-top:7px">Take option 3 and write out the two halves for each of the five possible choices of
-        "key that goes up". Order 5 means every non-root page needs <b>at least 2 keys</b>.
-        <b>Cross out every choice that leaves a half with fewer than 2.</b> How many survive?</p>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 14. PENS DOWN — split at the median ==================== -->
-<section class="slide" data-name="Pens down — split at the median" data-act="Insertion">
-  <div class="head"><span class="kicker k-e">Pens down</span><h2>Exactly one candidate survives, and arithmetic picked it, not tradition.</h2></div>
-  <div class="body">
-    <div class="row grow" style="gap:14px">
-      <div class="col grow" style="flex:0 0 500px">
-        <div class="card dense tint-v"><h3 style="color:var(--violet)">Overfill on purpose, then cut</h3>
-          <p style="margin-top:7px">Let the page hold <b>m</b> keys for a moment &mdash; illegal, but only in your head. Cut it
-            <i>left | median | right</i>. The median <b>moves up</b> and becomes the fence between the two halves it created.</p>
-          <div class="tree" style="height:86px;margin-top:8px" data-t="[40 45 50 52 55]" data-hl="40:full" data-k="50:up"></div>
-          <p class="tiny" style="margin-top:3px">m = 5 keys, held briefly. <span style="color:var(--amber);font-weight:850">50</span> leaves.</p></div>
-        <div class="card dense tint-a frag"><h3 style="color:var(--amber)">Why not its neighbour?</h3>
+        <div class="card tint-v"><h3 style="color:var(--violet)">The fix: overfill on paper, then cut</h3>
+          <p style="margin-top:7px">Let the page briefly hold <b>m</b> keys &mdash; illegal, but only in your
+            head, for one step. Sort all m keys, then cut the page into <i>left | median | right</i>. The median
+            key moves <b>up</b> into the parent, becoming the new fence between the two halves it just created.</p></div>
+        <div class="card tint-a" style="margin-top:14px"><h3 style="color:var(--amber)">Why the median, and not a neighbour?</h3>
           <table class="tbl-compact" style="margin-top:7px">
-            <tr><th>up</th><th>left</th><th>right</th><th>legal?</th></tr>
+            <tr><th>goes up</th><th>left half</th><th>right half</th><th>legal?</th></tr>
             <tr><td class="c">45</td><td class="c">1 key</td><td class="c">3 keys</td><td style="color:var(--rose);font-weight:850">no &mdash; left starves</td></tr>
             <tr><td class="c"><b>50</b></td><td class="c"><b>2 keys</b></td><td class="c"><b>2 keys</b></td><td style="color:var(--emerald);font-weight:850">yes</td></tr>
             <tr><td class="c">52</td><td class="c">3 keys</td><td class="c">1 key</td><td style="color:var(--rose);font-weight:850">no &mdash; right starves</td></tr>
           </table>
-          <p class="tiny" style="margin-top:6px">Minimum is <b>&lceil;m/2&rceil;&minus;1 = 2</b>, and only the median leaves
-            <b>both</b> halves at or above it &mdash; <b>the only legal choice</b>, not an elegant one.</p></div>
-      </div>
-      <div class="col grow">
-        <div class="card dense tint-c"><h3 style="color:var(--cyan)">What a split costs, itemised</h3>
-          <div class="ledger" style="margin-top:9px">
-            <div class="lrow"><span class="lk">Pages written</span><span class="lv ok">2 &mdash; the two halves</span></div>
-            <div class="lrow"><span class="lk">Parent pages written</span><span class="lv ok">1</span></div>
-            <div class="lrow"><span class="lk">Keys that moved between pages</span><span class="lv ok">1 &mdash; the median</span></div>
-            <div class="lrow"><span class="lk">Subtrees re-parented</span><span class="lv ok">0 &mdash; they follow their half</span></div>
-            <div class="lrow"><span class="lk">Depth of any leaf, before vs after</span><span class="lv ok">unchanged</span></div>
-          </div>
-          <p style="margin-top:10px">An AVL rotation <b>re-parents subtrees</b> and rewrites six pointers. A split touches three
-            pages and <b>moves no subtree at all</b> &mdash; constraint <b>(d)</b> of your design brief, satisfied.</p></div>
-        <div class="card dense tint-r frag"><h3 style="color:var(--rose)">The line that matters most</h3>
-          <p style="margin-top:7px">Look at the last row. <b>A split never changes the depth of a leaf</b> &mdash; it widens the
-            tree, never deepens it, because the key that leaves goes <b>up</b>. Property 4 therefore survives a split
-            <b>automatically</b>: you never check it, never repair it. That is why options 1 and 2 lost.</p></div>
+          <p class="tiny" style="margin-top:6px">The minimum is &lceil;m/2&rceil;&minus;1 = 2. Only the median
+            leaves <b>both</b> halves at or above that &mdash; it's the only choice that works, not a stylistic one.</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 15. SPLIT, DRAWN ==================== -->
+<!-- ==================== 14. SPLIT, DRAWN ==================== -->
 <section class="slide" data-name="A leaf split, drawn" data-act="Insertion">
-  <div class="head"><span class="kicker k-c">Watch it happen</span><h2>Insert 52. Overfill, cut, promote.</h2></div>
+  <div class="head"><span class="kicker k-c">Watch it happen</span><h2>Insert 52: overfill, cut, promote.</h2></div>
   <div class="body">
     <div class="ba" style="grid-template-columns:1fr 92px 1fr 92px 1.25fr">
       <div class="panel before"><span class="plabel">1 &middot; no room</span>
         <div class="tree" data-t="[30 60]([10 20],[40 45 50 55],[70 80])" data-hl="40:full" data-path="30-40"></div>
-        <div class="psub">Search lands on a page holding its maximum <b>4</b> keys.</div></div>
+        <div class="psub">The search lands on a page already holding its max of 4 keys.</div></div>
       <div class="arrowcol"><div class="glyph">&#8595;</div><div class="op">overfill<br>on paper</div></div>
       <div class="panel before"><span class="plabel">2 &middot; 5 keys, briefly</span>
         <div class="tree" data-t="[30 60]([10 20],[40 45 50 52 55],[70 80])" data-hl="40:crit" data-k="52:new,50:up"></div>
-        <div class="psub"><b>52</b> slots into sorted position. Median <b>50</b> is the one that leaves.</div></div>
+        <div class="psub"><b>52</b> slots into sorted position. The median of all five, <b>50</b>, is the one that leaves.</div></div>
       <div class="arrowcol"><div class="glyph" style="animation:none">&#8593;</div><div class="op">promote<br>the median</div></div>
       <div class="panel after"><span class="plabel">3 &middot; legal again</span>
         <div class="tree" data-t="[30 50 60]([10 20],[40 45],[52 55],[70 80])" data-k="50:move" data-o="lvl" data-hl="40:good,52:good"></div>
         <div class="psub"><b>50</b> is now the fence between its own two halves. Parent: 3 keys, 4 children &#10003;.
-          Both new pages hold 2 &#10003;. <b>All four leaves still on the line</b> &#10003;.</div></div>
+          Both new pages hold 2 &#10003;. All four leaves still on one line &#10003;.</div></div>
     </div>
     <div class="card tint-v frag">
-      <p><b>Read the middle panel again, because it is where marks are lost.</b> The 5-key page never exists on disk
-      and must never appear in your final answer &mdash; it is scratch work. But you <b>must</b> draw it while working, because
-      the median is defined on <b>all five</b> keys including the new one. Students who insert 52 "mentally" and then pick the
-      median of the <i>original</i> four send <b>45 or 50</b> up by coin flip and get it wrong half the time.
-      <b>Write the five down. Point at the middle one.</b></p>
+      <p><b>The middle panel is scratch work only &mdash; it must never appear as a final answer</b>, but you do
+      need to draw it, because the median has to be chosen from <b>all five</b> keys including the new one. If
+      you insert 52 mentally and take the median of the original four, you'll send up 45 or 50 depending on luck,
+      and be wrong half the time. <b>Write all five down. Point at the middle one.</b></p>
     </div>
   </div>
 </section>
 
-<!-- ==================== 16. GROW AT THE ROOT ==================== -->
-<section class="slide" data-name="The tree only ever grows at the root" data-act="Insertion">
-  <div class="head"><span class="kicker k-v">The elegant bit</span><h2>Four slides ago you asked how leaves can stay level. Here is the answer.</h2></div>
+<!-- ==================== 15. GROW AT THE ROOT ==================== -->
+<section class="slide" data-name="How every leaf stays level" data-act="Insertion">
+  <div class="head"><span class="kicker k-v">The elegant part</span><h2>Here's the answer to the question from a few slides back.</h2></div>
   <div class="body">
     <div class="ba" style="grid-template-columns:1fr 86px 1fr 86px 1fr">
       <div class="panel before"><span class="plabel">order 3 &middot; insert 14</span>
@@ -1003,391 +940,114 @@ body.laser,body.laser *{cursor:none !important}
       <div class="arrowcol"><div class="glyph" style="animation:none">&#8593;</div><div class="op">leaf splits,<br>14 goes up</div></div>
       <div class="panel before"><span class="plabel">the root overflows too</span>
         <div class="tree" data-t="[10 14 20]([3 5],[13],[15],[23 25])" data-hl="10:full" data-k="14:up"></div>
-        <div class="psub">3 keys in a page that holds 2. The root has <b>no parent</b> to promote into.</div></div>
+        <div class="psub">3 keys in a page that holds 2. The root has no parent to promote into.</div></div>
       <div class="arrowcol"><div class="glyph" style="animation:none">&#9650;</div><div class="op">so build<br>a new root</div></div>
       <div class="panel after"><span class="plabel">height 2 &rarr; 3</span>
         <div class="tree" data-t="[14]([10]([3 5],[13]),[20]([15],[23 25]))" data-hl="14:new" data-o="lvl"></div>
-        <div class="psub">A fresh root holding <b>one</b> key. All four leaves <b>still on one line</b>.</div></div>
+        <div class="psub">A fresh root holding one key. All four leaves are still on one line.</div></div>
     </div>
     <div class="row frag" style="gap:14px">
-      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Why property 4 can never break</h3>
-        <p style="margin-top:7px">Splits push keys <b>upward</b>. A leaf split leaves every leaf exactly where it was.
-          The <i>only</i> event that changes any leaf's depth is the <b>root</b> splitting &mdash; and that adds
-          <b>one level to every path simultaneously</b>.</p>
-        <p style="margin-top:9px">So "all leaves on the same level" is not a rule you <b>enforce</b>.
-          It is a rule you <b>cannot break</b>.</p></div>
-      <div class="card tint-a grow"><h3 style="color:var(--amber)">Upside down, and say it out loud</h3>
-        <p style="margin-top:7px">Every other tree you have written grows <b>downward at the leaves</b> and is rebalanced
-          from above. A B-tree grows <b>upward from the root</b>. That single inversion is what buys perfect level
-          balance for free, with <b>zero rotations, ever</b>.</p>
-        <p style="margin-top:9px">This is also the <b>only</b> way a B-tree ever gets taller &mdash; which means the
-          height changes <b>very</b> rarely: at order 256 a tree crosses from three levels to four at around
-          <b>5 million</b> keys, and from four to five at around <b>a billion</b>. Most indexes change height
-          two or three times in their entire life.</p></div>
+      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Why rule 4 can never actually break</h3>
+        <p style="margin-top:7px">Splits push keys <b>upward</b>. An ordinary leaf split leaves every leaf exactly
+          where it was. The <i>only</i> event that changes a leaf's depth is the <b>root itself</b> splitting &mdash;
+          and that adds one level to every path at once.</p>
+        <p style="margin-top:9px">So "every leaf at the same depth" isn't something you enforce. It's something
+          the structure makes <b>impossible to break</b>.</p></div>
+      <div class="card tint-a grow"><h3 style="color:var(--amber)">Growth runs backwards from what you're used to</h3>
+        <p style="margin-top:7px">Every other tree you've built grows downward at the leaves and gets rebalanced
+          from above. A B-tree grows <b>upward from the root</b>. That single inversion buys perfect level
+          balance for free &mdash; zero rotations, ever.</p>
+        <p style="margin-top:9px">It's also the only way the tree ever gets taller, which is why height changes
+          very rarely: at order 256, a tree crosses from 3 levels to 4 at around 5 million keys, and from 4 to 5
+          at around a billion. Most real indexes change height two or three times in their whole life.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 17. ONE PASS ==================== -->
-<section class="slide" data-name="Two passes or one — the implementation choice" data-act="Insertion">
-  <div class="head"><span class="kicker k-c">Before you write code</span><h2>The obvious algorithm needs parent pointers. The clever one does not.</h2></div>
-  <div class="body">
-    <div class="row grow" style="gap:14px">
-      <div class="card dense tint-r grow"><h3 style="color:var(--rose)">Reactive &mdash; split on the way back up</h3>
-        <p style="margin-top:7px">Descend to the leaf and insert. If it overflowed, split and hand the median up; if
-          <i>that</i> overflowed, repeat. The recursion unwinding does the climbing.</p>
-        <div class="ledger" style="margin-top:11px">
-          <div class="lrow"><span class="lk">Matches how you do it on paper</span><span class="lv ok">yes</span></div>
-          <div class="lrow"><span class="lk">Splits only pages that truly overflow</span><span class="lv ok">yes</span></div>
-          <div class="lrow"><span class="lk">Needs the path kept &mdash; recursion or a stack</span><span class="lv bad">yes</span></div>
-          <div class="lrow"><span class="lk">Pages pinned in memory during descent</span><span class="lv bad">all of them</span></div>
-        </div>
-        <p class="tiny" style="margin-top:8px">Fine in RAM. On disk it means locking every page on the path until you know
-          whether the split reaches the root.</p></div>
-      <div class="card dense tint-e grow"><h3 style="color:var(--emerald)">Proactive &mdash; split on the way <i>down</i></h3>
-        <p style="margin-top:7px">Descending, whenever you are about to step into a <b>full</b> child, <b>split it first</b>.
-          You are on its parent, which is guaranteed to have room, so the median lands safely.</p>
-        <div class="ledger" style="margin-top:11px">
-          <div class="lrow"><span class="lk">Number of passes over the tree</span><span class="lv ok">1</span></div>
-          <div class="lrow"><span class="lk">Parent pointers / stack needed</span><span class="lv ok">none</span></div>
-          <div class="lrow"><span class="lk">Pages held at once</span><span class="lv ok">2</span></div>
-          <div class="lrow"><span class="lk">Occasionally splits a page that had room</span><span class="lv bad">yes</span></div>
-          <div class="lrow"><span class="lk">Requires m to be <b>even</b></span><span class="lv bad">yes &mdash; see below</span></div>
-        </div>
-        <p class="tiny" style="margin-top:8px">This is CLRS's <span class="mono">B-TREE-INSERT</span>.</p></div>
-    </div>
-    <div class="card dense tint-v frag">
-      <p><b>Induction, not hand-waving:</b> split the root up front if it is full, then only ever descend into a node you
-      have confirmed is not full &mdash; so every median has somewhere to go and <b>the cascade cannot happen</b>.</p>
-      <p style="margin-top:8px"><b>But count the keys.</b> Proactive splitting cuts <b>m&minus;1</b> keys, not m: order 5 gives
-      <span class="mono">2|1|1</span> and the right half is left with <b>1 key when the minimum is 2</b> &mdash; <b>illegal</b>.
-      It works only for <b>even</b> m, where 2t&minus;1 cuts into <span class="mono">t&minus;1|1|t&minus;1</span>.
-      <b>That is why CLRS uses t and defines m = 2t.</b> So: <b>reactive on paper and in this deck's C; proactive only for a
-      real disk B-tree, at an even order.</b></p>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 18. HOW THE DRILLS WORK ==================== -->
-<section class="slide" data-name="How the drills work" data-act="Insertion drills">
-  <div class="head"><span class="kicker k-v">Your turn now</span><h2>Five flashcards. Same four steps every single time.</h2></div>
-  <div class="body">
-    <div class="row grow" style="gap:12px">
-      <div class="card tint-r grow"><h3 style="color:var(--rose)">1 &middot; Walk down to a leaf</h3>
-        <p style="margin-top:8px">Use the fences. New keys <b>only ever</b> enter a leaf &mdash; never an internal node,
-          no matter how convenient it looks.</p></div>
-      <div class="card tint-a grow"><h3 style="color:var(--amber)">2 &middot; Does it fit?</h3>
-        <p style="margin-top:8px">Fewer than <b>m&minus;1</b> keys &rarr; slot it in sorted, put the pen down.
-          <b>A full page is legal.</b> Only an <i>overflowing</i> one is not.</p></div>
-      <div class="card tint-c grow"><h3 style="color:var(--cyan)">3 &middot; Overflowed &rarr; split</h3>
-        <p style="margin-top:8px">Write all <b>m</b> keys out. Point at the <b>median</b>. Left half, median up,
-          right half. Then <b>check the parent</b> &mdash; it may have just overflowed too.</p></div>
-      <div class="card tint-e grow"><h3 style="color:var(--emerald)">4 &middot; Verify all five</h3>
-        <p style="margin-top:8px">Key counts in range. <b>Children = keys + 1</b>, every node. All leaves on one line.
-          Then read in-order and confirm it comes out <b>sorted</b>.</p></div>
-    </div>
-    <div class="card tint-v">
-      <p><b>House rules.</b> Paper out, pen down, <b>two minutes</b>, no talking. Hit <kbd>S</kbd> to start the clock.
-      Two hints per card if you are truly stuck &mdash; but a hint taken before minute one is a hint you did not need.
-      The worked solution is always the <b>next</b> slide, so nobody presses <kbd>&rarr;</kbd> until pens are down.
-      <b>Every drill here is order 5</b>: 2&ndash;4 keys per page, 3&ndash;5 children, root exempt.
-      <b>Redraw the whole tree every time</b> &mdash; splitting in your head is how children quietly go missing.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 19. DRILL 1 CARD ==================== -->
-<section class="slide card-slide" data-name="DRILL 1 — card" data-act="Insertion drills">
-  <div class="head"><span class="kicker k-r">Flashcard</span><h2>Drill 1 &mdash; warm-up</h2></div>
-  <div class="body">
-    <div class="task grow">
-      <div class="tasknum"><span class="n">1</span><span class="l">DRILL</span></div>
-      <div class="panel neutral grow"><span class="plabel long">Order 5. Now <b>insert 25</b>.</span>
-        <div class="tree" data-t="[50]([10 20 30 40],[60 70])"></div></div>
-      <div class="col" style="flex:0 0 344px">
-        <div class="card tint-r"><h3 style="color:var(--rose)">Answer these four</h3>
-          <p style="margin-top:8px;font-size:16.5px">1. Which leaf, and how do you know?<br>
-            2. Write out all 5 keys. Circle the median.<br>
-            3. Where does the median go?<br>
-            4. Redraw the finished tree.</p></div>
-        <div class="timer"><button class="btn primary" data-timer="120">Start 2:00</button><span class="tface">2:00</span></div>
-        <button class="btn" data-hint="1">Hint 1</button>
-        <div class="hintbox" data-hintbox="1">The left leaf already holds <b>4</b> keys, which is m&minus;1. It is full <i>before</i> 25 arrives.</div>
-        <button class="btn" data-hint="2">Hint 2</button>
-        <div class="hintbox" data-hintbox="2">After the split the root gains a key. Count its children afterwards &mdash; you should have <b>3</b>.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 20. DRILL 1 SOLUTION ==================== -->
-<section class="slide" data-name="Drill 1 — solution" data-act="Insertion drills">
-  <div class="head"><span class="kicker k-e">Solution</span><h2>Drill 1 &mdash; one split, and the root just gets wider</h2></div>
-  <div class="body">
-    <div class="ba" style="grid-template-columns:1fr 88px 1fr 88px 1fr">
-      <div class="panel before"><span class="plabel">1 &middot; find the leaf</span>
-        <div class="tree" data-t="[50]([10 20 30 40],[60 70])" data-hl="10:full" data-path="50-10"></div>
-        <div class="psub"><b>25 &lt; 50</b> &rarr; left. That page is full.</div></div>
-      <div class="arrowcol"><div class="glyph" style="animation:none">&#8595;</div><div class="op">overfill</div></div>
-      <div class="panel before"><span class="plabel">2 &middot; five keys, median circled</span>
-        <div class="tree" data-t="[50]([10 20 25 30 40],[60 70])" data-hl="10:crit" data-k="25:new"></div>
-        <div class="psub"><span class="mono">10 20 <b>25</b> 30 40</span> &mdash; and <b>25</b> is also the new key.
-          Coincidence, not a rule.</div></div>
-      <div class="arrowcol"><div class="glyph" style="animation:none">&#8593;</div><div class="op">promote 25</div></div>
-      <div class="panel after"><span class="plabel">3 &middot; done</span>
-        <div class="tree" data-t="[25 50]([10 20],[30 40],[60 70])" data-k="25:move" data-o="lvl" data-hl="10:good,30:good"></div>
-        <div class="psub">Root: 2 keys, <b>3</b> children &#10003;. Every leaf 2 keys &#10003;. In-order
-          <span class="mono">10 20 25 30 40 50 60 70</span> &#10003;.</div></div>
-    </div>
-    <div class="card tint-v frag"><p><b>Notice what did not happen.</b> The height did not change. Nothing was re-parented.
-      The root simply went from 1 key to 2 &mdash; it got <b>wider</b>, not taller. That is the ordinary case and it is what
-      almost every insertion does: a B-tree spends its whole life <b>widening</b>, and gets taller only in the rare moment
-      the root itself runs out of room.</p></div>
-  </div>
-</section>
-
-<!-- ==================== 21. DRILL 2 CARD ==================== -->
-<section class="slide card-slide" data-name="DRILL 2 — card" data-act="Insertion drills">
-  <div class="head"><span class="kicker k-r">Flashcard</span><h2>Drill 2 &mdash; two keys, one trap</h2></div>
-  <div class="body">
-    <div class="task grow">
-      <div class="tasknum"><span class="n">2</span><span class="l">DRILL</span></div>
-      <div class="panel neutral grow"><span class="plabel long">Order 5. Insert <b>95</b>, then insert <b>85</b>. In that order.</span>
-        <div class="tree" data-t="[30 60]([10 20],[40 50],[70 80 90])"></div></div>
-      <div class="col" style="flex:0 0 344px">
-        <div class="card tint-r"><h3 style="color:var(--rose)">Answer these four</h3>
-          <p style="margin-top:8px;font-size:16.5px">1. Draw the tree after <b>95</b>.<br>
-            2. Did anything split? Say why not.<br>
-            3. Now insert <b>85</b>. Which key goes up?<br>
-            4. Redraw. Count the root's children.</p></div>
-        <div class="timer"><button class="btn primary" data-timer="120">Start 2:00</button><span class="tface">2:00</span></div>
-        <button class="btn" data-hint="1">Hint 1</button>
-        <div class="hintbox" data-hintbox="1">Order 5 allows <b>4</b> keys in a page. After 95 that leaf holds exactly 4. Is 4 &gt; 4?</div>
-        <button class="btn" data-hint="2">Hint 2</button>
-        <div class="hintbox" data-hintbox="2">For the second insert, sort all <b>five</b> keys <i>including</i> 85 before you pick the median. Do not reuse the old middle.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 22. DRILL 2 SOLUTION ==================== -->
-<section class="slide" data-name="Drill 2 — solution" data-act="Insertion drills">
-  <div class="head"><span class="kicker k-e">Solution</span><h2>Drill 2 &mdash; full is fine. Overflowing is not.</h2></div>
-  <div class="body">
-    <div class="ba" style="grid-template-columns:1fr 88px 1fr 88px 1.1fr">
-      <div class="panel neutral"><span class="plabel long">after 95 &mdash; no split</span>
-        <div class="tree" data-t="[30 60]([10 20],[40 50],[70 80 90 95])" data-k="95:new" data-hl="70:full"></div>
-        <div class="psub"><b>4 keys is the maximum, not a violation.</b> Slot it in, put the pen down.
-          Splitting here is the single most common wasted mark.</div></div>
-      <div class="arrowcol"><div class="glyph" style="animation:none">&#8595;</div><div class="op">now 85<br>overflows it</div></div>
-      <div class="panel before"><span class="plabel">five keys, briefly</span>
-        <div class="tree" data-t="[30 60]([10 20],[40 50],[70 80 85 90 95])" data-hl="70:crit" data-k="85:up"></div>
-        <div class="psub"><span class="mono">70 80 <b>85</b> 90 95</span>. The median is <b>85</b> &mdash;
-          the key you just inserted. Send it up.</div></div>
-      <div class="arrowcol"><div class="glyph" style="animation:none">&#8593;</div><div class="op">promote 85</div></div>
-      <div class="panel after"><span class="plabel">final</span>
-        <div class="tree" data-t="[30 60 85]([10 20],[40 50],[70 80],[90 95])" data-k="85:move" data-o="lvl" data-hl="30:good"></div>
-        <div class="psub">Root: 3 keys, <b>4</b> children &#10003;. Leaves all 2 keys &#10003;, all on the line &#10003;.</div></div>
-    </div>
-    <div class="card tint-a frag"><p><b>The trap was step 1, and roughly half a class falls into it.</b>
-      "The page looks full, so I will split it" is wrong: <b>a page holding m&minus;1 keys is a perfectly legal, maximally
-      useful page</b> &mdash; it is exactly what you were trying to achieve when you invented rule 2. You split when a page
-      would hold <b>m</b> keys, which is a state that exists only on your scratch paper.
-      <b>Splitting early is not merely wasted work &mdash; it lowers the tree's fill, and fill is the whole point.</b></p></div>
-  </div>
-</section>
-
-<!-- ==================== 23. BOSS CARD ==================== -->
-<section class="slide card-slide" data-name="DRILL 3 — BOSS card" data-act="Insertion drills">
-  <div class="head"><span class="kicker k-r">Boss fight</span><h2>Drill 3 &mdash; the split that runs out of parents</h2></div>
-  <div class="body">
-    <div class="task grow">
-      <div class="tasknum boss"><span class="n">3</span><span class="l">BOSS</span></div>
-      <div class="panel neutral grow"><span class="plabel long">Order 5. Now <b>insert 31</b>. Take your time.</span>
-        <div class="tree" data-t="[20 40 60 80]([5 10 15],[25 30 33 35],[45 50 55],[65 70 75],[85 90 95])"></div></div>
-      <div class="col" style="flex:0 0 330px">
-        <div class="card tint-r"><h3 style="color:var(--rose)">Answer these five</h3>
-          <p style="margin-top:8px;font-size:16px">1. Which leaf takes 31?<br>
-            2. Split it &mdash; which key goes up?<br>
-            3. <b>Now look at the root.</b><br>
-            4. What do you do when the overflowing page has no parent?<br>
-            5. Final height. Are the leaves still level?</p></div>
-        <div class="timer"><button class="btn primary" data-timer="240">Start 4:00</button><span class="tface">4:00</span></div>
-        <button class="btn" data-hint="1">Hint 1</button>
-        <div class="hintbox" data-hintbox="1">Count the root's keys <b>before</b> you start. It holds 4 &mdash; and 4 is the maximum. It has no room for a promotion.</div>
-        <button class="btn" data-hint="2">Hint 2</button>
-        <div class="hintbox" data-hintbox="2">A split always promotes into the parent. The root has none &mdash; so <b>make one</b>. What is the only key it can contain?</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 24. BOSS SOLUTION 1 ==================== -->
-<section class="slide" data-name="Boss — step 1 of 2 (leaf splits)" data-act="Insertion drills">
-  <div class="head"><span class="kicker k-a">Solution &middot; round 1</span><h2>The leaf splits normally &mdash; and hands the root a key it cannot hold.</h2></div>
-  <div class="body">
-    <div class="ba" style="grid-template-columns:1fr 96px 1fr">
-      <div class="panel before"><span class="plabel">1 &middot; the leaf overflows</span>
-        <div class="tree" data-t="[20 40 60 80]([5 10 15],[25 30 31 33 35],[45 50 55],[65 70 75],[85 90 95])" data-hl="25:crit" data-k="31:up" data-path="20-25"></div>
-        <div class="psub"><b>20 &lt; 31 &lt; 40</b> &rarr; second leaf. Five keys: <span class="mono">25 30 <b>31</b> 33 35</span>.
-          Median <b>31</b> goes up.</div></div>
-      <div class="arrowcol"><div class="glyph" style="animation:none">&#8593;</div><div class="op">promote 31<br>into a root<br>that is full</div></div>
-      <div class="panel before"><span class="plabel">2 &middot; the root now overflows</span>
-        <div class="tree" data-t="[20 31 40 60 80]([5 10 15],[25 30],[33 35],[45 50 55],[65 70 75],[85 90 95])" data-hl="20:full" data-k="31:new,40:up"></div>
-        <div class="psub"><b>5 keys in a page that holds 4.</b> The leaf is legal again &mdash; the problem moved
-          <b>up one level</b>, exactly as designed.</div></div>
-    </div>
-    <div class="card tint-v frag">
-      <p><b>This is the cascade, and it is the same shape as the red-black insert loop.</b> A local repair fixes the node
-      you were standing on and hands an <i>identical, smaller</i> problem to the parent. Split, promote, re-ask the same
-      question one level up. It terminates for the same reason: <b>there are only h levels</b>, and here h is about 4.
-      Mark the median of the root's five keys &mdash; <span class="mono">20 31 <b>40</b> 60 80</span> &mdash; before you turn the page.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 25. BOSS SOLUTION 2 ==================== -->
-<section class="slide" data-name="Boss — step 2 of 2 (new root)" data-act="Insertion drills">
-  <div class="head"><span class="kicker k-e">Solution &middot; round 2</span><h2>No parent to promote into. So the promotion <span style="color:var(--emerald)">builds</span> one.</h2></div>
-  <div class="body">
-    <div class="panel after grow"><span class="plabel long">Final answer &mdash; height 2 &rarr; 3, every leaf still on one line</span>
-      <div class="tree" data-t="[40]([20 31]([5 10 15],[25 30],[33 35]),[60 80]([45 50 55],[65 70 75],[85 90 95]))" data-hl="40:new" data-o="lvl"></div>
-      <div class="psub">New root <span class="mono">[40]</span> &mdash; <b>1 key, and that is legal only because it is the root</b>.
-        Its two halves <span class="mono">[20 31]</span> and <span class="mono">[60 80]</span> hold 2 keys / 3 children each &#10003;.
-        All six leaves on the green line &#10003;.</div></div>
-    <div class="row frag" style="gap:14px">
-      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Check it the way the marker will</h3>
-        <div class="ledger" style="margin-top:8px">
-          <div class="lrow"><span class="lk">Every node: children = keys + 1</span><span class="lv ok">2=1+1, 3=2+1 &#10003;</span></div>
-          <div class="lrow"><span class="lk">Non-root keys in 2&hellip;4</span><span class="lv ok">&#10003;</span></div>
-          <div class="lrow"><span class="lk">All leaves on one level</span><span class="lv ok">&#10003;</span></div>
-          <div class="lrow"><span class="lk">In-order walk is sorted</span><span class="lv ok">&#10003;</span></div>
-        </div></div>
-      <div class="card tint-a grow"><h3 style="color:var(--amber)">What it cost, and why that is the headline</h3>
-        <p style="margin-top:7px">One insertion, a cascade all the way to the top, <b>the tree got taller</b> &mdash;
-          and the total bill was <b>5 pages written</b> and <b>zero subtrees re-parented</b>.
-          Every child in the final picture is still holding the exact keys it held before you started.</p>
-        <p style="margin-top:9px">Then compare the thing you did <i>not</i> have to do: <b>you never checked a balance
-          factor, never compared two subtree heights, never rotated.</b> Worst case for an insert is one split per
-          level &mdash; <b>O(log<sub>m</sub> n)</b>, and with m = 256 that means <b>at most four</b>.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 26. THINK FIRST — deletion ==================== -->
-<section class="slide" data-name="Deletion — think first" data-act="Deletion">
-  <div class="head"><span class="kicker k-r">Think first</span><h2>Splitting solved "too many". Nothing you have solves "too few".</h2></div>
-  <div class="body">
-    <div class="row grow" style="gap:14px">
-      <div class="panel neutral grow">
-        <span class="plabel long">Order 5, so a non-root page needs <b>at least 2</b> keys.</span>
-        <div class="tree" data-t="[30 60]([10 20],[40 45 50],[70 80])" data-o="lvl"></div>
-        <div class="psub">Three deletions, three completely different stories.</div></div>
-      <div class="col" style="flex:0 0 492px">
-        <div class="card dense tint-e qcard"><h3 style="color:var(--emerald)">1 &middot; Delete <b>45</b>.</h3>
-          <p style="margin-top:7px;font-size:16px">Rub it out. Is anything broken? Say precisely why not &mdash; you should
-            <b>recognise this case in one glance</b>.</p></div>
-        <div class="card dense tint-a qcard"><h3 style="color:var(--amber)">2 &middot; Delete <b>20</b>.</h3>
-          <p style="margin-top:7px;font-size:16px">That leaf drops to <b>1</b> key; the minimum is 2. You cannot invent a key.
-            <b>List every place a replacement could legally come from</b> &mdash; there are two, and one is not a sibling.</p></div>
-        <div class="card dense tint-v qcard"><h3 style="color:var(--violet)">3 &middot; Delete <b>30</b>.</h3>
-          <p style="margin-top:7px;font-size:16px">30 is not in a leaf &mdash; it is a <b>fence</b>. <b>Which key could stand
-            in its place</b> without breaking the ordering? Be exact: there are two in the whole tree.</p></div>
-      </div>
-    </div>
-    <div class="card dense tint-r">
-      <h3 style="color:var(--rose)">Your turn &mdash; and notice the asymmetry</h3>
-      <p style="margin-top:7px">Insertion had <b>one</b> repair: split. Deletion is going to need more, because
-        "too few keys" can be fixed by <b>taking</b> one from someone who has spare, or by <b>giving up</b> and
-        fusing two starved pages into one. Work out which of those two you would prefer, and <b>when you would have no choice</b>.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 27. PENS DOWN ==================== -->
-<section class="slide" data-name="Pens down — three answers" data-act="Deletion">
-  <div class="head"><span class="kicker k-e">Pens down</span><h2>Every deletion happens in a leaf. Even the ones that don't look like it.</h2></div>
+<!-- ==================== 16. DELETION: THE THREE CASES ==================== -->
+<section class="slide" data-name="Deletion: three different stories" data-act="Deletion">
+  <div class="head"><span class="kicker k-r">Deletion</span><h2>Splitting solved "too many keys". Deletion has to solve the opposite.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="col grow">
         <div class="ladder">
-          <div class="rung dense done"><span class="rn">1</span><span class="rt"><b>Key is in a leaf with room to spare</b> (more than the minimum).
-            Rub it out. Done. <b>No further thought required</b> &mdash; and this is the overwhelming majority of deletions.</span></div>
-          <div class="rung dense frag"><span class="rn">2</span><span class="rt"><b>Key is in an internal node.</b> Do not erase a fence.
-            Overwrite it with its <b>in-order predecessor</b> (the largest key in the subtree on its left) or its
-            <b>successor</b> &mdash; both sit in a <b>leaf</b> &mdash; then delete <i>that</i> key from that leaf instead.</span></div>
-          <div class="rung dense frag"><span class="rn">3</span><span class="rt"><b>The leaf is now below minimum.</b> Underflow.
-            Two ways out, and you must try them <b>in this order</b>: <b>borrow</b> from an adjacent sibling that has spare,
-            otherwise <b>merge</b> with one that does not.</span></div>
+          <div class="rung dense done"><span class="rn">1</span><span class="rt"><b>The key is in a leaf with keys to
+            spare</b> (above the minimum). Just remove it. Nothing else to do &mdash; and this covers most deletions.</span></div>
+          <div class="rung dense frag"><span class="rn">2</span><span class="rt"><b>The key is in an internal node.</b>
+            You can't just erase it &mdash; it's a fence other keys depend on. Instead, overwrite it with its
+            <b>in-order predecessor</b> (the largest key in the subtree to its left) or <b>successor</b> &mdash;
+            both always live in a leaf &mdash; then delete <i>that</i> key from the leaf instead.</span></div>
+          <div class="rung dense frag"><span class="rn">3</span><span class="rt"><b>The leaf that lost a key is now
+            below the minimum.</b> This is called underflow. Fix it in this order: first try to <b>borrow</b> a key
+            from a neighbouring sibling that has one spare; if none does, <b>merge</b> with a sibling instead.</span></div>
         </div>
-        <div class="card dense tint-v frag"><h3 style="color:var(--violet)">Step 2 is the whole trick, and it is worth naming</h3>
-          <p style="margin-top:7px">The predecessor is a <b>perfect</b> stand-in: it is larger than everything in the left
-            subtree and smaller than everything in the right one &mdash; which is the <i>definition</i> of the fence you just removed.
-            The ordering never wobbles for an instant.</p>
-          <p style="margin-top:9px">And it converts <b>every</b> deletion into a <b>leaf</b> deletion. You only ever
-            need to know how to repair a starved <b>leaf</b>. This is the identical trick you used for BST deletion
-            in week two &mdash; nothing new, just wider nodes.</p></div>
+        <div class="card dense tint-v frag"><h3 style="color:var(--violet)">Why the predecessor swap works</h3>
+          <p style="margin-top:7px">The predecessor is a perfect stand-in: it's larger than everything in the left
+            subtree and smaller than everything in the right one &mdash; which is exactly what the fence you
+            removed needs to be true. Ordering never wobbles, even for an instant.</p>
+          <p style="margin-top:9px">And this trick converts <b>every</b> deletion into a leaf deletion. You only
+            ever need to know how to repair a starved leaf &mdash; the same idea you used for BST deletion,
+            just with wider nodes.</p></div>
       </div>
       <div class="col" style="flex:0 0 446px">
         <div class="panel neutral grow"><span class="plabel long">Delete <b>30</b> &mdash; swap in the predecessor</span>
           <div class="tree" data-t="[30 60]([10 20],[40 45 50],[70 80])" data-k="30:bad,20:up" data-path="30-10" data-hl="10:sub"></div>
-          <div class="psub">Largest key left of 30 is <b>20</b>. It climbs into 30's slot&hellip;</div></div>
-        <div class="panel after grow frag"><span class="plabel long">&hellip;and now it is an ordinary leaf deletion</span>
+          <div class="psub">The largest key to the left of 30 is <b>20</b>. It climbs into 30's slot&hellip;</div></div>
+        <div class="panel after grow frag"><span class="plabel long">&hellip;now it's an ordinary leaf deletion</span>
           <div class="tree" data-t="[20 60]([10],[40 45 50],[70 80])" data-k="20:move" data-hl="10:under"></div>
-          <div class="psub">&hellip;and <b>20</b> is deleted from the <i>leaf</i>. Which underflows &mdash;
-            so now you finally have to deal with case 3.</div></div>
+          <div class="psub">&hellip;and <b>20</b> is removed from the leaf. That leaf now underflows &mdash;
+            time for case 3.</div></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 28. THE CASE TABLE ==================== -->
-<section class="slide" data-name="The underflow case table" data-act="Deletion">
-  <div class="head"><span class="kicker k-a">Read the last column first</span><h2>Two repairs. One of them ends it; the other passes the problem up.</h2></div>
+<!-- ==================== 17. UNDERFLOW: BORROW OR MERGE ==================== -->
+<section class="slide" data-name="Underflow: borrow or merge" data-act="Deletion">
+  <div class="head"><span class="kicker k-a">The repair rules</span><h2>One repair ends it immediately. The other passes the problem upward.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="card dense tint-c grow" style="flex:1 1 0">
-        <h3 style="color:var(--cyan)">x is the starved node, its neighbours are its <b>adjacent</b> siblings</h3>
+        <h3 style="color:var(--cyan)">x is the starved node; its neighbours are the siblings sharing its parent</h3>
         <table class="tbl-compact" style="margin-top:9px">
-          <tr><th>case</th><th>condition</th><th>action</th><th>after</th></tr>
-          <tr><td class="c">0</td><td>x still has &ge; min keys</td><td>nothing at all</td><td style="color:var(--emerald);font-weight:850">done</td></tr>
-          <tr><td class="c">1</td><td>left sibling has <b>spare</b></td><td>separator comes <b>down</b>, sibling's <b>largest</b> goes up</td><td style="color:var(--emerald);font-weight:850">done</td></tr>
-          <tr><td class="c">2</td><td>right sibling has <b>spare</b></td><td>separator comes <b>down</b>, sibling's <b>smallest</b> goes up</td><td style="color:var(--emerald);font-weight:850">done</td></tr>
-          <tr><td class="c">3</td><td>both siblings at <b>minimum</b></td><td><b>merge</b>: pull the separator down, fuse the two pages</td><td style="color:var(--rose);font-weight:850">parent loses a key &rarr; <b>re-ask</b></td></tr>
+          <tr><th>case</th><th>condition</th><th>action</th><th>result</th></tr>
+          <tr><td class="c">0</td><td>x still has &ge; minimum keys</td><td>nothing at all</td><td style="color:var(--emerald);font-weight:850">done</td></tr>
+          <tr><td class="c">1</td><td>left sibling has spare</td><td>separator comes down, sibling's largest goes up</td><td style="color:var(--emerald);font-weight:850">done</td></tr>
+          <tr><td class="c">2</td><td>right sibling has spare</td><td>separator comes down, sibling's smallest goes up</td><td style="color:var(--emerald);font-weight:850">done</td></tr>
+          <tr><td class="c">3</td><td>both siblings at minimum</td><td><b>merge</b>: pull the separator down, fuse the two pages</td><td style="color:var(--rose);font-weight:850">parent loses a key &rarr; repeat one level up</td></tr>
         </table>
-        <p class="tiny" style="margin-top:9px">Only case 3 repeats, climbing one level each time &mdash; at most <b>one merge per
-          level</b>. Try 1 and 2 <i>first</i>: borrowing is cheaper and <b>stops immediately</b>.</p>
+        <p class="tiny" style="margin-top:9px">Only case 3 repeats, and it climbs at most one level per merge.
+          Always try borrowing first &mdash; it's cheaper and stops immediately.</p>
       </div>
       <div class="col" style="flex:0 0 470px">
-        <div class="card dense tint-e"><h3 style="color:var(--emerald)">A merge can never overflow. Check it.</h3>
-          <p style="margin-top:7px">Starved page <b>&lceil;m/2&rceil;&minus;2</b> keys + sibling <b>&lceil;m/2&rceil;&minus;1</b> + the separator:</p>
+        <div class="card dense tint-e"><h3 style="color:var(--emerald)">A merge can never overflow</h3>
+          <p style="margin-top:7px">Starved page (&lceil;m/2&rceil;&minus;2 keys) + sibling (&lceil;m/2&rceil;&minus;1 keys) + separator:</p>
           <div class="math" style="margin-top:7px;font-size:15.5px;padding:7px 12px">2&lceil;m/2&rceil; &minus; 2 &nbsp;&le;&nbsp; m &minus; 1</div>
-          <p style="margin-top:7px">Order 5: <span class="mono">1 + 1 + 2 = 4</span>, the maximum &mdash; it fits
-            <b>exactly</b>. Merging is always safe; you never check.</p></div>
-        <div class="card dense tint-r frag"><h3 style="color:var(--rose)">And the mirror image of insertion</h3>
-          <p style="margin-top:7px">If merges cascade to the <b>root</b> and empty it, the root is discarded and its one
-            remaining child becomes the new root.</p>
+          <p style="margin-top:7px">At order 5: 1 + 1 + 2 = 4, exactly the maximum. Merging is always safe by
+            construction &mdash; you never need to check.</p></div>
+        <div class="card dense tint-r frag"><h3 style="color:var(--rose)">The mirror image of insertion</h3>
+          <p style="margin-top:7px">If merges cascade all the way to the root and empty it, the root is discarded
+            and its one remaining child becomes the new root.</p>
           <div class="math" style="margin-top:7px;font-size:15px;padding:7px 12px">grows at the root &nbsp;&middot;&nbsp; shrinks at the root</div>
-          <p style="margin-top:7px">The <b>only</b> place height ever changes, either direction &mdash; which is why every leaf
-            stays on one line forever. <b>Say that in the viva and you have understood B-trees.</b></p></div>
+          <p style="margin-top:7px">That's the only place height ever changes, in either direction &mdash; which
+            is exactly why every leaf stays level forever.</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 29. BORROW, DRAWN ==================== -->
+<!-- ==================== 18. BORROW, DRAWN ==================== -->
 <section class="slide" data-name="Borrowing, drawn" data-act="Deletion">
-  <div class="head"><span class="kicker k-c">Case 1 and 2</span><h2>The sibling has spare. But its key cannot come straight across.</h2></div>
+  <div class="head"><span class="kicker k-c">Case 1 and 2</span><h2>The sibling has a spare key &mdash; but it can't move straight across.</h2></div>
   <div class="body">
     <div class="ba" style="grid-template-columns:1fr 92px 1fr 92px 1fr">
       <div class="panel before"><span class="plabel">1 &middot; delete 20</span>
         <div class="tree" data-t="[30 60]([10 20],[40 45 50],[70 80])" data-k="20:bad" data-hl="10:crit"></div>
-        <div class="psub">That leaf will drop to <b>1</b> key. Minimum is 2.</div></div>
+        <div class="psub">That leaf will drop to 1 key. The minimum is 2.</div></div>
       <div class="arrowcol"><div class="glyph" style="animation:none">&#8594;</div><div class="op">who has<br>spare?</div></div>
       <div class="panel before"><span class="plabel">2 &middot; underflow, and a rich neighbour</span>
         <div class="tree" data-t="[30 60]([10],[40 45 50],[70 80])" data-hl="10:under,40:good" data-tag="10:starved,40:3 keys"></div>
-        <div class="psub">The right sibling holds <b>3</b>. It can afford to lose one &mdash;
-          but <b>40 cannot simply move left</b>.</div></div>
+        <div class="psub">The right sibling holds 3 keys &mdash; it can spare one. But <b>40 can't just slide left</b>.</div></div>
       <div class="arrowcol"><div class="glyph">&#8635;</div><div class="op">rotate<br>through<br>the parent</div></div>
       <div class="panel after"><span class="plabel">3 &middot; done, and it stops here</span>
         <div class="tree" data-t="[40 60]([10 30],[45 50],[70 80])" data-k="30:move,40:move" data-o="lvl" data-hl="10:good"></div>
@@ -1395,197 +1055,62 @@ body.laser,body.laser *{cursor:none !important}
     </div>
     <div class="row frag" style="gap:14px">
       <div class="card tint-v grow"><h3 style="color:var(--violet)">Why it rotates instead of sliding sideways</h3>
-        <p style="margin-top:7px">Ask what would happen if you moved <b>40</b> directly into the left leaf: you would get
-          <span class="pgx"><span>10</span><span>40</span></span> sitting to the <b>left</b> of the fence
-          <span class="pgx"><span>30</span></span>. <b>40 &gt; 30.</b> Property 5 destroyed.</p>
-        <p style="margin-top:9px">The <b>only</b> key in the entire tree that legally belongs immediately to the right of 10
-          is the separator <b>30</b> itself. So 30 must come down &mdash; which leaves the fence empty, and the sibling's
-          smallest key <b>40</b> is the only key that legally fills <i>it</i>. <b>The rotation is forced, not chosen.</b></p></div>
-      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Left sibling, right sibling &mdash; write one, mirror the other</h3>
-        <p style="margin-top:7px">Borrowing from the <b>left</b> is the same three moves with every direction reversed:
-          the separator comes down to become the starved page's <b>first</b> key, and the left sibling's <b>largest</b>
-          key goes up.</p>
-        <p style="margin-top:9px">If your two branches differ in any way beyond swapping <i>first</i> for <i>last</i>
-          and <i>left</i> for <i>right</i>, <b>one of them is wrong</b>. Same rule you learned writing
-          <span class="mono">left_rotate</span> and <span class="mono">right_rotate</span> last lab.</p>
-        <p class="tiny" style="margin-top:9px">At an <b>internal</b> node the borrowed key drags a <b>child pointer</b>
-          with it. Forgetting that child is the single most common deletion bug &mdash; in exams and in code.</p></div>
+        <p style="margin-top:7px">If 40 moved directly into the left leaf, you'd get
+          <span class="pgx"><span>10</span><span>40</span></span> sitting left of the fence
+          <span class="pgx"><span>30</span></span> &mdash; but 40 is bigger than 30, which breaks the ordering rule.
+          The only key that legally belongs there is the separator, 30, itself.</p>
+        <p style="margin-top:9px">So 30 comes down, which leaves the fence slot empty &mdash; and the sibling's
+          smallest key, 40, is the only key that can legally fill it. The rotation isn't a stylistic choice;
+          it's forced.</p></div>
+      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Borrowing from the left is the mirror image</h3>
+        <p style="margin-top:7px">Same three moves, every direction reversed: the separator comes down to become
+          the starved page's <b>first</b> key, and the left sibling's <b>largest</b> key goes up.</p>
+        <p class="tiny" style="margin-top:9px">At an internal node, the key that moves drags a child pointer along
+          with it. Forgetting that pointer is the single most common deletion bug.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 30. MERGE, DRAWN ==================== -->
+<!-- ==================== 19. MERGE, DRAWN ==================== -->
 <section class="slide" data-name="Merging, drawn" data-act="Deletion">
-  <div class="head"><span class="kicker k-r">Case 3</span><h2>Nobody has spare. So two starved pages stop being two pages.</h2></div>
+  <div class="head"><span class="kicker k-r">Case 3</span><h2>Nobody has a spare key. Two starved pages become one.</h2></div>
   <div class="body">
     <div class="ba" style="grid-template-columns:1fr 92px 1fr 92px 1fr">
       <div class="panel before"><span class="plabel">1 &middot; delete 20 again</span>
         <div class="tree" data-t="[30 60]([10 20],[40 50],[70 80])" data-k="20:bad" data-hl="10:crit"></div>
-        <div class="psub">Same deletion &mdash; but this time the right sibling holds only <b>2</b>.</div></div>
+        <div class="psub">Same deletion &mdash; but this time the right sibling holds only 2 keys.</div></div>
       <div class="arrowcol"><div class="glyph" style="animation:none">&#10007;</div><div class="op">nobody<br>can lend</div></div>
       <div class="panel before"><span class="plabel">2 &middot; both at the minimum</span>
         <div class="tree" data-t="[30 60]([10],[40 50],[70 80])" data-hl="10:under,40:under" data-k="30:down"></div>
-        <div class="psub">Take from <span class="mono">[40 50]</span> and it starves in turn. Instead, pull the fence
-          <b>30</b> down and <b>fuse all three</b>.</div></div>
+        <div class="psub">Borrowing from <span class="mono">[40 50]</span> would just starve it instead. So pull
+          the fence <b>30</b> down and fuse all three.</div></div>
       <div class="arrowcol"><div class="glyph" style="animation:none">&#8681;</div><div class="op">merge</div></div>
       <div class="panel after"><span class="plabel">3 &middot; one page where two stood</span>
         <div class="tree" data-t="[60]([10 30 40 50],[70 80])" data-k="30:move" data-o="lvl" data-hl="10:good"></div>
-        <div class="psub"><span class="mono">1 + 1 + 2 = 4</span> keys &mdash; the maximum, exactly. Root drops to
-          <b>1</b> key, which is legal <b>only because it is the root</b>.</div></div>
+        <div class="psub">1 + 1 + 2 = 4 keys, exactly the maximum. The root drops to 1 key &mdash; legal only
+          because it's the root.</div></div>
     </div>
     <div class="row frag" style="gap:14px">
-      <div class="card tint-a grow"><h3 style="color:var(--amber)">The separator goes <i>down</i>, and that is the catch</h3>
-        <p style="margin-top:7px">A merge consumes <b>a key from the parent</b>. Three pages became two, so the parent
-          needs one fewer fence &mdash; but the parent is now one key lighter, and <b>it may have been at its minimum too</b>.</p>
-        <p style="margin-top:9px">So you re-ask the whole question one level up: does <i>the parent</i> underflow?
-          Borrow, or merge, or stop. <b>Identical problem, one level higher</b> &mdash; the exact mirror of a split cascading upward.</p></div>
-      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Try to borrow first. Always.</h3>
-        <p style="margin-top:7px">Borrowing <b>terminates immediately</b> and touches 3 pages. Merging destroys a page,
-          lowers the tree's fill, and <b>may cascade to the root</b>. They are not equally good.</p>
-        <p style="margin-top:9px">Check <b>both</b> adjacent siblings before giving up &mdash; a common exam slip is to look
-          only right, find it starved, and merge when the left neighbour was sitting there with four keys.
-          <b>A node's cousins do not count</b>, though: only siblings sharing your parent can lend, because only they
-          have a separator between you.</p></div>
+      <div class="card tint-a grow"><h3 style="color:var(--amber)">The separator moving down is the catch</h3>
+        <p style="margin-top:7px">A merge always takes a key from the parent &mdash; two pages become one, so the
+          parent needs one fewer fence. That means the parent is now a key lighter, and it might have been at its
+          own minimum already.</p>
+        <p style="margin-top:9px">So you re-check the same question one level up: does the parent underflow now?
+          Borrow, merge, or stop &mdash; the same problem, one level higher. It's the exact mirror of a split
+          cascading upward during insertion.</p></div>
+      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Always try to borrow first</h3>
+        <p style="margin-top:7px">Borrowing stops immediately and only touches 3 pages. Merging destroys a page,
+          lowers the tree's fill, and can cascade all the way to the root &mdash; they're not equally cheap.</p>
+        <p style="margin-top:9px">Check <b>both</b> adjacent siblings before giving up. A node's cousins don't
+          count, though &mdash; only siblings that share your parent can lend, because only they have a separator
+          key between you and them.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 31. DRILL 4 CARD ==================== -->
-<section class="slide card-slide" data-name="DRILL 4 — card" data-act="Deletion drills">
-  <div class="head"><span class="kicker k-r">Flashcard</span><h2>Drill 4 &mdash; a fence comes down</h2></div>
-  <div class="body">
-    <div class="task grow">
-      <div class="tasknum"><span class="n">4</span><span class="l">DRILL</span></div>
-      <div class="panel neutral grow"><span class="plabel long">Order 5. Now <b>delete 40</b>. Note where 40 lives.</span>
-        <div class="tree" data-t="[40 80]([10 20],[50 55 60],[90 95])"></div></div>
-      <div class="col" style="flex:0 0 344px">
-        <div class="card tint-r"><h3 style="color:var(--rose)">Answer these four</h3>
-          <p style="margin-top:8px;font-size:16.5px">1. 40 is not in a leaf. What replaces it?<br>
-            2. Draw the tree straight after the swap.<br>
-            3. Something is now broken. What, and which case?<br>
-            4. Redraw the finished tree.</p></div>
-        <div class="timer"><button class="btn primary" data-timer="180">Start 3:00</button><span class="tface">3:00</span></div>
-        <button class="btn" data-hint="1">Hint 1</button>
-        <div class="hintbox" data-hintbox="1">The in-order predecessor of 40 is the <b>largest</b> key in the subtree to its <b>left</b>. Go and find it.</div>
-        <button class="btn" data-hint="2">Hint 2</button>
-        <div class="hintbox" data-hintbox="2">Pulling that key out leaves the left leaf with <b>1</b>. Check both siblings for spare keys before you reach for a merge.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 32. DRILL 4 SOLUTION ==================== -->
-<section class="slide" data-name="Drill 4 — solution" data-act="Deletion drills">
-  <div class="head"><span class="kicker k-e">Solution</span><h2>Drill 4 &mdash; swap, starve, borrow.</h2></div>
-  <div class="body">
-    <div class="ba" style="grid-template-columns:1fr 88px 1fr 88px 1fr">
-      <div class="panel before"><span class="plabel">1 &middot; predecessor of 40</span>
-        <div class="tree" data-t="[40 80]([10 20],[50 55 60],[90 95])" data-k="40:bad,20:up" data-path="40-10" data-hl="10:sub"></div>
-        <div class="psub">Largest key left of 40 is <b>20</b>. That is the only key that can stand in as the fence.</div></div>
-      <div class="arrowcol"><div class="glyph" style="animation:none">&#8593;</div><div class="op">20 climbs<br>into the slot</div></div>
-      <div class="panel before"><span class="plabel">2 &middot; now an ordinary leaf problem</span>
-        <div class="tree" data-t="[20 80]([10],[50 55 60],[90 95])" data-k="20:move" data-hl="10:under,50:good" data-tag="50:3 keys"></div>
-        <div class="psub">The leaf holds <b>1</b>. Left sibling: none. Right sibling holds <b>3</b> &mdash;
-          <b>case 2, borrow right</b>.</div></div>
-      <div class="arrowcol"><div class="glyph">&#8635;</div><div class="op">rotate</div></div>
-      <div class="panel after"><span class="plabel">3 &middot; final</span>
-        <div class="tree" data-t="[50 80]([10 20],[55 60],[90 95])" data-k="20:move,50:move" data-o="lvl" data-hl="10:good"></div>
-        <div class="psub"><b>20 down</b>, <b>50 up</b>. In-order <span class="mono">10 20 50 55 60 80 90 95</span> &mdash;
-          sorted, and 40 is gone &#10003;.</div></div>
-    </div>
-    <div class="card tint-v frag"><p><b>Watch key 20 carefully &mdash; it moved twice.</b> Up into the root as the stand-in fence,
-      then straight back down into the leaf as the borrowed key. That looks absurd until you see what it really is:
-      <b>two independent repairs that happened to involve the same key</b>. Step 1 asked "what is the correct fence?";
-      step 2 asked "where does the starved page get a key?". Both answers were 20, by coincidence of this tree.
-      <b>Do the steps separately and in order.</b> Students who try to do both at once produce a tree that is
-      merely <i>nearly</i> right &mdash; and nearly right scores zero.</p></div>
-  </div>
-</section>
-
-<!-- ==================== 33. BOSS CARD 2 ==================== -->
-<section class="slide card-slide" data-name="DRILL 5 — BOSS card" data-act="Deletion drills">
-  <div class="head"><span class="kicker k-r">Boss fight</span><h2>Drill 5 &mdash; every page is starving</h2></div>
-  <div class="body">
-    <div class="task grow">
-      <div class="tasknum boss"><span class="n">5</span><span class="l">BOSS</span></div>
-      <div class="panel neutral grow"><span class="plabel long">Order 5. Now <b>delete 10</b>. Check every page's key count first.</span>
-        <div class="tree" data-t="[50]([20 30]([10 15],[25 27],[35 40]),[70 80]([55 60],[75 76],[85 90]))"></div></div>
-      <div class="col" style="flex:0 0 330px">
-        <div class="card tint-r"><h3 style="color:var(--rose)">Answer these five</h3>
-          <p style="margin-top:8px;font-size:16px">1. Can any sibling lend? Check them.<br>
-            2. Merge &mdash; which fence comes down?<br>
-            3. <b>Now look at the parent.</b><br>
-            4. Can <i>its</i> sibling lend?<br>
-            5. Final height. Still level?</p></div>
-        <div class="timer"><button class="btn primary" data-timer="300">Start 5:00</button><span class="tface">5:00</span></div>
-        <button class="btn" data-hint="1">Hint 1</button>
-        <div class="hintbox" data-hintbox="1">Every single page in this tree holds exactly the minimum &mdash; <b>2 keys</b>. Nobody, anywhere, has spare.</div>
-        <button class="btn" data-hint="2">Hint 2</button>
-        <div class="hintbox" data-hintbox="2">A merge costs the parent a key. The parent had 2. Do that twice and ask what the <b>root</b> has left.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 34. BOSS SOLUTION 1 ==================== -->
-<section class="slide" data-name="Boss 2 — step 1 of 2 (merge at the leaf)" data-act="Deletion drills">
-  <div class="head"><span class="kicker k-a">Solution &middot; round 1</span><h2>No lender anywhere. Merge &mdash; and the parent starves in turn.</h2></div>
-  <div class="body">
-    <div class="ba" style="grid-template-columns:1fr 96px 1fr">
-      <div class="panel before"><span class="plabel">1 &middot; leaf underflows, sibling is broke</span>
-        <div class="tree" data-t="[50]([20 30]([15],[25 27],[35 40]),[70 80]([55 60],[75 76],[85 90]))" data-hl="15:under,25:under" data-k="20:down" data-path="20-15"></div>
-        <div class="psub">10 gone, so <span class="mono">[15]</span> holds 1. Sibling <span class="mono">[25 27]</span>
-          is at the minimum &mdash; <b>case 3, merge</b>. Fence <b>20</b> comes down.</div></div>
-      <div class="arrowcol"><div class="glyph" style="animation:none">&#8681;</div><div class="op">fuse the<br>two pages</div></div>
-      <div class="panel before"><span class="plabel">2 &middot; the problem moved up a level</span>
-        <div class="tree" data-t="[50]([30]([15 20 25 27],[35 40]),[70 80]([55 60],[75 76],[85 90]))" data-hl="30:under" data-k="20:move,50:down" data-tag="30:needs 2 keys"></div>
-        <div class="psub">The leaf is healthy (<b>4</b> keys). But its parent gave up 20 and now holds <b>1</b> key
-          and <b>2</b> children &mdash; order 5 demands 2 and 3.</div></div>
-    </div>
-    <div class="card tint-v frag">
-      <p><b>This is the insertion cascade run backwards, and it is worth saying out loud.</b> A split hands the parent
-      an <i>extra</i> key and asks "too many?". A merge takes a key <i>away</i> and asks "too few?". Same loop, same
-      one-level-per-round climb, same termination argument. Before you turn the page, answer question 4 yourself:
-      the starved node is <span class="mono">[30]</span>, its only sibling is <span class="mono">[70 80]</span> &mdash;
-      <b>can it lend?</b> Count its keys, and remember the minimum applies to internal pages too.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 35. BOSS SOLUTION 2 ==================== -->
-<section class="slide" data-name="Boss 2 — step 2 of 2 (the root dies)" data-act="Deletion drills">
-  <div class="head"><span class="kicker k-e">Solution &middot; round 2</span><h2>The second merge empties the root. So the root <span style="color:var(--emerald)">goes</span>.</h2></div>
-  <div class="body">
-    <div class="panel after grow"><span class="plabel long">Final answer &mdash; height 3 &rarr; 2, every leaf still on one line</span>
-      <div class="tree" data-t="[30 50 70 80]([15 20 25 27],[35 40],[55 60],[75 76],[85 90])" data-hl="30:new" data-o="lvl"></div>
-      <div class="psub"><span class="mono">[70 80]</span> held only the minimum too, so <span class="mono">[30]</span> merged with it,
-        pulling the root's <b>50</b> down: <span class="mono">30 + 50 + 70 80</span> = <b>4 keys</b>, and their
-        <b>5 children</b> came along. The old root was left holding <b>nothing</b> &mdash; so it was discarded, and the
-        merged page <b>became</b> the root.</div></div>
-    <div class="row frag" style="gap:14px">
-      <div class="card tint-e grow"><h3 style="color:var(--emerald)">Check it the way the marker will</h3>
-        <div class="ledger" style="margin-top:8px">
-          <div class="lrow"><span class="lk">Root: 4 keys / 5 children (max is 4 / 5)</span><span class="lv ok">&#10003;</span></div>
-          <div class="lrow"><span class="lk">Every leaf holds 2&ndash;4</span><span class="lv ok">&#10003;</span></div>
-          <div class="lrow"><span class="lk">All five leaves on one level</span><span class="lv ok">&#10003;</span></div>
-          <div class="lrow"><span class="lk">In-order walk sorted, 10 absent</span><span class="lv ok">&#10003;</span></div>
-        </div>
-        <p class="tiny" style="margin-top:9px">An empty root is the <b>only</b> legitimate reason to delete a node other than by merging.
-          Never "tidy up" a root holding 1 key &mdash; that is legal and required.</p></div>
-      <div class="card tint-a grow"><h3 style="color:var(--amber)">The symmetry, stated once, for the exam</h3>
-        <div class="math" style="margin-top:8px;font-size:16px">root splits &rarr; <b>+1</b> level &nbsp;&middot;&nbsp; root empties &rarr; <b>&minus;1</b> level</div>
-        <p style="margin-top:10px">Nothing else in the entire structure can change a leaf's depth. Not a split,
-          not a borrow, not a merge below the root, not any sequence of them in any order.</p>
-        <p style="margin-top:9px">That is why a B-tree needs <b>no balance factors, no colours, no heights, no rotations,
-          and no metadata of any kind</b> &mdash; and why it stays perfectly level after a billion operations.
-          <b>The balance is structural, not maintained.</b></p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 36. CHEAT SHEET ==================== -->
-<section class="slide" data-name="Master cheat sheet" data-act="Wrap-up">
-  <div class="head"><span class="kicker k-v">Take a photo of this one</span><h2>Everything, on one slide.</h2></div>
+<!-- ==================== 20. CHEAT SHEET ==================== -->
+<section class="slide" data-name="Both operations, one slide" data-act="Reference">
+  <div class="head"><span class="kicker k-v">Keep this one handy</span><h2>Insert and delete, four steps each.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:12px">
       <div class="col grow" style="flex:1 1 0">
@@ -1596,9 +1121,8 @@ body.laser,body.laser *{cursor:none !important}
             <tr><td>Root exception</td><td class="c">&ge;1 key, &ge;2 children</td></tr>
             <tr><td>Always, every node</td><td class="c"><b>children = keys + 1</b></td></tr>
             <tr><td>All leaves</td><td class="c">same level</td></tr>
-            <tr><td>Height</td><td class="c">&le; 1 + log<sub>&lceil;m/2&rceil;</sub>((n+1)/2)</td></tr>
           </table></div>
-        <div class="card dense tint-c"><h3 style="color:var(--cyan)">Order 5 &mdash; the drill numbers</h3>
+        <div class="card dense tint-c"><h3 style="color:var(--cyan)">Order 5, as an example</h3>
           <div class="ledger" style="margin-top:6px">
             <div class="lrow"><span class="lk">Keys per page</span><span class="lv">2 &ndash; 4</span></div>
             <div class="lrow"><span class="lk">Children per internal page</span><span class="lv">3 &ndash; 5</span></div>
@@ -1606,135 +1130,102 @@ body.laser,body.laser *{cursor:none !important}
             <div class="lrow"><span class="lk">Underflow when a page holds</span><span class="lv bad">1</span></div>
           </div></div>
       </div>
-      <div class="card dense tint-a grow" style="flex:1 1 0"><h3 style="color:var(--amber)">Insert &mdash; four steps</h3>
+      <div class="card dense tint-a grow" style="flex:1 1 0"><h3 style="color:var(--amber)">Insert</h3>
         <div class="ladder" style="margin-top:7px">
-          <div class="rung dense"><span class="rn">1</span><span class="rt">Walk the fences down to a <b>leaf</b>. Always a leaf.</span></div>
-          <div class="rung dense"><span class="rn">2</span><span class="rt">Room? Slot it in sorted. <b>Stop.</b> Full (m&minus;1) is legal.</span></div>
-          <div class="rung dense"><span class="rn">3</span><span class="rt">Overflowed to m keys? Write all m out, take the <b>median</b>:
-            left half stays, median goes <b>up</b>, right half is a new page.</span></div>
-          <div class="rung dense"><span class="rn">4</span><span class="rt">Parent overflowed too? <b>Repeat.</b> Root overflowed?
-            <b>New root, 1 key</b> &mdash; height +1.</span></div>
+          <div class="rung dense"><span class="rn">1</span><span class="rt">Walk the fences down to a <b>leaf</b>. New keys always land in a leaf.</span></div>
+          <div class="rung dense"><span class="rn">2</span><span class="rt">Room? Slot it in, sorted, and stop. A full page (m&minus;1 keys) is legal.</span></div>
+          <div class="rung dense"><span class="rn">3</span><span class="rt">Overflowed to m keys? Sort all m, take the <b>median</b>:
+            left half stays, median goes up, right half is a new page.</span></div>
+          <div class="rung dense"><span class="rn">4</span><span class="rt">Parent overflowed too? Repeat. Root overflowed?
+            Build a new root with 1 key &mdash; height +1.</span></div>
         </div>
-        <p class="tiny" style="margin-top:9px">Median of <b>all m</b> keys, the new one included. Never of the old m&minus;1.</p></div>
-      <div class="card dense tint-r grow" style="flex:1 1 0"><h3 style="color:var(--rose)">Delete &mdash; four steps</h3>
+        <p class="tiny" style="margin-top:9px">The median is of all m keys including the new one &mdash; never of the original m&minus;1.</p></div>
+      <div class="card dense tint-r grow" style="flex:1 1 0"><h3 style="color:var(--rose)">Delete</h3>
         <div class="ladder" style="margin-top:7px">
-          <div class="rung dense"><span class="rn">1</span><span class="rt">Internal key? Overwrite it with its <b>predecessor</b>
-            (or successor) and delete <i>that</i> from its leaf instead.</span></div>
-          <div class="rung dense"><span class="rn">2</span><span class="rt">Remove from the leaf. Still &ge; min? <b>Stop.</b></span></div>
-          <div class="rung dense"><span class="rn">3</span><span class="rt">Underflow &rarr; <b>borrow</b>: check <b>both</b> adjacent siblings.
-            Separator comes <b>down</b>, sibling's nearest key goes <b>up</b>. Stops immediately.</span></div>
-          <div class="rung dense"><span class="rn">4</span><span class="rt">Both at min &rarr; <b>merge</b>: pull the separator <b>down</b>,
-            fuse the pages. Parent lost a key &mdash; <b>repeat</b>. Root emptied? <b>Discard it</b> &mdash; height &minus;1.</span></div>
+          <div class="rung dense"><span class="rn">1</span><span class="rt">Key in an internal node? Overwrite it with
+            its predecessor (or successor), then delete <i>that</i> from its leaf.</span></div>
+          <div class="rung dense"><span class="rn">2</span><span class="rt">Remove from the leaf. Still &ge; minimum? Stop.</span></div>
+          <div class="rung dense"><span class="rn">3</span><span class="rt">Underflow &rarr; try to <b>borrow</b>: check
+            both adjacent siblings. Separator down, sibling's nearest key up. Stops immediately.</span></div>
+          <div class="rung dense"><span class="rn">4</span><span class="rt">Both siblings at minimum &rarr; <b>merge</b>:
+            separator down, pages fused. Parent lost a key &mdash; repeat. Root emptied? Discard it &mdash; height &minus;1.</span></div>
         </div>
-        <p class="tiny" style="margin-top:9px">Borrowing or merging an <b>internal</b> page? The moved key drags a <b>child pointer</b> with it.</p></div>
+        <p class="tiny" style="margin-top:9px">Borrowing or merging at an internal page moves a child pointer along with the key.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 37. B+ TREE ==================== -->
-<section class="slide" data-name="B-tree vs B+ tree" data-act="Wrap-up">
-  <div class="head"><span class="kicker k-c">What actually ships</span><h2>Every database you have ever used indexes with the variant, not the original.</h2></div>
+<!-- ==================== 21. B+ TREE ==================== -->
+<section class="slide" data-name="B-tree vs B+ tree" data-act="Reference">
+  <div class="head"><span class="kicker k-c">What actually ships</span><h2>Every database you've used indexes with a variant, not the plain original.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="col grow">
-        <div class="card dense tint-v"><h3 style="color:var(--violet)">One change, and it is small</h3>
-          <p style="margin-top:7px">In a <b>B-tree</b> a key carries its record wherever it sits &mdash; a key in the root
-            <i>is</i> data. In a <b>B+ tree</b>, internal nodes hold <b>separator keys only</b> and <b>every record lives in a
-            leaf</b>. Separators are <b>copies</b>, so a key can appear twice: as a fence, and as data.</p>
-          <p style="margin-top:7px">Then the leaves are <b>linked left to right</b> in a list.</p></div>
+        <div class="card dense tint-v"><h3 style="color:var(--violet)">One small change</h3>
+          <p style="margin-top:7px">In a <b>B-tree</b>, a key carries its full record wherever it sits &mdash; a key
+            in the root <i>is</i> data. In a <b>B+ tree</b>, internal nodes hold <b>separator keys only</b>, and
+            every record lives in a leaf. A separator is a copy, so a key can appear twice: once as a fence, once
+            as data. The leaves are then linked left to right in a list.</p></div>
         <div class="card dense tint-e frag"><h3 style="color:var(--emerald)">Why that tiny change wins</h3>
           <div class="ledger" style="margin-top:8px">
             <div class="lrow"><span class="lk">Internal pages carry no payload &rarr; more fences per page</span><span class="lv ok">higher fanout</span></div>
             <div class="lrow"><span class="lk">Higher fanout &rarr; fewer levels</span><span class="lv ok">shorter tree</span></div>
-            <div class="lrow"><span class="lk"><b>Range scan</b> &mdash; "all rows between X and Y"</span><span class="lv ok">walk the leaf list</span></div>
+            <div class="lrow"><span class="lk">Range scan &mdash; "rows between X and Y"</span><span class="lv ok">walk the leaf list</span></div>
             <div class="lrow"><span class="lk">Every lookup costs exactly h reads</span><span class="lv ok">predictable latency</span></div>
-            <div class="lrow"><span class="lk">Lookup can stop early at an internal node</span><span class="lv bad">never</span></div>
           </div>
-          <p style="margin-top:8px">The range scan is the real reason: <span class="mono">WHERE age BETWEEN 30 AND 40</span>
-            re-descends for every successor in a B-tree, but is <b>one descent then a sequential walk</b> in a B+ tree &mdash;
-            the pattern disks are fastest at.</p></div>
+          <p style="margin-top:8px">The range scan is the real payoff: <span class="mono">WHERE age BETWEEN 30 AND 40</span>
+            re-descends the whole tree for every match in a plain B-tree, but in a B+ tree it's one descent then a
+            sequential walk &mdash; the access pattern disks are fastest at.</p></div>
       </div>
       <div class="col" style="flex:0 0 452px">
         <div class="card dense tint-a"><h3 style="color:var(--amber)">Where each one actually lives</h3>
           <table class="tbl-compact" style="margin-top:8px">
             <tr><th>structure</th><th>found in</th></tr>
             <tr><td class="c">B+ tree</td><td>MySQL/InnoDB, PostgreSQL, Oracle, SQLite, NTFS, APFS, ext4</td></tr>
-            <tr><td class="c">B-tree</td><td>Btrfs, some in-memory indexes, and most textbook questions</td></tr>
-            <tr><td class="c">B*-tree</td><td>HFS+ &mdash; delays splits by pushing keys sideways, holding pages ~2/3 full</td></tr>
+            <tr><td class="c">B-tree</td><td>Btrfs, some in-memory indexes, most textbook questions</td></tr>
+            <tr><td class="c">B*-tree</td><td>HFS+ &mdash; delays splits by pushing keys sideways first, keeping pages ~2/3 full</td></tr>
           </table>
-          <p class="tiny" style="margin-top:8px">Note what is <b>not</b> here: AVL and red-black. Never, anywhere on disk &mdash;
-            the whole point of slide 3.</p></div>
-        <div class="card dense tint-r frag"><h3 style="color:var(--rose)">In the exam</h3>
-          <p style="margin-top:7px">Unless the question says <b>B+</b>, draw a plain <b>B-tree</b>: keys in every node, no leaf
-            links, every key <b>exactly once</b>. The giveaway you have drawn a B+ tree by accident is a key appearing in both an
-            internal node <i>and</i> a leaf &mdash; promoting a median <b>moves</b> it, it does not copy it.</p></div>
+          <p class="tiny" style="margin-top:8px">Notably absent: AVL and red-black trees. They almost never show up
+            on disk &mdash; which is the whole point of this lesson.</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 38. THE HONEST COMPARISON ==================== -->
-<section class="slide" data-name="The comparison, marketing removed" data-act="Wrap-up">
-  <div class="head"><span class="kicker k-c">Say this, not the myth</span><h2>Four trees, one table. Note the row that is not a difference.</h2></div>
-  <div class="body">
-    <table class="tbl-compact" style="margin-top:2px">
-      <tr><th style="width:20%">&nbsp;</th><th>AVL</th><th>Red-black</th><th>B-tree (order m)</th></tr>
-      <tr><td>Invariant</td><td>|height(L)&minus;height(R)| &le; 1</td><td>equal black counts, no red-red</td><td>all leaves level, every page &ge; half full</td></tr>
-      <tr><td>Metadata per node</td><td class="c">an int height</td><td class="c">one colour bit</td><td class="c"><b>none</b></td></tr>
-      <tr><td>Keys per node</td><td class="c">1</td><td class="c">1</td><td class="c">up to m&minus;1</td></tr>
-      <tr><td>Height</td><td class="c">1.44 log&#8322;n</td><td class="c">2 log&#8322;n</td><td class="c">1 + log<sub>&lceil;m/2&rceil;</sub>((n+1)/2)</td></tr>
-      <tr><td>Repair mechanism</td><td>rotation</td><td>recolour, else rotation</td><td>split / borrow / merge &mdash; <b>no rotations, ever</b></td></tr>
-      <tr><td>Comparisons per lookup</td><td class="c">~log&#8322;n</td><td class="c">~log&#8322;n</td><td class="c"><b>~log&#8322;n</b></td></tr>
-      <tr><td><b>Page touches</b> per lookup</td><td class="c">~1.44 log&#8322;n</td><td class="c">~2 log&#8322;n</td><td class="c"><b>~log<sub>m</sub>n</b></td></tr>
-      <tr><td>Built for</td><td>RAM, read-heavy</td><td>RAM, write-heavy</td><td>anything with a block device or a cache line</td></tr>
-      <tr><td>Where you find it</td><td>in-memory ordered indexes</td><td>Linux kernel, <span class="mono">std::map</span>, <span class="mono">TreeMap</span></td><td>every database, every filesystem</td></tr>
-    </table>
-    <div class="card tint-a">
-      <p><b>The row that is not a difference is "comparisons per lookup".</b> All three do about log&#8322;n of them, because
-      all three are binary searches over sorted keys &mdash; that is information-theoretically the floor and nobody beats it.
-      <b>The only row that ever differed is the one below it.</b> So never say "B-trees are faster than AVL trees": say
-      <b>"a B-tree does the same search with far fewer boundary crossings, and boundary crossings are what the hardware bills you for."</b>
-      If your data fits comfortably in L2 cache, an AVL tree may well beat a B-tree &mdash; and that is the same sentence, read in the other direction.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== 39. FIVE WAYS TO LOSE MARKS ==================== -->
-<section class="slide" data-name="Five ways to lose marks" data-act="Wrap-up">
-  <div class="head"><span class="kicker k-r">Learn from other people's pain</span><h2>The five mistakes, ranked by how often I see them.</h2></div>
+<!-- ==================== 22. COMMON MISTAKES ==================== -->
+<section class="slide" data-name="Common mistakes to watch for" data-act="Reference">
+  <div class="head"><span class="kicker k-r">Learn from other people's bugs</span><h2>The mistakes that show up again and again.</h2></div>
   <div class="body">
     <div class="ladder grow" style="justify-content:center">
-      <div class="rung dead"><span class="rn">1</span><span class="rt"><b>Splitting a page that is merely full.</b>
-        A page holding m&minus;1 keys is <i>maximally useful</i>, not broken. You split only when it would hold <b>m</b>.
-        Splitting early wastes work <i>and</i> lowers the fill, which was the entire point of rule 2.</span></div>
+      <div class="rung dead"><span class="rn">1</span><span class="rt"><b>Splitting a page that's merely full.</b>
+        A page holding m&minus;1 keys is fine &mdash; you only split once it would hold <b>m</b>. Splitting early
+        wastes work and lowers fill, undoing the whole point of rule 2.</span></div>
       <div class="rung dead"><span class="rn">2</span><span class="rt"><b>Taking the median of the wrong set.</b>
-        Insert the new key <i>first</i>, write out all <b>m</b> keys, <i>then</i> point at the middle one.
-        Picking the median of the original m&minus;1 gets it right by luck about half the time, which is worse than
-        getting it wrong every time &mdash; you never find out.</span></div>
-      <div class="rung dead"><span class="rn">3</span><span class="rt"><b>Erasing a key straight out of an internal node.</b>
-        That key is a <b>fence</b>, not just data. Overwrite it with its in-order <b>predecessor or successor</b>,
-        then delete that key from the <b>leaf</b> it came from. Every deletion is a leaf deletion.</span></div>
-      <div class="rung dead"><span class="rn">4</span><span class="rt"><b>Losing a child pointer.</b>
-        When you borrow or merge at an <b>internal</b> node, the key that moves <b>drags a subtree with it</b>.
-        Check <span class="mono">children = keys + 1</span> at <i>every</i> node before you hand the paper in &mdash;
-        it is a two-second scan and it catches this instantly.</span></div>
-      <div class="rung dead"><span class="rn">5</span><span class="rt"><b>Getting "order" wrong &mdash; or reaching for a merge too early.</b>
-        State your convention in line one (<b>this deck: order m = max children</b>). And when a page starves,
-        check <b>both</b> adjacent siblings for a lender before merging: borrowing terminates immediately,
-        merging can cascade to the root.</span></div>
+        Insert the new key first, write out all <b>m</b> keys, <i>then</i> pick the middle one. Taking the median
+        of the original m&minus;1 gets it right about half the time by luck &mdash; which means you never notice
+        when it's wrong.</span></div>
+      <div class="rung dead"><span class="rn">3</span><span class="rt"><b>Erasing a key straight out of an internal
+        node.</b> That key is a fence, not just data. Overwrite it with its predecessor or successor, then delete
+        that key from the leaf it actually came from.</span></div>
+      <div class="rung dead"><span class="rn">4</span><span class="rt"><b>Losing a child pointer.</b> When you
+        borrow or merge at an internal node, the key that moves drags a subtree with it. Checking
+        <span class="mono">children = keys + 1</span> at every node catches this in seconds.</span></div>
+      <div class="rung dead"><span class="rn">5</span><span class="rt"><b>Reaching for a merge too early.</b> When a
+        page starves, check <b>both</b> adjacent siblings for a lender before merging. Borrowing terminates
+        immediately; merging can cascade all the way to the root.</span></div>
     </div>
     <div class="card tint-e">
-      <p><b>The 10-second audit, every single time you hand in a B-tree.</b> Read the leaves left to right &mdash;
-      <b>sorted?</b> Count keys in every node &mdash; <b>within range, root exempt?</b> Count children &mdash;
-      <b>keys + 1 everywhere?</b> Put a ruler under the leaves &mdash; <b>all on one line?</b>
-      Four checks. They catch every mistake on this slide.</p>
+      <p><b>A fast self-check, every time you finish a B-tree by hand.</b> Read the leaves left to right &mdash;
+      sorted? Count the keys in every node &mdash; within range, root exempt? Count the children &mdash;
+      always keys + 1? Hold a ruler under the leaves &mdash; all on one line? Those four checks catch nearly
+      every mistake above.</p>
     </div>
   </div>
 </section>
 
-<!-- ==================== 40. C: THE NODE AND THE SEARCH ==================== -->
-<section class="slide" data-name="C — the node and the search" data-act="Wrap-up">
-  <div class="head"><span class="kicker k-a">Implementation &middot; 1 of 2</span><h2>One decision before you write a line: give every page a spare slot.</h2></div>
+<!-- ==================== 23. C: THE NODE AND THE SEARCH ==================== -->
+<section class="slide" data-name="C — the node and the search" data-act="Code">
+  <div class="head"><span class="kicker k-a">Implementation &middot; 1 of 2</span><h2>One decision before writing a line: give every page one spare slot.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:14px">
       <div class="col" style="flex:0 0 560px;min-width:0;min-height:0">
@@ -1768,25 +1259,26 @@ BTNode *<span class="fn">bt_search</span>(BTNode *x, <span class="kw">int</span>
       </div>
       <div class="col grow">
         <div class="card dense tint-v"><h3 style="color:var(--violet)">Decision 1 &mdash; the overfill slot</h3>
-          <p style="margin-top:7px"><span class="mono">key[MAXK+1]</span> and <span class="mono">kid[MAXK+2]</span> are one
-            larger than the rules allow. That spare slot lets the code <b>overfill a page on purpose</b>, exactly as you do on
-            scratch paper, and only then cut it. Size the arrays tightly and you need a special case for "the key that
-            didn't fit" &mdash; which is where most hand-written B-trees go wrong.</p></div>
+          <p style="margin-top:7px"><span class="mono">key[MAXK+1]</span> and <span class="mono">kid[MAXK+2]</span>
+            are one slot larger than the rules allow. That spare slot lets the code overfill a page on purpose,
+            exactly like the scratch-paper step, and only then cut it. Size the arrays tightly instead and you
+            need a special case for "the key that didn't fit" &mdash; which is where most hand-written B-trees
+            go wrong.</p></div>
         <div class="card dense tint-c"><h3 style="color:var(--cyan)">Decision 2 &mdash; no parent pointers</h3>
-          <p style="margin-top:7px">A split hands its median <b>upward</b>, and the recursion is already standing on the parent
-            when the call returns. Unlike the red-black fixup, <b>nothing here ever walks up</b>: no
+          <p style="margin-top:7px">A split hands its median <b>upward</b>, and the recursion is already standing
+            on the parent when the call returns. Unlike red-black fixup, nothing here ever walks back up: no
             <span class="mono">parent</span> field, no stack, no sentinel.</p></div>
-        <div class="card dense tint-e"><h3 style="color:var(--emerald)">Read <span class="mono">bt_search</span> once more</h3>
-          <p style="margin-top:7px">The inner <span class="mono">while</span> scans <i>inside</i> a page &mdash; free, the bytes
-            are already here. The outer one is the descent, and each trip is <b>one page read</b>. The two loops are the two
-            cost units from slide 3, in the same function.</p></div>
+        <div class="card dense tint-e"><h3 style="color:var(--emerald)">Read <span class="mono">bt_search</span> again</h3>
+          <p style="margin-top:7px">The inner <span class="mono">while</span> scans <i>inside</i> a page &mdash;
+            free, since those bytes are already loaded. The outer one is the descent, and each trip is one page
+            read. Those are the same two cost units from earlier in this lesson, in the same function.</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 41. C: INSERT ==================== -->
-<section class="slide" data-name="C — insert, in full" data-act="Wrap-up">
+<!-- ==================== 24. C: INSERT ==================== -->
+<section class="slide" data-name="C — insert, in full" data-act="Code">
   <div class="head"><span class="kicker k-a">Implementation &middot; 2 of 2</span><h2>Split, promote, and let the recursion do the climbing.</h2></div>
   <div class="body">
     <div class="row grow" style="gap:12px">
@@ -1860,42 +1352,43 @@ BTNode *<span class="fn">bt_search</span>(BTNode *x, <span class="kw">int</span>
           <p style="margin-top:6px;font-size:15px"><b>Duplicate</b> &rarr; NULL.<br>
             <b>My child absorbed it</b> &rarr; NULL.<br>
             <b>I overflowed</b> &rarr; the new right page.</p>
-          <p style="margin-top:7px;font-size:15px">A caller only ever asks <i>"did my child hand me a key?"</i> &mdash;
-            the paper method, in one question.</p></div>
+          <p style="margin-top:7px;font-size:15px">A caller only ever needs to ask one question: <i>"did my child
+            hand me a key?"</i> &mdash; the same paper method, as one question.</p></div>
         <div class="card dense tint-a"><h3 style="color:var(--amber)">The last line is the whole algorithm</h3>
-          <p style="margin-top:6px;font-size:15px"><span class="mono">x-&gt;n &lt;= MAXK ? NULL : split(...)</span> &mdash;
-            under the limit stop, over it cut and pass the median up. <b>That ternary is the cascade.</b></p></div>
-        <div class="card dense tint-e"><h3 style="color:var(--emerald)">Then prove it</h3>
-          <p style="margin-top:6px;font-size:15px">Assert after <b>every</b> insert: keys in range,
-            <b>children = keys+1</b>, all leaves at one depth, in-order sorted.</p>
+          <p style="margin-top:6px;font-size:15px"><span class="mono">x-&gt;n &lt;= MAXK ? NULL : split(...)</span>
+            &mdash; under the limit, stop; over it, cut and pass the median up. That one ternary is the cascade.</p></div>
+        <div class="card dense tint-e"><h3 style="color:var(--emerald)">Prove it, don't just trust it</h3>
+          <p style="margin-top:6px;font-size:15px">After <b>every</b> insert, assert: keys in range,
+            <b>children = keys+1</b>, all leaves at one depth, in-order walk sorted. Write this check first &mdash;
+            don't start on deletion until it passes.</p>
           <p class="tiny mono" style="margin-top:6px">gcc -Wall -Wextra -fsanitize=address,undefined bt.c</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== 42. CLOSING ==================== -->
-<section class="slide" data-name="Wrap-up" data-act="Wrap-up">
+<!-- ==================== 25. CLOSING ==================== -->
+<section class="slide" data-name="Wrap-up" data-act="Code">
   <div class="hero">
-    <div class="chips"><span class="kicker k-c">That's the lab</span></div>
-    <h1>Fill the page.<br><span class="grad">Grow at the root. The rest is consequences.</span></h1>
-    <p class="sub">You did not learn a new tree today. You learned that <b>the cost model chooses the data structure</b> &mdash;
-      and that when the unit of cost changed from <i>comparisons</i> to <i>page reads</i>, a structure that had been
-      optimal for thirty years became the wrong answer, and the fix was not a better balance rule but a
-      <b>wider node</b>.</p>
+    <div class="chips"><span class="kicker k-c">That's the lesson</span></div>
+    <h1>Fill the page.<br><span class="grad">Grow at the root. The rest follows.</span></h1>
+    <p class="sub">The big idea isn't really a new tree &mdash; it's that <b>the cost model chooses the data
+      structure</b>. When the unit of cost changed from comparisons to page reads, a structure that had been
+      optimal for decades became the wrong answer. The fix wasn't a cleverer balance rule; it was a wider node.</p>
     <div class="row" style="gap:14px;margin-top:4px">
-      <div class="card tint-a grow"><h3 style="color:var(--amber)">Homework &mdash; predictions in writing first</h3>
+      <div class="card tint-a grow"><h3 style="color:var(--amber)">Try these yourself &mdash; predict before you draw</h3>
         <p style="margin-top:7px;font-size:16px">1. Order 4, insert <span class="mono">1&hellip;20</span> in order.
-          Predict the final height <b>before</b> you draw it, then draw it.<br>
-          2. Same keys, order 4, now <b>delete 1&hellip;10</b> in order. Which deletion first shortens the tree?<br>
+          Guess the final height before you draw it, then check.<br>
+          2. Same tree, now delete <span class="mono">1&hellip;10</span> in order. Which deletion is the first to
+          shrink the tree's height?<br>
           3. Implement <span class="mono">bt_search</span>, <span class="mono">split</span> and <span class="mono">ins</span>
-          for M = 5, plus a validator that checks all four audit rules. Run it on 10<sup>5</sup> random keys.<br>
-          4. Prove it: show that a merge can never overflow, for every m &ge; 3.</p></div>
+          for M&nbsp;=&nbsp;5, plus a validator checking all the rules from the cheat sheet. Run it on 10<sup>5</sup> random keys.<br>
+          4. Prove a merge can never overflow, for any m &ge; 3.</p></div>
       <div class="card tint-v grow"><h3 style="color:var(--violet)">The one sentence to keep</h3>
-        <p style="margin-top:7px;font-size:16.5px">A B-tree is an m-way search tree that keeps <b>every leaf on one level</b>
-          and <b>every page at least half full</b> &mdash; and it achieves both without ever measuring anything,
-          because it <b>only ever changes height at the root</b>.</p>
-        <p class="tiny" style="margin-top:10px">Press <kbd>M</kbd> to jump back to any drill &middot; <kbd>L</kbd> for the laser pointer
+        <p style="margin-top:7px;font-size:16.5px">A B-tree is an m-way search tree that keeps every leaf on one
+          level and every page at least half full &mdash; and it manages both without measuring anything, because
+          it only ever changes height at the root.</p>
+        <p class="tiny" style="margin-top:10px">Press <kbd>M</kbd> to jump to any slide &middot; <kbd>L</kbd> for the laser pointer
           &middot; <kbd>T</kbd> to flip the theme.</p></div>
     </div>
   </div>
@@ -1910,7 +1403,7 @@ BTNode *<span class="fn">bt_search</span>(BTNode *x, <span class="kw">int</span>
 <div id="chrome">
   <div class="cbtn" id="btnPrev" title="Previous (&larr;)">&#8249;</div>
   <div class="cbtn" id="btnNext" title="Next (&rarr;)">&#8250;</div>
-  <div id="counter" title="Slide menu (M)">1 / 42</div>
+  <div id="counter" title="Slide menu (M)">1 / 25</div>
   <div id="slidename"></div>
   <div class="cbtn" id="btnLaser" title="Laser pointer (L)">&#9673;</div>
   <div class="cbtn" id="btnTheme" title="Toggle theme (T)">&#9681;</div>

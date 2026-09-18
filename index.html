@@ -18,6 +18,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+/* The hub is dark-only for now (light lands in Phase 1), but it already
+   reads the shared key so a deck/lab's choice carries over once it isn't. */
+(function(){try{var t=localStorage.getItem('dsa.theme');
+if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
 <style>
   :root {
     color-scheme: dark;

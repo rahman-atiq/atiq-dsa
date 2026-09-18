@@ -3,7 +3,7 @@
 <head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#05070d">
+<meta name="theme-color" content="#04060f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -114,8 +114,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size
 .inner{max-width:1080px;margin:0 auto}
 #bar{position:fixed;left:0;right:0;bottom:0;height:56px;z-index:40;display:flex;align-items:center;gap:14px;padding:0 var(--pad);background:linear-gradient(to top,var(--slide) 62%,var(--slide-0));font-family:var(--mono);font-size:12px;color:var(--faint)}
 #bar .chapter{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#bar button{font-family:var(--mono);font-size:12px;border:1px solid var(--rule);background:var(--slide);color:var(--ink);border-radius:3px;padding:6px 12px;cursor:pointer}
-#bar button:hover{border-color:var(--accent);color:var(--accent)}
+#bar button,#bar a{font-family:var(--mono);font-size:12px;border:1px solid var(--rule);background:var(--slide);color:var(--ink);border-radius:3px;padding:6px 12px;cursor:pointer;text-decoration:none}
+#bar button:hover,#bar a:hover{border-color:var(--accent);color:var(--accent)}
 #bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
 #count{min-width:56px;text-align:right}
 #bar #theme{min-width:88px;text-align:center}
@@ -201,7 +201,8 @@ ol.props li::before{content:counter(p);position:absolute;left:0;top:1px;width:26
 /* Apply the stored theme before first paint, so a dark-mode reader never gets
    a white flash on the way in. localStorage can be unavailable (file://, some
    sandboxes) -- the try/catch means the deck simply starts in Auto there. */
-(function(){try{var t=localStorage.getItem('deck-theme');
+(function(){try{var t=localStorage.getItem('dsa.theme');
+if(t===null){var lg=localStorage.getItem('deck-theme');if(lg!==null){t=lg;localStorage.setItem('dsa.theme',lg);}}
 if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
 </head>
@@ -1500,6 +1501,7 @@ int main(void) {
 </main>
 
 <nav id="bar">
+  <a href="index.html" title="Back to the hub">&larr; Hub</a>
   <span id="count">1 / 24</span>
   <button id="prev" aria-label="Previous slide">Back</button>
   <button id="next" aria-label="Next slide">Next</button>
@@ -2626,7 +2628,7 @@ function renderCurve(svg,series,opts){
    it just does not remember across reloads.
    ================================================================== */
 (function(){
-  var KEY='deck-theme';
+  var KEY = 'dsa.theme';
   var root=document.documentElement, btn=document.getElementById('theme');
   var modes=['auto','light','dark'];
   var labels={auto:'\u25D0 Auto',light:'\u2600 Light',dark:'\u263E Dark'};

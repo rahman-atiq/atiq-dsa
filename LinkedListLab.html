@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#05070d">
+<meta name="theme-color" content="#04060f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -12,7 +12,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Linked List Lab</title>
 <script>
 /* applied before first paint so a dark-theme reload never flashes white */
-try{ const t = localStorage.getItem('linkedlistlab.theme');
+try{ let t = localStorage.getItem('dsa.theme');
+     if (t === null) { const lg = localStorage.getItem('linkedlistlab.theme'); if (lg !== null) { t = lg; localStorage.setItem('dsa.theme', lg); } }
      if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; }catch(e){}
 </script>
 </head><body>
@@ -67,6 +68,8 @@ header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 22px;padding
 .tabs button:hover{border-color:var(--mut)}
 .tabs button.on{background:var(--pill);color:var(--pill-ink);border-color:var(--pill);font-weight:700}
 /* theme switcher — deliberately NOT inside .tabs, so it stays live mid-run */
+.hublink{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.hublink:hover{color:var(--ink)}
 .themeBtn{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut);display:inline-flex;align-items:center;gap:6px}
 .themeBtn:hover{border-color:var(--mut);color:var(--ink)}
 .themeBtn .ic{font-size:12.5px;line-height:1}
@@ -150,6 +153,7 @@ pre.code .cl.on{background:var(--code-on);box-shadow:inset 3px 0 0 var(--code-on
 </style>
 <div class="app">
   <header class="top">
+    <a class="hublink" href="index.html" title="Back to hub">&larr; Hub</a>
     <div class="brand">linked_list_lab<span class="cursor">_</span><span class="sub">step through C linked-list operations, pointer by pointer</span></div>
     <nav class="tabs" id="tabs" aria-label="data structure"></nav>
     <button class="themeBtn" id="themeBtn" title="switch theme: auto → light → dark"></button>
@@ -561,7 +565,7 @@ function stopAuto(){ clearInterval(timer); timer = null; $('#btnRun').textConten
    prefers-color-scheme block in the stylesheet win. */
 const THEMES = ['auto','light','dark'];
 const THEME_ICON = { auto:'◐', light:'☀', dark:'☾' };
-const THEME_KEY = 'linkedlistlab.theme';
+const THEME_KEY = 'dsa.theme';
 const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
 
 function readTheme(){

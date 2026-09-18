@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#05070d">
+<meta name="theme-color" content="#04060f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -15,6 +15,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Heap Lab — Sorting by Tournament</title>
+<script>
+/* Pick the theme up before first paint: a dark-mode reader opening this lab
+   should never get a white flash on the way in. */
+(function(){try{var t=localStorage.getItem('dsa.theme');
+if(t===null){var lg=localStorage.getItem('heap-theme');if(lg!==null){t=lg;localStorage.setItem('dsa.theme',lg);}}
+if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
 <style>
 /* ============================================================
    HEAP + HEAP SORT LAB — self-contained teaching deck
@@ -39,7 +46,11 @@
   --grid:rgba(90,70,150,.055);
   --sel:rgba(124,58,237,.16);
 }
-:root[data-theme="dark"]{
+/* The media query is guarded so an explicit light choice still wins,
+   and both [data-theme] blocks exist so the button wins in either
+   direction over whatever the operating system thinks. */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
   --violet:#A78BFA; --cyan:#22D3EE; --amber:#FBBF24; --rose:#FB7185;
   --emerald:#34D399; --blue:#60A5FA; --pink:#F472B6;
 
@@ -56,6 +67,28 @@
   --blob1:rgba(167,139,250,.22); --blob2:rgba(34,211,238,.18); --blob3:rgba(251,191,36,.15);
   --grid:rgba(160,140,255,.05);
   --sel:rgba(167,139,250,.24);
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --violet:#A78BFA; --cyan:#22D3EE; --amber:#FBBF24; --rose:#FB7185;
+  --emerald:#34D399; --blue:#60A5FA; --pink:#F472B6;
+
+  --bg:#080716; --bg2:#0E0C22;
+  --ink:#F2EEFF; --ink2:#B9B2D8; --ink3:#8079A6;
+  --line:#241F44; --line2:#332C5C;
+  --card:#12102A; --card2:#191634;
+  --shadow:0 14px 44px -12px rgba(0,0,0,.72), 0 2px 10px -2px rgba(0,0,0,.5);
+  --shadow-lg:0 34px 80px -22px rgba(0,0,0,.85);
+
+  --node-fill:#221E45; --node-stroke:#6F67B8; --node-ink:#EFEBFF;
+  --edge:#4A4278;
+
+  --blob1:rgba(167,139,250,.22); --blob2:rgba(34,211,238,.18); --blob3:rgba(251,191,36,.15);
+  --grid:rgba(160,140,255,.05);
+  --sel:rgba(167,139,250,.24);
+}
+:root[data-theme="light"]{
+  color-scheme:light;
 }
 
 *{box-sizing:border-box}
@@ -313,7 +346,7 @@ kbd{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;font-weight:750;pa
   transition:width .35s cubic-bezier(.2,.8,.25,1);border-radius:0 3px 3px 0}
 .cbtn{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;cursor:pointer;
   background:var(--card);border:1.5px solid var(--line2);color:var(--ink2);font-size:15px;font-weight:800;
-  transition:all .2s ease;box-shadow:var(--shadow)}
+  transition:all .2s ease;box-shadow:var(--shadow);text-decoration:none}
 .cbtn:hover{color:var(--violet);border-color:var(--violet);transform:translateY(-2px)}
 #counter{font-family:ui-monospace,Menlo,monospace;font-size:13px;font-weight:800;color:var(--ink3);
   padding:8px 13px;border-radius:11px;background:var(--card);border:1.5px solid var(--line2);
@@ -457,6 +490,7 @@ body.laser,body.laser *{cursor:none !important}
       <kbd>&rarr;</kbd><kbd>Space</kbd> next &nbsp; <kbd>&larr;</kbd> back &nbsp; <kbd>M</kbd> menu &nbsp;
       <kbd>T</kbd> theme &nbsp; <kbd>S</kbd> timer &nbsp; <kbd>L</kbd> laser &nbsp; <kbd>F</kbd> fullscreen
     </div>
+    <p class="tiny">Paired with the deck: <a href="heap-sort.html">open heap-sort.html &rarr;</a></p>
   </div>
 </section>
 
@@ -1405,12 +1439,13 @@ i = n-<span class="nu">1</span>;
 <canvas id="laser"></canvas>
 
 <div id="chrome">
+  <a class="cbtn" id="btnHub" href="index.html" title="Back to hub">&#8962;</a>
   <div class="cbtn" id="btnPrev" title="Previous (&larr;)">&#8249;</div>
   <div class="cbtn" id="btnNext" title="Next (&rarr;)">&#8250;</div>
   <div id="counter" title="Slide menu (M)">1 / 31</div>
   <div id="slidename"></div>
   <div class="cbtn" id="btnLaser" title="Laser pointer (L)">&#9673;</div>
-  <div class="cbtn" id="btnTheme" title="Toggle theme (T)">&#9681;</div>
+  <div class="cbtn" id="btnTheme" title="Colour theme — auto, light, dark (T)">&#9680;</div>
   <div class="cbtn" id="btnMenu" title="Menu (M)">&#9776;</div>
   <div class="cbtn" id="btnFull" title="Fullscreen (F)">&#9974;</div>
 </div>
@@ -1680,21 +1715,24 @@ document.addEventListener("keydown",function(e){
   }
 });
 
-/* ---------- theme ---------- */
+/* ---------- theme: auto / light / dark, one shared key across the app ---------- */
+var THEME_MODES=["auto","light","dark"];
+var THEME_ICON={auto:"&#9680;",light:"&#9728;",dark:"&#9790;"};
+function applyTheme(mode,persist){
+  if(mode==="auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme",mode);
+  if(persist){ try{ localStorage.setItem("dsa.theme",mode); }catch(err){} }
+  document.getElementById("btnTheme").innerHTML=THEME_ICON[mode];
+}
 function toggleTheme(){
-  var cur=document.documentElement.getAttribute("data-theme");
-  var nx=cur==="dark"?"light":"dark";
-  document.documentElement.setAttribute("data-theme",nx);
-  try{ localStorage.setItem("heap-theme",nx); }catch(err){}
-  document.getElementById("btnTheme").innerHTML = nx==="dark" ? "&#9728;" : "&#9681;";
+  var cur="auto";
+  try{ var v=localStorage.getItem("dsa.theme"); if(THEME_MODES.indexOf(v)>=0) cur=v; }catch(err){}
+  applyTheme(THEME_MODES[(THEME_MODES.indexOf(cur)+1)%THEME_MODES.length],true);
 }
 (function initTheme(){
-  var saved=null;
-  try{ saved=localStorage.getItem("heap-theme"); }catch(err){}
-  if(!saved && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) saved="dark";
-  if(saved) document.documentElement.setAttribute("data-theme",saved);
-  document.getElementById("btnTheme").innerHTML =
-    document.documentElement.getAttribute("data-theme")==="dark" ? "&#9728;" : "&#9681;";
+  var mode="auto";
+  try{ var v=localStorage.getItem("dsa.theme"); if(THEME_MODES.indexOf(v)>=0) mode=v; }catch(err){}
+  applyTheme(mode,false);
 })();
 
 /* ---------- menu ---------- */

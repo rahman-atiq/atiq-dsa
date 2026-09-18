@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#05070d">
+<meta name="theme-color" content="#04060f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -12,7 +12,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Memory Lab</title>
 <script>
 /* applied before first paint so a dark-theme reload never flashes white */
-try{ const t = localStorage.getItem('memorylab.theme');
+try{ let t = localStorage.getItem('dsa.theme');
+     if (t === null) { const lg = localStorage.getItem('memorylab.theme'); if (lg !== null) { t = lg; localStorage.setItem('dsa.theme', lg); } }
      if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; }catch(e){}
 </script>
 </head><body>
@@ -67,6 +68,8 @@ header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 22px;padding
 .brand{font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:-.02em}
 .brand .cursor{color:var(--accent)}
 .brand .sub{font-family:var(--sans);font-weight:400;font-size:12.5px;color:var(--mut);margin-left:10px;letter-spacing:0}
+.hublink{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.hublink:hover{color:var(--ink)}
 .themeBtn{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut);display:inline-flex;align-items:center;gap:6px;margin-left:auto}
 .themeBtn:hover{border-color:var(--mut);color:var(--ink)}
 .work{display:grid;grid-template-columns:250px minmax(0,1fr) 400px;gap:14px;align-items:start}
@@ -180,6 +183,7 @@ pre.code .cm{color:var(--code-dim);font-style:italic}
 
 <div class="app">
 <header class="top">
+    <a class="hublink" href="index.html" title="Back to hub">&larr; Hub</a>
   <div class="brand">memory<span class="cursor">*</span>lab<span class="sub">stack frames, heap blocks and where the arrows really point</span></div>
   <button class="themeBtn" id="themeBtn"><span class="ic">◐</span><span id="themeTxt">theme</span></button>
 </header>
@@ -649,7 +653,7 @@ tb.onclick=()=>{
   const order=["","dark","light"], cur=document.documentElement.dataset.theme||"";
   const next=order[(order.indexOf(cur)+1)%3];
   if(next) document.documentElement.dataset.theme=next; else delete document.documentElement.dataset.theme;
-  try{ next?localStorage.setItem("memorylab.theme",next):localStorage.removeItem("memorylab.theme"); }catch(e){}
+  try{ next?localStorage.setItem("dsa.theme",next):localStorage.removeItem("dsa.theme"); }catch(e){}
   themeLabel();
 };
 themeLabel();

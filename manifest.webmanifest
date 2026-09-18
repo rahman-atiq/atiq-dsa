@@ -6,8 +6,8 @@
   "scope": "/atiq-dsa/",
   "id": "/atiq-dsa/",
   "display": "standalone",
-  "background_color": "#05070d",
-  "theme_color": "#05070d",
+  "background_color": "#04060f",
+  "theme_color": "#04060f",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

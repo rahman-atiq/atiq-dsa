@@ -3,7 +3,7 @@
 <head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#05070d">
+<meta name="theme-color" content="#04060f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -227,12 +227,12 @@ body{
   font-family:var(--mono);font-size:12px;color:var(--faint);
 }
 #bar .chapter{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#bar button{
+#bar button,#bar a{
   font-family:var(--mono);font-size:12px;
   border:1px solid var(--rule);background:var(--slide);color:var(--ink);
-  border-radius:3px;padding:6px 12px;cursor:pointer;
+  border-radius:3px;padding:6px 12px;cursor:pointer;text-decoration:none;
 }
-#bar button:hover{border-color:var(--accent);color:var(--accent)}
+#bar button:hover,#bar a:hover{border-color:var(--accent);color:var(--accent)}
 #bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
 #count{min-width:56px;text-align:right}
 #bar #theme{min-width:88px;text-align:center}
@@ -335,7 +335,8 @@ ol.props li::before{
 <script>
 /* Pick the theme up before first paint: a dark-mode reader opening this deck
    should never get a white flash on the way in. */
-(function(){try{var t=localStorage.getItem('deck-theme');
+(function(){try{var t=localStorage.getItem('dsa.theme');
+if(t===null){var lg=localStorage.getItem('deck-theme');if(lg!==null){t=lg;localStorage.setItem('dsa.theme',lg);}}
 if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
 </head>
@@ -357,6 +358,7 @@ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)
   <h1>Red-black trees</h1>
   <p class="sub">A binary search tree that stays balanced using one bit per node instead of a stored height — and why that one bit changes what the tree costs to write to.</p>
   <p class="small">Sorted input is the worst case for a plain BST. The tree above never exceeds four levels while taking it. Use the arrow keys, or the buttons at the bottom, to move through the deck.</p>
+  <p class="small"><a href="RedBlackTreeLab.html">Open the interactive lab &rarr;</a></p>
  </div>
 </section>
 
@@ -1193,6 +1195,7 @@ int main(void)
 </main>
 
 <nav id="bar">
+  <a href="index.html" title="Back to the hub">&larr; Hub</a>
   <span id="count">1 / 21</span>
   <button id="prev" aria-label="Previous slide">Back</button>
   <button id="next" aria-label="Next slide">Next</button>
@@ -1861,7 +1864,7 @@ drawMini('c3b', { w:300, h:212, nodes:[
    set, so switching here switches the rest of them too.
    ============================================================ */
 (function(){
-  var KEY = 'deck-theme';
+  var KEY = 'dsa.theme';
   var root = document.documentElement;
   var btn = document.getElementById('theme');
   var modes = ['auto', 'light', 'dark'];

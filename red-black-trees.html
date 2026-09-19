@@ -96,10 +96,14 @@ body{
 #bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
 #count{min-width:56px;text-align:right}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-/* Focus moved by script, not by the reader, must not paint a ring -- but
-   :focus-visible still will for anyone who arrived on the keyboard. */
-[tabindex="-1"]:focus{outline:none}
-[tabindex="-1"]:focus-visible{outline:2px solid var(--accent);outline-offset:6px}
+/* The slide heading is a focus target, not a control: script sets
+   tabindex="-1" on it and focuses it so a screen reader lands on the
+   new title. Nothing here is in the tab order, so there is no keyboard
+   arrival to signal -- and :focus-visible alone does not know that. It
+   matches a scripted focus whenever the last input was a key, which is
+   every arrow-key slide change, and painted a ring round every title.
+   Suppress both; the focus move still does its work unseen. */
+[tabindex="-1"]:focus,[tabindex="-1"]:focus-visible{outline:none}
 
 /* ---------- type ---------- */
 h1{font-size:clamp(30px,5.4vw,52px);line-height:1.08;font-weight:700;letter-spacing:-.015em;margin:0 0 18px}

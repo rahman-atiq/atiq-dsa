@@ -380,12 +380,14 @@ body.laser,body.laser *{cursor:none !important}
 .cbtn{padding:0}
 .cbtn:focus-visible,#counter:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 
-/* go() moves focus to the new slide's heading so a screen reader lands on
-   the title instead of staying wherever it was. That is a programmatic
-   focus and must not paint a ring -- :focus-visible still will, for
-   anyone who got there with the keyboard. */
-[tabindex="-1"]:focus{outline:none}
-[tabindex="-1"]:focus-visible{outline:3px solid var(--accent);outline-offset:6px}
+/* The slide heading is a focus target, not a control: script sets
+   tabindex="-1" on it and focuses it so a screen reader lands on the
+   new title. Nothing here is in the tab order, so there is no keyboard
+   arrival to signal -- and :focus-visible alone does not know that. It
+   matches a scripted focus whenever the last input was a key, which is
+   every arrow-key slide change, and painted a ring round every title.
+   Suppress both; the focus move still does its work unseen. */
+[tabindex="-1"]:focus,[tabindex="-1"]:focus-visible{outline:none}
 
 /* ---------- print ----------
    The 1280x720 stage is a screen idea. On paper the useful artefact is

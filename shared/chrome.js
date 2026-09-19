@@ -30,12 +30,18 @@
        go:      function(i){ ... }                // move there
      };
 
-   Given that, this file owns three things the pages used to each do
+   Given that, this file owns four things the pages used to each do
    badly or not at all: the `#n` in the address bar, the O overview,
-   and the `dsa.progress.<topic>.<kind>` record the hub reads to offer
-   "continue where you left off". The page's own navigation function
-   calls `window.DSAChrome && DSAChrome.moved()` once it has moved --
-   that is the whole contract.
+   the `dsa.progress.<topic>.<kind>` record the hub reads to offer
+   "continue where you left off", and the spoken "slide 5 of 31" that
+   a screen reader gets in place of the silence a display:none swap
+   makes. The page's own navigation function calls
+   `window.DSAChrome && DSAChrome.moved()` once it has moved -- that
+   is the whole contract.
+
+   For anything else worth saying out loud -- a lab revealing the next
+   step, a run finishing -- there is `DSAChrome.announce(text)`, which
+   writes into the same polite live region.
    ============================================================ */
 (function () {
   'use strict';
@@ -67,11 +73,32 @@
     return mode === 'auto' ? (mq && mq.matches ? 'dark' : 'light') : mode;
   }
 
+  /* The browser's own UI -- the address bar on Android, the title bar of an
+     installed PWA -- is painted from <meta name="theme-color">. Two of them
+     sit in every page's <head>, one per scheme, so the automatic case is
+     correct before a single line of script runs. An explicit choice is not
+     something a media query can express, so we force it instead: the meta
+     that matches gets `all`, the other gets `not all` and is ignored. */
+  function syncMeta() {
+    var lm = document.querySelector('meta[name="theme-color"][data-scheme="light"]');
+    var dm = document.querySelector('meta[name="theme-color"][data-scheme="dark"]');
+    if (!lm || !dm) return;
+    if (mode === 'auto') {
+      lm.setAttribute('media', '(prefers-color-scheme: light)');
+      dm.setAttribute('media', '(prefers-color-scheme: dark)');
+    } else {
+      lm.setAttribute('media', mode === 'light' ? 'all' : 'not all');
+      dm.setAttribute('media', mode === 'dark' ? 'all' : 'not all');
+    }
+  }
+
   function applyTheme(persist) {
     if (mode === 'auto') root.removeAttribute('data-theme');
     else root.setAttribute('data-theme', mode);
 
     if (persist) { try { localStorage.setItem(KEY, mode); } catch (e) {} }
+
+    syncMeta();
 
     if (themeBtn) {
       themeBtn.textContent = LABEL[mode];
@@ -138,6 +165,56 @@
     try { history.replaceState(null, '', h); } catch (e) { location.hash = h; }
   }
 
+  /* ---------------- announcements ----------------
+     A sighted reader sees the slide change. Everyone else got nothing:
+     the slides are swapped in place, so there is no navigation for a
+     screen reader to notice and no new document to read out.
+
+     One polite live region fixes that. It is written to on every move,
+     and pages push their own step narration through DSAChrome.announce()
+     -- a lab revealing the next fragment, say. Same text twice in a row
+     is dropped and re-armed, because an identical string is not a change
+     and some readers stay silent for it.                              */
+  var liveEl = null;
+  var liveLast = '';
+  var liveTimer = null;
+
+  function liveRegion() {
+    if (!liveEl) {
+      liveEl = el('div', 'dsa-sr');
+      liveEl.setAttribute('aria-live', 'polite');
+      liveEl.setAttribute('aria-atomic', 'true');
+      liveEl.setAttribute('role', 'status');
+      document.body.appendChild(liveEl);
+    }
+    return liveEl;
+  }
+
+  /* Debounced: holding an arrow key down should announce where you
+     stopped, not narrate every slide you flew past. */
+  function announce(text) {
+    text = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    if (liveTimer) clearTimeout(liveTimer);
+    liveTimer = setTimeout(function () {
+      var n = liveRegion();
+      n.textContent = '';
+      if (text === liveLast) text += '\u00A0';   /* nudge it into a change */
+      liveLast = text;
+      n.textContent = text;
+    }, 180);
+  }
+
+  /* "Slide 5 of 31: Balance factor 101". The unit comes from the page,
+     so the tabbed labs say "Section 3 of 6" and mean it. */
+  function announceMove() {
+    var list = items(), i = current();
+    if (i < 0 || !list.length) return;
+    var unit = track && track.unit === 'section' ? 'Section' : 'Slide';
+    var name = (list[i] && list[i].name) || '';
+    announce(unit + ' ' + (i + 1) + ' of ' + list.length + (name ? ': ' + name : ''));
+  }
+
   /* ---------------- progress ----------------
      One record per page, not per topic: b-trees.html and BTreeLab.html
      are the same subject but not the same place, and a bookmark in one
@@ -183,6 +260,7 @@
     if (!track) return;
     syncHash();
     queueProgress();
+    announceMove();
     if (openName === 'overview') syncOverview();
   }
 
@@ -509,6 +587,10 @@
   mode = readTheme();
 
   document.body.insertBefore(buildBar(), document.body.firstChild);
+  /* Built now, not on first use. A live region that appears in the same
+     tick as the text inside it is a region most screen readers were not
+     watching yet, and the first announcement goes missing. */
+  liveRegion();
   if (kind === 'lab' && topic && topic.desktop) {
     root.setAttribute('data-desktop', 'true');
     document.body.appendChild(buildRotate());
@@ -534,6 +616,7 @@
     toggleShortcuts: function (force) { togglePanel('help', force); },
     toggleOverview: function (force) { togglePanel('overview', force); },
     closePanel: closePanel,
+    announce: announce,
     moved: moved
   };
 })();

@@ -1,7 +1,11 @@
 <!DOCTYPE html><html lang="en" data-topic="memory" data-kind="lab"><head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#04060f">
+<!-- The browser UI colour, one per scheme so the automatic case needs no
+     script. shared/chrome.js flips the `media` attributes when the reader
+     picks light or dark outright. Values are --surface from tokens.css. -->
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" data-scheme="light">
+<meta name="theme-color" content="#1A2127" media="(prefers-color-scheme: dark)" data-scheme="dark">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -9,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="DSA Deck">
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Memory Lab</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Memory · Lab · Atiq's DSA</title>
 <link rel="stylesheet" href="shared/tokens.css">
 <link rel="stylesheet" href="shared/chrome.css">
 <script src="shared/catalog.js" defer></script>
@@ -171,6 +175,24 @@ pre.code .cm{color:var(--code-dim);font-style:italic}
 .legend .k{display:inline-flex;align-items:center;gap:5px}
 .legend .sw{width:10px;height:10px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- print ----------
+   Three columns of live controls do not survive contact with paper. The
+   printout collapses the workbench into one column and drops the things
+   that cannot be pressed on a sheet, keeping the visualisation and the
+   notes -- the part worth pinning to a wall. The light palette comes
+   free: shared/tokens.css gates its dark blocks to `screen`. */
+@media print{
+  @page{margin:12mm}
+  html,body{background:#fff!important}
+  .app{max-width:none!important;padding:0!important}
+  .tabs{display:none!important}
+  .work{display:block!important}
+  .rail{display:none!important}
+  .work button,.work select,.work input{display:none!important}
+  .panel{margin:0 0 10px;background:transparent!important;box-shadow:none!important;
+    break-inside:avoid;page-break-inside:avoid}
+}
 </style>
 
 <div class="app">
@@ -204,10 +226,10 @@ pre.code .cm{color:var(--code-dim);font-style:italic}
     </svg></div>
     <div class="stats" id="stats"></div>
     <div class="transport">
-      <button id="bReset" title="Reset (r)">⏮</button>
-      <button id="bPrev" title="Previous step (←)">◀</button>
+      <button id="bReset" title="Reset (r)" aria-label="Reset to the start"><span aria-hidden="true">⏮</span></button>
+      <button id="bPrev" title="Previous step (←)" aria-label="Previous step"><span aria-hidden="true">◀</span></button>
       <button class="play" id="bPlay" title="Play / pause (space)">▶ play</button>
-      <button id="bNext" title="Next step (→)">▶▏</button>
+      <button id="bNext" title="Next step (→)" aria-label="Next step"><span aria-hidden="true">▶▏</span></button>
       <select id="speed" aria-label="speed"><option value="1500">slow</option><option value="900" selected>normal</option><option value="420">fast</option></select>
       <span class="keys">← → step · space play · r reset</span>
     </div>

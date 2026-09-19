@@ -3,7 +3,11 @@
 <head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#04060f">
+<!-- The browser UI colour, one per scheme so the automatic case needs no
+     script. shared/chrome.js flips the `media` attributes when the reader
+     picks light or dark outright. Values are --surface from tokens.css. -->
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" data-scheme="light">
+<meta name="theme-color" content="#1A2127" media="(prefers-color-scheme: dark)" data-scheme="dark">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -14,7 +18,7 @@
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B-Trees, B⁺ and B* — when the cost model breaks, and how to fix it in C</title>
+<title>B-Trees · Deck · Atiq's DSA</title>
 <link rel="stylesheet" href="shared/tokens.css">
 <link rel="stylesheet" href="shared/chrome.css">
 <script src="shared/catalog.js" defer></script>
@@ -66,6 +70,10 @@ body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size
 #bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
 #count{min-width:56px;text-align:right}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Focus moved by script, not by the reader, must not paint a ring -- but
+   :focus-visible still will for anyone who arrived on the keyboard. */
+[tabindex="-1"]:focus{outline:none}
+[tabindex="-1"]:focus-visible{outline:2px solid var(--accent);outline-offset:6px}
 
 h1{font-size:clamp(30px,5.4vw,52px);line-height:1.08;font-weight:700;letter-spacing:-.015em;margin:0 0 18px}
 h2{font-size:clamp(23px,3.4vw,34px);line-height:1.18;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
@@ -1448,9 +1456,26 @@ function show(i){
   elChap.textContent = slides[idx].dataset.chapter || '';
   btnPrev.disabled = idx === 0;
   btnNext.disabled = idx === slides.length - 1;
-  /* The address bar, the `dsa.progress.*` bookmark and the O overview all
-     hang off this one call. See shared/chrome.js. */
+  focusSlide();
+  /* The address bar, the `dsa.progress.*` bookmark, the O overview and the
+     spoken "slide 5 of 30" all hang off this one call. See shared/chrome.js. */
   if (window.DSAChrome) window.DSAChrome.moved();
+}
+
+/* A slide change here is one display:none swapped for another: same
+   document, same URL, nothing for assistive tech to notice. Moving focus
+   onto the new slide's title is what makes it somewhere you arrived --
+   and it puts the keyboard's scroll keys inside the slide that is
+   actually on screen.
+
+   Not while the reader is on prev or next: clicking through a deck has
+   to leave focus on the button being clicked. */
+function focusSlide(){
+  var a = document.activeElement;
+  if (a === btnPrev || a === btnNext) return;
+  var t = slides[idx].querySelector('h1,h2,h3') || slides[idx];
+  t.setAttribute('tabindex', '-1');
+  try { t.focus({preventScroll:true}); } catch (e) { try { t.focus(); } catch (e2) {} }
 }
 btnPrev.addEventListener('click', function(){ show(idx - 1); });
 btnNext.addEventListener('click', function(){ show(idx + 1); });

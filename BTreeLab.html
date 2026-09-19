@@ -3,7 +3,11 @@
 <head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#04060f">
+<!-- The browser UI colour, one per scheme so the automatic case needs no
+     script. shared/chrome.js flips the `media` attributes when the reader
+     picks light or dark outright. Values are --surface from tokens.css. -->
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" data-scheme="light">
+<meta name="theme-color" content="#1A2127" media="(prefers-color-scheme: dark)" data-scheme="dark">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -14,7 +18,7 @@
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B-Tree Lab — Spend the Whole Page</title>
+<title>B-Trees · Lab · Atiq's DSA</title>
 <link rel="stylesheet" href="shared/tokens.css">
 <link rel="stylesheet" href="shared/chrome.css">
 <script src="shared/catalog.js" defer></script>
@@ -299,9 +303,13 @@ td .bfcell .whitecell{white-space:normal;font-size:14.5px;line-height:1.3;color:
 .hintbox b{color:var(--amber)}
 
 /* ---------- fragments ---------- */
-.frag{opacity:0;transform:translateY(10px);transition:opacity .38s ease,transform .38s cubic-bezier(.2,.8,.25,1);
+/* visibility, not just opacity: an unrevealed step at opacity 0 is still
+   in the accessibility tree, so a screen reader used to read the whole
+   slide at once while a sighted reader got it one beat at a time. */
+.frag{opacity:0;visibility:hidden;transform:translateY(10px);
+  transition:opacity .38s ease,transform .38s cubic-bezier(.2,.8,.25,1),visibility .38s;
   pointer-events:none}
-.frag.shown{opacity:1;transform:none;pointer-events:auto}
+.frag.shown{opacity:1;visibility:visible;transform:none;pointer-events:auto}
 
 /* ---------- title slide ---------- */
 .hero{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:22px}
@@ -348,14 +356,14 @@ body.laser,body.laser *{cursor:none !important}
   --btFill:#FFFFFF; --btStroke:#8B87C9; --btInk:#241F45; --btSep:#C9C3E4;
   --btPtr:#8B87C9; --btShade:#F3F0FB;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+@media screen and (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --btFill:#1A1739; --btStroke:#6F67B8; --btInk:#F2EEFF; --btSep:#3B3468;
   --btPtr:#7D74C4; --btShade:#141230;
 }}
-:root[data-theme="dark"]{
+@media screen{ :root[data-theme="dark"]{
   --btFill:#1A1739; --btStroke:#6F67B8; --btInk:#F2EEFF; --btSep:#3B3468;
   --btPtr:#7D74C4; --btShade:#141230;
-}
+}}
 
 /* --- the page box --- */
 .tree .pg{fill:var(--btFill);stroke:var(--btStroke);stroke-width:2.5}
@@ -492,11 +500,44 @@ body.laser,body.laser *{cursor:none !important}
   .slide.on{animation:none}
   .frag{transition:none}
 }
+
+/* ---------- focus, and the controls that are buttons now ----------
+   The bar used to be six divs. They are <button>s, which brings the
+   browser's own padding, font and appearance along -- undone here so
+   the look is byte for byte what it was, and the behaviour is not. */
+.cbtn,#counter{appearance:none;-webkit-appearance:none;font-family:inherit;margin:0}
+.cbtn{padding:0}
+.cbtn:focus-visible,#counter:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+/* go() moves focus to the new slide's heading so a screen reader lands on
+   the title instead of staying wherever it was. That is a programmatic
+   focus and must not paint a ring -- :focus-visible still will, for
+   anyone who got there with the keyboard. */
+[tabindex="-1"]:focus{outline:none}
+[tabindex="-1"]:focus-visible{outline:3px solid var(--accent);outline-offset:6px}
+
+/* ---------- print ----------
+   The 1280x720 stage is a screen idea. On paper the useful artefact is
+   the whole deck as a handout: every slide, in order, one per sheet,
+   with all the reveals already revealed. The light palette comes free --
+   shared/tokens.css gates its dark blocks to `screen`. */
+@media print{
+  @page{size:landscape;margin:12mm}
+  html,body{overflow:visible!important;height:auto!important;background:#fff!important}
+  #chrome,#prog,#laser{display:none!important}
+  #fit{position:static!important;inset:auto!important;display:block!important}
+  #stage{width:auto!important;height:auto!important;transform:none!important}
+  .slide{position:static!important;inset:auto!important;display:flex!important;
+    padding:0 0 8mm!important;animation:none!important;
+    break-after:page;page-break-after:always;break-inside:avoid}
+  .slide:last-child{break-after:auto;page-break-after:auto}
+  .frag{opacity:1!important;visibility:visible!important;transform:none!important}
+}
 </style>
 </head>
 <body>
 <div id="bg"><div class="grid"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
-<div id="prog"></div>
+<div id="prog" aria-hidden="true"></div>
 <div id="fit"><div id="stage">
 
 <!-- ==================== 1. TITLE ==================== -->
@@ -1411,16 +1452,20 @@ BTNode *<span class="fn">bt_search</span>(BTNode *x, <span class="kw">int</span>
 </div></div>
 
 
-<canvas id="laser"></canvas>
+<canvas id="laser" aria-hidden="true"></canvas>
 
-<div id="chrome">
-  <div class="cbtn" id="btnPrev" title="Previous (&larr;)">&#8249;</div>
-  <div class="cbtn" id="btnNext" title="Next (&rarr;)">&#8250;</div>
-  <div id="counter" title="Slide overview (O)">1 / 25</div>
-  <div id="slidename"></div>
-  <div class="cbtn" id="btnLaser" title="Laser pointer (L)">&#9673;</div>
-  <div class="cbtn" id="btnMenu" title="Slide overview (O)">&#9776;</div>
-  <div class="cbtn" id="btnFull" title="Fullscreen (F)">&#9974;</div>
+<!-- Real buttons, not styled divs. A div is unreachable by keyboard and
+     nameless to a screen reader, which made the whole deck a slideshow you
+     could only drive with a mouse. The glyphs are decorative, so each one
+     is hidden and the button carries the name instead. -->
+<div id="chrome" role="group" aria-label="Slide controls">
+  <button type="button" class="cbtn" id="btnPrev" title="Previous (&larr;)" aria-label="Previous step"><span aria-hidden="true">&#8249;</span></button>
+  <button type="button" class="cbtn" id="btnNext" title="Next (&rarr;)" aria-label="Next step"><span aria-hidden="true">&#8250;</span></button>
+  <button type="button" id="counter" title="Slide overview (O)">1 / 25</button>
+  <div id="slidename" aria-hidden="true"></div>
+  <button type="button" class="cbtn" id="btnLaser" title="Laser pointer (L)" aria-label="Laser pointer" aria-pressed="false"><span aria-hidden="true">&#9673;</span></button>
+  <button type="button" class="cbtn" id="btnMenu" title="Slide overview (O)" aria-label="Slide overview"><span aria-hidden="true">&#9776;</span></button>
+  <button type="button" class="cbtn" id="btnFull" title="Fullscreen (F)" aria-label="Fullscreen" aria-pressed="false"><span aria-hidden="true">&#9974;</span></button>
 </div>
 
 <script>
@@ -1488,6 +1533,32 @@ function setAttr(host,name){
   return out;
 }
 function pgW(n){ return Math.max(1,n.k.length)*CW; }
+
+/* ---------- what the diagram says ----------
+   These trees are the argument on the slide, not decoration. Rendered as
+   a bare <svg> they were a blank to anyone not looking at them. Each one
+   now describes itself from the same data-t string that drew it, and a
+   slide can override the wording with data-alt where the shape matters
+   less than the point being made.
+
+   Past a couple of dozen nodes a node-by-node reading stops being a
+   description and becomes a punishment, so it gives the shape instead. */
+function describeBT(root){
+  var parts=[], n=0, maxD=0;
+  (function walk(nd,d,role){
+    if(!nd) return;
+    n++; if(d>maxD) maxD=d;
+    var kids=nd.c.filter(Boolean);
+    parts.push(role+" holds "+nd.k.join(", ")+
+      (kids.length ? " over "+kids.length+" child page"+(kids.length===1?"":"s")
+                   : " and is a leaf"));
+    kids.forEach(function(c){ walk(c,d+1,"Page"); });
+  })(root,0,"Root page");
+  var head="B-tree diagram: "+n+" page"+(n===1?"":"s")+
+           " over "+(maxD+1)+" level"+(maxD?"s":"")+". ";
+  return head+(n>16 ? "Too large to read out page by page."
+                    : parts.join(". ")+".");
+}
 
 function renderBT(host){
   var root=parseBT(host.getAttribute("data-t"));
@@ -1618,6 +1689,8 @@ function renderBT(host){
     svg.appendChild(lv);
   }
 
+  svg.setAttribute("role","img");
+  svg.setAttribute("aria-label",host.getAttribute("data-alt")||describeBT(root));
   host.innerHTML="";
   host.appendChild(svg);
 }
@@ -1634,8 +1707,14 @@ function paint(){
   slides.forEach(function(s,i){ s.classList.toggle("on", i===idx); });
   collectFrags();
   frags.forEach(function(f,i){ f.classList.toggle("shown", i<fi); });
-  document.getElementById("counter").textContent=(idx+1)+" / "+slides.length;
-  document.getElementById("slidename").textContent=slides[idx].getAttribute("data-name")||"";
+  var name=slides[idx].getAttribute("data-name")||"";
+  var counter=document.getElementById("counter");
+  counter.textContent=(idx+1)+" / "+slides.length;
+  /* "5 / 31" is read aloud as "five slash thirty one". The label says what
+     the number means and what pressing it does. */
+  counter.setAttribute("aria-label",
+    "Slide "+(idx+1)+" of "+slides.length+(name?": "+name:"")+". Open the slide overview.");
+  document.getElementById("slidename").textContent=name;
   document.getElementById("prog").style.width=((idx)/(slides.length-1)*100)+"%";
 }
 function go(n,showAll){
@@ -1643,16 +1722,47 @@ function go(n,showAll){
   idx=n; collectFrags();
   fi = showAll ? frags.length : 0;
   paint();
-  /* #n in the address bar, the hub's Continue bookmark, and the open
-     overview's current marker. See shared/chrome.js. */
+  focusSlide();
+  /* #n in the address bar, the hub's Continue bookmark, the open
+     overview's current marker, and the spoken "slide 5 of 31".
+     See shared/chrome.js. */
   if (window.DSAChrome) window.DSAChrome.moved();
 }
+
+/* A slide swap is invisible to assistive tech: same document, same URL,
+   one display:none swapped for another. Moving focus onto the new title
+   is what turns it into somewhere you arrived.
+
+   Not while the reader is on the prev/next buttons, though -- clicking
+   "next" four times has to leave focus on "next", or the fifth click is
+   impossible. Every other route, including a jump from the overview,
+   moves. */
+function focusSlide(){
+  var a=document.activeElement;
+  if(a && (a.id==="btnPrev"||a.id==="btnNext")) return;
+  var t=slides[idx].querySelector("h1,h2,h3")||slides[idx];
+  t.setAttribute("tabindex","-1");
+  try{ t.focus({preventScroll:true}); }catch(e){ try{ t.focus(); }catch(e2){} }
+}
+
+/* A reveal changes the slide without navigating anywhere, so nothing else
+   would tell a screen reader it happened. Long ones are trimmed: the live
+   region is a notification, not a second copy of the slide -- the text is
+   sitting right there to be read now that it is visible. */
+function sayFrag(f){
+  if(!window.DSAChrome||!f) return;
+  var t=(f.textContent||"").replace(/\s+/g," ").trim();
+  if(t.length>220) t=t.slice(0,216).replace(/\S*$/,"")+"\u2026";
+  window.DSAChrome.announce("Step "+fi+" of "+frags.length+(t?": "+t:""));
+}
 function next(){
-  if(fi<frags.length){ fi++; frags[fi-1].classList.add("shown"); return; }
+  if(fi<frags.length){ fi++; frags[fi-1].classList.add("shown"); sayFrag(frags[fi-1]); return; }
   go(idx+1,false);
 }
 function prev(){
-  if(fi>0){ fi--; frags[fi].classList.remove("shown"); return; }
+  if(fi>0){ fi--; frags[fi].classList.remove("shown");
+    if(window.DSAChrome) window.DSAChrome.announce(fi+" of "+frags.length+" steps showing");
+    return; }
   go(idx-1,true);
 }
 
@@ -1685,6 +1795,12 @@ document.getElementById("btnFull").onclick=function(){
   if(document.fullscreenElement) document.exitFullscreen();
   else document.documentElement.requestFullscreen();
 };
+/* Esc leaves fullscreen without going through the button, so the pressed
+   state is read back off the document rather than tracked by hand. */
+document.addEventListener("fullscreenchange",function(){
+  document.getElementById("btnFull")
+    .setAttribute("aria-pressed", document.fullscreenElement?"true":"false");
+});
 
 document.addEventListener("keydown",function(e){
   if(e.metaKey||e.ctrlKey||e.altKey) return;
@@ -1741,7 +1857,9 @@ function setLaser(on){
   if(on===laserOn) return;
   laserOn=on;
   document.body.classList.toggle("laser",on);
-  document.getElementById("btnLaser").classList.toggle("on",on);
+  var lb=document.getElementById("btnLaser");
+  lb.classList.toggle("on",on);
+  lb.setAttribute("aria-pressed",on?"true":"false");
   if(on){ sizeLaser(); lpts=[]; lraf=requestAnimationFrame(drawLaser); }
   else{
     if(lraf) cancelAnimationFrame(lraf);

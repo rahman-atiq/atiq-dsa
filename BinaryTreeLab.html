@@ -1,7 +1,11 @@
 <!DOCTYPE html><html lang="en" data-topic="binary-trees" data-kind="lab"><head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#04060f">
+<!-- The browser UI colour, one per scheme so the automatic case needs no
+     script. shared/chrome.js flips the `media` attributes when the reader
+     picks light or dark outright. Values are --surface from tokens.css. -->
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" data-scheme="light">
+<meta name="theme-color" content="#1A2127" media="(prefers-color-scheme: dark)" data-scheme="dark">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -9,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="DSA Deck">
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Binary Tree Lab</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Binary Trees · Lab · Atiq's DSA</title>
 <link rel="stylesheet" href="shared/tokens.css">
 <link rel="stylesheet" href="shared/chrome.css">
 <script src="shared/catalog.js" defer></script>
@@ -252,6 +256,24 @@ pre.code .cl.on{background:var(--code-on);box-shadow:inset 3px 0 0 var(--code-on
   pre.code{max-height:280px}
 }
 @media (prefers-reduced-motion: reduce){.nd{transition:none}}
+
+/* ---------- print ----------
+   Three columns of live controls do not survive contact with paper. The
+   printout collapses the workbench into one column and drops the things
+   that cannot be pressed on a sheet, keeping the visualisation and the
+   notes -- the part worth pinning to a wall. The light palette comes
+   free: shared/tokens.css gates its dark blocks to `screen`. */
+@media print{
+  @page{margin:12mm}
+  html,body{background:#fff!important}
+  .app{max-width:none!important;padding:0!important}
+  .tabs{display:none!important}
+  .work{display:block!important}
+  .rail{display:none!important}
+  .work button,.work select,.work input{display:none!important}
+  .panel{margin:0 0 10px;background:transparent!important;box-shadow:none!important;
+    break-inside:avoid;page-break-inside:avoid}
+}
 </style>
 <div class="app">
   <header class="top">
@@ -1380,7 +1402,12 @@ function doBuild(){
 function setMode(m){
   if (run) finishRun();
   mode = m;
-  [...$('#tabs').children].forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  /* The class says which tab is lit. aria-current is what says so out loud. */
+  [...$('#tabs').children].forEach(b => {
+    const on = b.dataset.m === m;
+    b.classList.toggle('on', on);
+    if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+  });
   const board = !!MODES[m].board;
   $('.inputs').style.display = board ? 'none' : 'block';
   $('#valRow').style.display = ((OPS[m]||[]).some(o => o.needsValue)) ? 'flex' : 'none';

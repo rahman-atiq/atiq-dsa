@@ -3,7 +3,11 @@
 <head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
-<meta name="theme-color" content="#04060f">
+<!-- The browser UI colour, one per scheme so the automatic case needs no
+     script. shared/chrome.js flips the `media` attributes when the reader
+     picks light or dark outright. Values are --surface from tokens.css. -->
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" data-scheme="light">
+<meta name="theme-color" content="#0B1020" media="(prefers-color-scheme: dark)" data-scheme="dark">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
@@ -14,7 +18,7 @@
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atiq's DSA Deck</title>
+<title>Atiq's DSA · Decks and labs</title>
 <link rel="stylesheet" href="shared/tokens.css">
 <link rel="stylesheet" href="shared/chrome.css">
 <script src="shared/catalog.js" defer></script>
@@ -424,6 +428,36 @@ footer .mark{
   .orb.a, .orb.b, .orb.c, .chip .dot, h1{animation:none}
   .reveal, .reveal.in{opacity:1; transform:none; animation:none}
   .topic, .act, .act i, .glyph, .resume-go, .resume-go i{transition:none}
+}
+
+/* ---------- print ----------
+   Deep space is a screen idea. On paper the backgrounds are not printed
+   at all, so a dark hub comes out as a blank sheet with invisible white
+   text on it. Print gets daylight, no orbs and no glass -- a plain index
+   of what is in here, which is all a printed hub could ever be.
+
+   This is the one page that inverts the app's default, so it is the one
+   page that needs its own print palette; everywhere else shared/tokens.css
+   already gates its dark blocks to `screen`. */
+@media print{
+  @page{margin:14mm}
+  :root[data-topic="hub"]{
+    color-scheme:light;
+    --bg:#FFFFFF; --bg-deep:#FFFFFF; --surface:#FFFFFF; --surface-2:#FFFFFF;
+    --fg:#161A2C; --fg-dim:#4B5473; --fg-faint:#7B85A5;
+    --line:rgba(38,56,120,.28); --line-strong:rgba(38,56,120,.45);
+    --glass:transparent; --glass-hover:transparent;
+    --sky-1:transparent; --sky-2:transparent; --sky-3:transparent;
+    --grid-ink:transparent; --orb-opacity:0;
+    --card-l:34%; --card-s:60%;
+  }
+  .sky,.orb{display:none!important}
+  .grid{grid-template-columns:1fr!important}
+  /* The cards enter at opacity 0 and are raised by an observer as you
+     scroll. Print never scrolls, so without this the sheet comes out
+     holding nothing but the header. */
+  .reveal{opacity:1!important;transform:none!important;animation:none!important}
+  .topic,.resume{break-inside:avoid;page-break-inside:avoid}
 }
 </style>
 <noscript><style>.reveal{opacity:1;transform:none}</style></noscript>

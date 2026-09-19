@@ -130,8 +130,14 @@
    Two copies, and only two: the media query carries its own
    :not([data-theme="light"]) guard, so an explicit light choice
    simply falls through to the :root block above and needs no
-   third block re-asserting the light values.               */
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+   third block re-asserting the light values.
+
+   Both are `screen` only. Print has no dark mode -- paper is white
+   whatever the reader chose -- and light text on it prints as an
+   empty page. Gating the two dark blocks here means every page in
+   the app gets a legible printout without writing a single print
+   rule of its own.                                          */
+@media screen and (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   color-scheme:dark;
 
   --bg:#12171B;
@@ -191,7 +197,7 @@
   --grid-line:hsl(var(--topic-h) 40% 70% / .05);
 }}
 
-:root[data-theme="dark"]{
+@media screen{ :root[data-theme="dark"]{
   color-scheme:dark;
 
   --bg:#12171B;
@@ -249,4 +255,4 @@
   --shadow-lg:0 34px 80px -22px rgba(0,0,0,.80);
   --sel:hsl(var(--topic-h) 70% 60% / .26);
   --grid-line:hsl(var(--topic-h) 40% 70% / .05);
-}
+}}

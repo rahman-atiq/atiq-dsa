@@ -1,36 +1,30 @@
-const CACHE = 'dsa-deck-v2';
+/* ============================================================
+   Service worker.
 
-const PRECACHE_URLS = [
-  'index.html',
-  'manifest.webmanifest',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-  'icons/icon-512-maskable.png',
-  'icons/apple-touch-icon.png',
-  'icons/favicon-32.png',
-  'icons/favicon-16.png',
-  'recursion.html',
-  'binary-trees.html',
-  'avl-trees.html',
-  'red-black-trees.html',
-  'b-trees.html',
-  'heap-sort.html',
-  'hashing.html',
-  'graphs.html',
-  'LinkedListLab.html',
-  'BinaryTreeLab.html',
-  'AVLTreeLab.html',
-  'RedBlackTreeLab.html',
-  'BTreeLab.html',
-  'HeapSortLab.html',
-  'SortingLab.html',
-  'MemoryLab.html',
-];
+   The precache list is no longer typed out here. It comes from
+   shared/catalog.js, which the hub and the chrome bar also read, so
+   adding a module cannot leave the offline copy one page short.
+   ============================================================ */
+importScripts('shared/catalog.js');
+
+const CACHE = 'dsa-deck-v3';
+const CAT = self.DSA_CATALOG;
+
+/* Without these the app is broken rather than merely plain, so a failure
+   here should fail the install and leave the previous worker in charge. */
+const CRITICAL = CAT.pages().concat(CAT.shared);
+
+/* Nice to have offline. One 404 in here should not cost us the whole
+   worker, so they go in one at a time and failures are swallowed. */
+const OPTIONAL = CAT.fonts.concat(CAT.icons);
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE_URLS)).then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await cache.addAll(CRITICAL);
+    await Promise.all(OPTIONAL.map((url) => cache.add(url).catch(() => {})));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {

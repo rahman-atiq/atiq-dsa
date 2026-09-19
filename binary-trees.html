@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-topic="binary-trees" data-kind="deck">
 <head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
@@ -15,100 +15,45 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Binary trees — the vocabulary and the arithmetic</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="shared/chrome.css">
+<script src="shared/catalog.js" defer></script>
+<script src="shared/chrome.js" defer></script>
 <style>
 :root{
-  --paper:#EFF3F5;--slide:#FFFFFF;--ink:#22303C;--dim:#5D7285;--faint:#8CA0AE;--rule:#CBD8E0;
-  --accent:#116A83;--accent-soft:#E1EEF2;--bad:#A4303F;--bad-soft:#F7EAEC;
-  --serif:'Spectral',Georgia,'Times New Roman',serif;
-  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
-  --pad:clamp(20px,4vw,64px);
-  /* Surfaces, code colours and SVG fills are tokens too, so the dark block
-     below can move them. Nothing that carries a colour may be hardcoded in a
-     rule or in a JS renderer -- see references/visual-system.md. */
-  color-scheme:light;
-  --slide-0:rgba(255,255,255,0);
-  --panel-bg:#FAFCFD;
-  --box-bg:#FBFDFE;
-  --btn-bg:#FFFFFF;
-  --pre-bg:#F1F5F7;
-  --pre-ink:#1E2E3A;
-  --code-ink:#0C4E61;
-  --tok-c:#7E93A2;
-  --tok-k:#0C5A73;
-  --tok-n:#8A5A00;
-  --tok-s:#1F6B3F;
-  --svg-node:#FFFFFF;
-  --svg-rule:#9FB3C0;
-  --on-fill:#FFFFFF;
-  --zero:#C3CFD8;
-  --wash:#DCE5EA;
-  --cell:#F4F8FA;
-  --block:#9C6510;
-  --block-soft:#F6EEE0;
-  /* Only for decks where node colour is data. The -edge tokens are equal to
-     the fill in light mode, so they draw no rim; in dark they become a
-     contrasting ring, which is the only way a black node stays findable. */
-  --node-red:#C62828;
-  --node-red-edge:#C62828;
-  --node-black:#14181C;
-  --node-black-edge:#14181C;
-  --on-node:#FFFFFF;
+  /* ---------- palette ----------
+     The colours live in shared/tokens.css now. These are aliases, so every
+     rule below keeps the name it was written with and still follows the
+     theme: a custom property holding var(--x) re-resolves when --x moves,
+     which is why none of this needs a second copy per theme.
+     Names that already match the shared set -- --accent, --accent-soft,
+     --bad, --cell, --zero, --wash, --svg-*, --node-*, --on-*, --tok-*,
+     --serif, --mono, --pad -- come straight through and are not listed. */
+  --paper:var(--bg);
+  --slide:var(--surface);
+  --slide-0:var(--surface-0);
+  --ink:var(--fg);
+  --dim:var(--fg-dim);
+  --faint:var(--fg-faint);
+  --rule:var(--line);
+  --panel-bg:var(--surface-2);
+  --box-bg:var(--surface-2);
+  --btn-bg:var(--surface);
+  --pre-bg:var(--code-bg);
+  --pre-ink:var(--code-fg);
+  --code-ink:var(--code-accent);
+  --block:var(--warn);
+  --block-soft:var(--warn-soft);
+  --done:var(--ok);
+  --done-soft:var(--ok-soft);
 }
 
-/* The media query is guarded so an explicit light choice still wins, and both
-   [data-theme] blocks exist so the button wins in either direction over
-   whatever the operating system prefers. Keep the three lists in sync. */
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  color-scheme:dark;
-  --paper:#12171B;--slide:#1A2127;--slide-0:rgba(26,33,39,0);
-  --ink:#E1E8ED;--dim:#9DAFBB;--faint:#778995;--rule:#2E3941;
-  --accent:#5BB7D0;--accent-soft:#16303A;--bad:#E0655E;--bad-soft:#382324;
-  --panel-bg:#1E262D;--box-bg:#171E24;--btn-bg:#212A31;
-  --pre-bg:#141A20;--pre-ink:#D5DEE5;--code-ink:#8FD9EC;
-  --tok-c:#6F8290;--tok-k:#6BC1D8;--tok-n:#D6A355;--tok-s:#6CBE8F;
-  --svg-node:#242E36;--svg-rule:#55646F;--on-fill:#0E1419;
-  --zero:#3D4A54;--wash:#333F48;--cell:#1E262D;
-  --block:#D6A355;--block-soft:#33291A;
-  --node-red:#CF3A40;--node-red-edge:#F08A8E;
-  --node-black:#10151A;--node-black-edge:#8FA3B2;--on-node:#F2F7FA;
-}}
-:root[data-theme="dark"]{
-  color-scheme:dark;
-  --paper:#12171B;--slide:#1A2127;--slide-0:rgba(26,33,39,0);
-  --ink:#E1E8ED;--dim:#9DAFBB;--faint:#778995;--rule:#2E3941;
-  --accent:#5BB7D0;--accent-soft:#16303A;--bad:#E0655E;--bad-soft:#382324;
-  --panel-bg:#1E262D;--box-bg:#171E24;--btn-bg:#212A31;
-  --pre-bg:#141A20;--pre-ink:#D5DEE5;--code-ink:#8FD9EC;
-  --tok-c:#6F8290;--tok-k:#6BC1D8;--tok-n:#D6A355;--tok-s:#6CBE8F;
-  --svg-node:#242E36;--svg-rule:#55646F;--on-fill:#0E1419;
-  --zero:#3D4A54;--wash:#333F48;--cell:#1E262D;
-  --block:#D6A355;--block-soft:#33291A;
-  --node-red:#CF3A40;--node-red-edge:#F08A8E;
-  --node-black:#10151A;--node-black-edge:#8FA3B2;--on-node:#F2F7FA;
-}
-:root[data-theme="light"]{
-  color-scheme:light;
-  --paper:#EFF3F5;--slide:#FFFFFF;--slide-0:rgba(255,255,255,0);
-  --ink:#22303C;--dim:#5D7285;--faint:#8CA0AE;--rule:#CBD8E0;
-  --accent:#116A83;--accent-soft:#E1EEF2;--bad:#A4303F;--bad-soft:#F7EAEC;
-  --panel-bg:#FAFCFD;--box-bg:#FBFDFE;--btn-bg:#FFFFFF;
-  --pre-bg:#F1F5F7;--pre-ink:#1E2E3A;--code-ink:#0C4E61;
-  --tok-c:#7E93A2;--tok-k:#0C5A73;--tok-n:#8A5A00;--tok-s:#1F6B3F;
-  --svg-node:#FFFFFF;--svg-rule:#9FB3C0;--on-fill:#FFFFFF;
-  --zero:#C3CFD8;--wash:#DCE5EA;--cell:#F4F8FA;
-  --block:#9C6510;--block-soft:#F6EEE0;
-  --node-red:#C62828;--node-red-edge:#C62828;
-  --node-black:#14181C;--node-black-edge:#14181C;--on-node:#FFFFFF;
-}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;height:100%}
 body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
-#progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0;z-index:50;transition:width .28s ease}
+#progress{position:fixed;top:var(--chrome-h);left:0;height:3px;background:var(--accent);width:0;z-index:50;transition:width .28s ease}
 #deck{height:100%;position:relative}
-.slide{display:none;height:100%;overflow-y:auto;overflow-x:hidden;padding:calc(var(--pad) + 14px) var(--pad) 76px;background:var(--slide);scrollbar-width:thin}
+.slide{display:none;height:100%;overflow-y:auto;overflow-x:hidden;padding:calc(var(--chrome-h) + var(--pad)) var(--pad) 76px;background:var(--slide);scrollbar-width:thin}
 .slide.is-active{display:block;animation:fadein .22s ease both}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
 .inner{max-width:1080px;margin:0 auto}
@@ -118,7 +63,6 @@ body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size
 #bar button:hover,#bar a:hover{border-color:var(--accent);color:var(--accent)}
 #bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
 #count{min-width:56px;text-align:right}
-#bar #theme{min-width:88px;text-align:center}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 h1{font-size:clamp(30px,5.4vw,52px);line-height:1.08;font-weight:700;letter-spacing:-.015em;margin:0 0 18px}
 h2{font-size:clamp(23px,3.4vw,34px);line-height:1.18;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
@@ -246,7 +190,6 @@ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)
   <h1>Binary trees: the words and the arithmetic</h1>
   <p class="sub">Same fifteen keys. Same fifteen nodes. Same struct definition, byte for byte. Everything else about these two differs — and every difference has a name.</p>
   <p class="small">Memory, recursion depth, cache misses, whether the array trick is even legal: all of it is a function of <em>shape</em>, and the vocabulary is how we name shapes. This deck derives every number rather than listing it. Arrow keys, or the buttons below, to move through the deck.</p>
-  <p class="small"><a href="BinaryTreeLab.html">Open the interactive lab &rarr;</a></p>
  </div>
 </section>
 
@@ -1629,12 +1572,10 @@ static Node *grow(Node *t, int key)
 </main>
 
 <nav id="bar">
-  <a href="index.html" title="Back to the hub">&larr; Hub</a>
   <span id="count">1 / 28</span>
   <button id="prev" aria-label="Previous slide">Back</button>
   <button id="next" aria-label="Next slide">Next</button>
   <span class="chapter" id="chapter"></span>
-  <button id="theme" title="Colour theme — auto, light, dark (T)">◐ Auto</button>
 </nav>
 
 <script>
@@ -2720,46 +2661,19 @@ function balancedIter(root){
 })();
 
 /* ==================================================================
-   THEME -- auto / light / dark.  Do not delete.
-   Cycles on the bar button and on the T key. The choice is stored under
-   one key shared by every deck in a series, so setting it in one sets it
-   in the rest; where localStorage is unavailable the deck still switches,
-   it just does not remember across reloads.
+   The theme lives in shared/chrome.js now: one toggle, one T key and
+   one localStorage entry for the whole app. All this deck still has to
+   care about is that its diagrams are SVG built from the custom-property
+   values, so they are stale the moment the palette moves. Draw again.
    ================================================================== */
-(function(){
-  var KEY = 'dsa.theme';
-  var root=document.documentElement, btn=document.getElementById('theme');
-  var modes=['auto','light','dark'];
-  var labels={auto:'\u25D0 Auto',light:'\u2600 Light',dark:'\u263E Dark'};
-  var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
-  var mode='auto';
-  try{ var v=localStorage.getItem(KEY); if(modes.indexOf(v)>=0) mode=v; }catch(e){}
+document.addEventListener('dsa:theme', repaintAll);
 
-  function apply(persist){
-    if(mode==='auto') root.removeAttribute('data-theme');
-    else root.setAttribute('data-theme',mode);
-    if(btn){
-      btn.textContent=labels[mode];
-      btn.setAttribute('aria-label','Colour theme: '+mode+'. Click to change.');
-    }
-    if(persist){ try{ localStorage.setItem(KEY,mode); }catch(e){} }
-    repaintAll();          /* the SVGs hold the old palette until redrawn */
-  }
-  function cycle(){ mode=modes[(modes.indexOf(mode)+1)%modes.length]; apply(true); }
-
-  if(btn) btn.addEventListener('click',cycle);
-  document.addEventListener('keydown',function(e){
-    var t=e.target.tagName;
-    if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA') return;
-    if(e.key==='t'||e.key==='T') cycle();
-  });
-  if(mq){
-    var onSys=function(){ if(mode==='auto') apply(false); };
-    if(mq.addEventListener) mq.addEventListener('change',onSys);
-    else if(mq.addListener) mq.addListener(onSys);
-  }
-  apply(false);
-})();
+/* Listed in the ? overlay that shared/chrome.js builds. */
+window.DSA_KEYS = [
+  ['\u2190 \u2192', 'Previous slide / next slide'],
+  ['PgUp PgDn', 'Previous slide / next slide'],
+  ['Home End', 'First slide / last slide']
+];
 
 /* ---------- boot (keep last) ---------- */
 (function(){var h=parseInt((location.hash||'').replace('#',''),10);show(isNaN(h)?0:h-1);})();

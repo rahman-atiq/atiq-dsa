@@ -1,0 +1,252 @@
+/* ============================================================
+   shared/tokens.css — one palette for every page in the set.
+
+   Loaded before each page's own <style>. A page keeps its own
+   local variable names and aliases them onto these, e.g.
+   `--paper:var(--bg)`. Because custom properties resolve at use
+   time, the alias follows the theme automatically: nothing here
+   needs a second copy per surface.
+
+   Theme selectors follow the order proven in the decks:
+     1. :root                      light, the default
+     2. @media dark + :not(light)  system dark, unless overridden
+     3. [data-theme="dark"]        explicit dark wins over system
+     4. [data-theme="light"]       explicit light wins over system
+   ============================================================ */
+
+/* ---------- fonts (self-hosted; no third-party requests) ---------- */
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/jetbrains-mono-400-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/jetbrains-mono-400-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/jetbrains-mono-400-greek.woff2) format('woff2');unicode-range:U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500;font-display:swap;src:url(../fonts/jetbrains-mono-500-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500;font-display:swap;src:url(../fonts/jetbrains-mono-500-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500;font-display:swap;src:url(../fonts/jetbrains-mono-500-greek.woff2) format('woff2');unicode-range:U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:url(../fonts/jetbrains-mono-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:url(../fonts/jetbrains-mono-700-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:url(../fonts/jetbrains-mono-700-greek.woff2) format('woff2');unicode-range:U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF}
+@font-face{font-family:'Spectral';font-style:italic;font-weight:400;font-display:swap;src:url(../fonts/spectral-400i-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Spectral';font-style:italic;font-weight:400;font-display:swap;src:url(../fonts/spectral-400i-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'Spectral';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/spectral-400-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Spectral';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/spectral-400-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'Spectral';font-style:normal;font-weight:500;font-display:swap;src:url(../fonts/spectral-500-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Spectral';font-style:normal;font-weight:500;font-display:swap;src:url(../fonts/spectral-500-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'Spectral';font-style:normal;font-weight:600;font-display:swap;src:url(../fonts/spectral-600-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Spectral';font-style:normal;font-weight:600;font-display:swap;src:url(../fonts/spectral-600-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:'Spectral';font-style:normal;font-weight:700;font-display:swap;src:url(../fonts/spectral-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Spectral';font-style:normal;font-weight:700;font-display:swap;src:url(../fonts/spectral-700-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
+
+/* ---------- per-topic accent ----------
+   The hue is the one the hub already uses for that topic's card, so a
+   card and the page it opens are the same colour. Lightness is solved
+   per hue, not shared: at one fixed lightness a green accent measures
+   twice the contrast of a violet one and shouts twice as loud. These
+   values put every topic within ~0.1 of 6.0:1 on light surfaces and
+   6.5:1 on dark ones, so the accents read as one family.            */
+:root{ --topic-h:205; --topic-l:37%; --topic-l-dark:62.7%; }
+[data-topic="recursion"]      { --topic-h:265; --topic-l:53%;   --topic-l-dark:75%;   }
+[data-topic="linked-lists"]   { --topic-h:190; --topic-l:30.7%; --topic-l-dark:47.7%; }
+[data-topic="binary-trees"]   { --topic-h:205; --topic-l:37%;   --topic-l-dark:62.7%; }
+[data-topic="avl-trees"]      { --topic-h:168; --topic-l:27.7%; --topic-l-dark:42.6%; }
+[data-topic="red-black-trees"]{ --topic-h:345; --topic-l:44.8%; --topic-l-dark:72%;   }
+[data-topic="b-trees"]        { --topic-h:28;  --topic-l:35.1%; --topic-l-dark:59.1%; }
+[data-topic="heap-sort"]      { --topic-h:45;  --topic-l:29.4%; --topic-l-dark:46%;   }
+[data-topic="sorting"]        { --topic-h:135; --topic-l:28.2%; --topic-l-dark:43.5%; }
+[data-topic="hashing"]        { --topic-h:300; --topic-l:40.8%; --topic-l-dark:69.4%; }
+[data-topic="graphs"]         { --topic-h:225; --topic-l:50%;   --topic-l-dark:72.8%; }
+[data-topic="memory"]         { --topic-h:280; --topic-l:48.1%; --topic-l-dark:73.1%; }
+
+/* ---------- typography and metrics (theme-independent) ---------- */
+:root{
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --pad:clamp(20px,4vw,64px);
+  --chrome-h:44px;
+  --radius:4px;
+  --radius-lg:12px;
+}
+@media (max-width:640px){ :root{ --chrome-h:40px; } }
+
+/* ---------- light (default) ---------- */
+:root{
+  color-scheme:light;
+
+  --bg:#EFF3F5;
+  --surface:#FFFFFF;
+  --surface-0:rgba(255,255,255,0);
+  --surface-2:#FAFCFD;
+  --surface-3:#F1F5F7;
+
+  --fg:#22303C;
+  --fg-dim:#5D7285;
+  --fg-faint:#8CA0AE;
+
+  --line:#CBD8E0;
+  --line-strong:#9FB3C0;
+
+  --accent:hsl(var(--topic-h) 58% var(--topic-l));
+  --accent-soft:hsl(var(--topic-h) 56% 94%);
+  --accent-line:hsl(var(--topic-h) 45% 78%);
+  --accent-2:hsl(calc(var(--topic-h) - 40) 52% var(--topic-l));
+  --on-accent:#FFFFFF;
+
+  --ok:#3D6B2B;       --ok-soft:#EDF2E4;
+  --warn:#8A5A00;     --warn-soft:#F6EEE0;
+  --bad:#A4303F;      --bad-soft:#F7EAEC;
+  --info:#0F5E77;     --info-soft:#E1EEF2;
+
+  --code-bg:#F1F5F7;
+  --code-fg:#1E2E3A;
+  --code-dim:#7E93A2;
+  --code-accent:hsl(var(--topic-h) 62% 28%);
+  --tok-c:#7E93A2;
+  --tok-k:#0C5A73;
+  --tok-n:#8A5A00;
+  --tok-s:#1F6B3F;
+
+  --svg-node:#FFFFFF;
+  --svg-rule:#9FB3C0;
+  --node-ink:#22303C;
+  --on-fill:#FFFFFF;
+  --zero:#C3CFD8;
+  --wash:#DCE5EA;
+  --cell:#F4F8FA;
+  --node-red:#C62828;   --node-red-edge:#C62828;
+  --node-black:#14181C; --node-black-edge:#14181C;
+  --on-node:#FFFFFF;
+
+  --btn:#FFFFFF;
+  --btn-line:#C9D3D9;
+  --pill:#33424E;
+  --pill-ink:#F2F6F8;
+
+  --shadow:0 12px 40px -12px rgba(28,48,64,.20), 0 2px 8px -2px rgba(28,48,64,.09);
+  --shadow-lg:0 30px 70px -20px rgba(28,48,64,.30);
+  --sel:hsl(var(--topic-h) 70% 55% / .18);
+  --grid-line:hsl(var(--topic-h) 30% 40% / .055);
+}
+
+/* ---------- dark ----------
+   Two copies, and only two: the media query carries its own
+   :not([data-theme="light"]) guard, so an explicit light choice
+   simply falls through to the :root block above and needs no
+   third block re-asserting the light values.               */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+
+  --bg:#12171B;
+  --surface:#1A2127;
+  --surface-0:rgba(26,33,39,0);
+  --surface-2:#1E262D;
+  --surface-3:#141A20;
+
+  --fg:#E1E8ED;
+  --fg-dim:#9DAFBB;
+  --fg-faint:#778995;
+
+  --line:#2E3941;
+  --line-strong:#55646F;
+
+  --accent:hsl(var(--topic-h) 70% var(--topic-l-dark));
+  --accent-soft:hsl(var(--topic-h) 38% 15%);
+  --accent-line:hsl(var(--topic-h) 32% 33%);
+  --accent-2:hsl(calc(var(--topic-h) - 40) 62% var(--topic-l-dark));
+  --on-accent:#0E1419;
+
+  --ok:#93C36B;       --ok-soft:#212A1B;
+  --warn:#D6A355;     --warn-soft:#33291A;
+  --bad:#E0655E;      --bad-soft:#382324;
+  --info:#5BB7D0;     --info-soft:#16303A;
+
+  --code-bg:#141A20;
+  --code-fg:#D5DEE5;
+  --code-dim:#6F8290;
+  --code-accent:hsl(var(--topic-h) 65% 74%);
+  --tok-c:#6F8290;
+  --tok-k:#6BC1D8;
+  --tok-n:#D6A355;
+  --tok-s:#6CBE8F;
+
+  --svg-node:#242E36;
+  --svg-rule:#55646F;
+  --node-ink:#E1E8ED;
+  --on-fill:#0E1419;
+  --zero:#3D4A54;
+  --wash:#333F48;
+  --cell:#1E262D;
+  /* A black node on a black ground is honest and useless. In dark mode the
+     black node stays the darkest thing on the slide and earns a bright rim. */
+  --node-red:#CF3A40;   --node-red-edge:#F08A8E;
+  --node-black:#10151A; --node-black-edge:#8FA3B2;
+  --on-node:#F2F7FA;
+
+  --btn:#212A31;
+  --btn-line:#39454E;
+  --pill:#D7E2E9;
+  --pill-ink:#16202B;
+
+  --shadow:0 14px 44px -12px rgba(0,0,0,.66), 0 2px 10px -2px rgba(0,0,0,.45);
+  --shadow-lg:0 34px 80px -22px rgba(0,0,0,.80);
+  --sel:hsl(var(--topic-h) 70% 60% / .26);
+  --grid-line:hsl(var(--topic-h) 40% 70% / .05);
+}}
+
+:root[data-theme="dark"]{
+  color-scheme:dark;
+
+  --bg:#12171B;
+  --surface:#1A2127;
+  --surface-0:rgba(26,33,39,0);
+  --surface-2:#1E262D;
+  --surface-3:#141A20;
+
+  --fg:#E1E8ED;
+  --fg-dim:#9DAFBB;
+  --fg-faint:#778995;
+
+  --line:#2E3941;
+  --line-strong:#55646F;
+
+  --accent:hsl(var(--topic-h) 70% var(--topic-l-dark));
+  --accent-soft:hsl(var(--topic-h) 38% 15%);
+  --accent-line:hsl(var(--topic-h) 32% 33%);
+  --accent-2:hsl(calc(var(--topic-h) - 40) 62% var(--topic-l-dark));
+  --on-accent:#0E1419;
+
+  --ok:#93C36B;       --ok-soft:#212A1B;
+  --warn:#D6A355;     --warn-soft:#33291A;
+  --bad:#E0655E;      --bad-soft:#382324;
+  --info:#5BB7D0;     --info-soft:#16303A;
+
+  --code-bg:#141A20;
+  --code-fg:#D5DEE5;
+  --code-dim:#6F8290;
+  --code-accent:hsl(var(--topic-h) 65% 74%);
+  --tok-c:#6F8290;
+  --tok-k:#6BC1D8;
+  --tok-n:#D6A355;
+  --tok-s:#6CBE8F;
+
+  --svg-node:#242E36;
+  --svg-rule:#55646F;
+  --node-ink:#E1E8ED;
+  --on-fill:#0E1419;
+  --zero:#3D4A54;
+  --wash:#333F48;
+  --cell:#1E262D;
+  /* A black node on a black ground is honest and useless. In dark mode the
+     black node stays the darkest thing on the slide and earns a bright rim. */
+  --node-red:#CF3A40;   --node-red-edge:#F08A8E;
+  --node-black:#10151A; --node-black-edge:#8FA3B2;
+  --on-node:#F2F7FA;
+
+  --btn:#212A31;
+  --btn-line:#39454E;
+  --pill:#D7E2E9;
+  --pill-ink:#16202B;
+
+  --shadow:0 14px 44px -12px rgba(0,0,0,.66), 0 2px 10px -2px rgba(0,0,0,.45);
+  --shadow-lg:0 34px 80px -22px rgba(0,0,0,.80);
+  --sel:hsl(var(--topic-h) 70% 60% / .26);
+  --grid-line:hsl(var(--topic-h) 40% 70% / .05);
+}

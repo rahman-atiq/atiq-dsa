@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head>
+<!DOCTYPE html><html lang="en" data-topic="sorting" data-kind="lab"><head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
 <meta name="theme-color" content="#04060f">
@@ -10,6 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="DSA Deck">
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sorting Lab</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="shared/chrome.css">
+<script src="shared/catalog.js" defer></script>
+<script src="shared/chrome.js" defer></script>
 <script>
 /* applied before first paint so a dark-theme reload never flashes white */
 try{ let t = localStorage.getItem('dsa.theme');
@@ -19,51 +23,43 @@ try{ let t = localStorage.getItem('dsa.theme');
 </head><body>
 <style>
 :root{
-  color-scheme:light;
-  --paper:#F4F6F7; --panel:#FFFFFF; --ink:#222B31; --mut:#5C6B75; --line:#D9E1E5;
-  --accent:#D96F24; --accent-soft:rgba(217,111,36,.14);
-  --link:#3E7BC4; --ok:#2E9E5B; --bad:#CE4A43; --pivot:#7E5BB5;
-  --pill:#33424E; --pill-ink:#F2F6F8;
-  --bar:#8FA5B3; --bar-edge:#5C6B75;
-  --code-bg:#1D242B; --code-ink:#D5DEE5; --code-dim:#6C7B87; --code-on:rgba(233,138,62,.22); --code-on-edge:#E98A3E;
-  --btn:#FFFFFF; --btn-line:#C9D3D9;
-  --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,Menlo,monospace;
-  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  /* ---------- palette ----------
+     The colours live in shared/tokens.css now. These are aliases onto the
+     shared set, so every rule below keeps the name it was written with and
+     still follows the theme -- a custom property holding var(--x) re-resolves
+     when --x moves, so there is no second copy for dark.
+     --line, --accent, --accent-soft, --ok*, --bad*, --pill*, --code-bg,
+     --code-dim, --btn*, --mono and --sans already match and come straight
+     through. The code panel used to be dark in both themes; it now follows
+     the page, the way the decks' code blocks always have.               */
+  --paper:var(--bg);
+  --panel:var(--surface);
+  --ink:var(--fg);
+  --mut:var(--fg-dim);
+
+  --link:var(--info);
+  --link-soft:var(--info-soft);
+  --pivot:var(--accent-2);
+  --pivot-soft:hsl(calc(var(--topic-h) - 40) 60% 55% / .17);
+  --thread:var(--warn);
+
+  --node:var(--svg-node);
+  --node-edge:var(--line-strong);
+  --bar:var(--line-strong);
+  --bar-edge:var(--fg-dim);
+
+  --code-ink:var(--code-fg);
+  --code-on:hsl(var(--topic-h) 70% 55% / .18);
+  --code-on-edge:var(--accent);
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  color-scheme:dark;
-  --paper:#12171B; --panel:#1A2127; --ink:#E1E8ED; --mut:#8CA0AC; --line:#2B353D;
-  --accent:#E98A3E; --accent-soft:rgba(233,138,62,.16);
-  --link:#6FA5DF; --ok:#48B478; --bad:#E0655E; --pivot:#B195E0;
-  --pill:#D7E2E9; --pill-ink:#16202B;
-  --bar:#4E626F; --bar-edge:#8CA0AC;
-  --code-bg:#141A20; --btn:#212A31; --btn-line:#39454E;
-}}
-:root[data-theme="dark"]{
-  color-scheme:dark;
-  --paper:#12171B; --panel:#1A2127; --ink:#E1E8ED; --mut:#8CA0AC; --line:#2B353D;
-  --accent:#E98A3E; --accent-soft:rgba(233,138,62,.16);
-  --link:#6FA5DF; --ok:#48B478; --bad:#E0655E; --pivot:#B195E0;
-  --pill:#D7E2E9; --pill-ink:#16202B;
-  --bar:#4E626F; --bar-edge:#8CA0AC;
-  --code-bg:#141A20; --btn:#212A31; --btn-line:#39454E;
-}
-:root[data-theme="light"]{
-  color-scheme:light;
-  --paper:#F4F6F7; --panel:#FFFFFF; --ink:#222B31; --mut:#5C6B75; --line:#D9E1E5;
-  --accent:#D96F24; --accent-soft:rgba(217,111,36,.14);
-  --link:#3E7BC4; --ok:#2E9E5B; --bad:#CE4A43; --pivot:#7E5BB5;
-  --pill:#33424E; --pill-ink:#F2F6F8;
-  --bar:#8FA5B3; --bar-edge:#5C6B75;
-  --code-bg:#1D242B; --btn:#FFFFFF; --btn-line:#C9D3D9;
-}
+
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
 button,select,input{font:inherit;color:inherit}
 button{cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.app{max-width:1520px;margin:0 auto;padding:14px 18px 40px}
+.app{max-width:1520px;margin:0 auto;padding:calc(var(--chrome-h) + 14px) 18px 40px}
 header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 22px;padding:4px 2px 12px}
 .brand{font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:-.02em}
 .brand .cursor{color:var(--accent)}
@@ -72,12 +68,6 @@ header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 22px;padding
 .tabs button{font-family:var(--mono);font-size:12px;padding:6px 11px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut)}
 .tabs button:hover{border-color:var(--mut)}
 .tabs button.on{background:var(--pill);color:var(--pill-ink);border-color:var(--pill);font-weight:700}
-/* theme switcher — deliberately NOT inside .tabs, so it stays live mid-run */
-.hublink{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
-.hublink:hover{color:var(--ink)}
-.themeBtn{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--btn-line);background:var(--btn);border-radius:4px;color:var(--mut);display:inline-flex;align-items:center;gap:6px}
-.themeBtn:hover{border-color:var(--mut);color:var(--ink)}
-.themeBtn .ic{font-size:12.5px;line-height:1}
 .work{display:grid;grid-template-columns:248px minmax(0,1fr) 392px;gap:14px;align-items:start}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
 /* ---- input + operations rail ---- */
@@ -252,10 +242,8 @@ pre.code .cl.on{background:var(--code-on);box-shadow:inset 3px 0 0 var(--code-on
 </style>
 <div class="app">
   <header class="top">
-    <a class="hublink" href="index.html" title="Back to hub">&larr; Hub</a>
     <div class="brand">sorting_lab<span class="cursor">_</span><span class="sub">step through every sort in Module IV — comparison by comparison, swap by swap</span></div>
     <nav class="tabs" id="tabs" aria-label="algorithm family"></nav>
-    <button class="themeBtn" id="themeBtn" title="switch theme: auto → light → dark"></button>
   </header>
   <main class="work">
     <aside class="rail">
@@ -884,40 +872,8 @@ function toggleAuto(){
   timer = setInterval(() => { if (!run){ stopAuto(); return; } stepFwd(); }, 620);
 }
 function stopAuto(){ clearInterval(timer); timer = null; $('#btnRun').textContent = 'Run ▶▶'; }
-
-/* ============================================================
-   THEME
-   ============================================================ */
-/* three states, cycled by one button: auto (follow the OS) → light → dark.
-   "auto" is the absence of data-theme, which is what lets the
-   prefers-color-scheme block in the stylesheet win. */
-const THEMES = ['auto','light','dark'];
-const THEME_ICON = { auto:'◐', light:'☀', dark:'☾' };
-const THEME_KEY = 'dsa.theme';
-const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
-
-function readTheme(){
-  let t = null;
-  try { t = localStorage.getItem(THEME_KEY); } catch(e){}
-  return THEMES.includes(t) ? t : 'auto';
-}
-function applyTheme(t){
-  if (t === 'auto') delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = t;
-  try { t === 'auto' ? localStorage.removeItem(THEME_KEY) : localStorage.setItem(THEME_KEY, t); } catch(e){}
-  paintThemeBtn(t);
-}
-function paintThemeBtn(t){
-  const b = $('#themeBtn');
-  const resolved = t === 'auto' ? (darkMQ.matches ? 'dark' : 'light') : t;
-  b.innerHTML = `<span class="ic">${THEME_ICON[t]}</span>${t}`;
-  b.setAttribute('aria-label', `theme: ${t}${t === 'auto' ? ' (currently ' + resolved + ')' : ''} — click to change`);
-}
-function cycleTheme(){
-  const next = THEMES[(THEMES.indexOf(readTheme()) + 1) % THEMES.length];
-  applyTheme(next);
-  note('Theme: ' + next + (next === 'auto' ? ' — following your system setting.' : '.'));
-}
+/* The theme lives in shared/chrome.js now: one toggle, one T key and one
+   localStorage entry for the whole app. */
 
 /* ============================================================
    CHROME
@@ -2568,10 +2524,6 @@ void countingSort(int a[], int n, int k) {   /* broken */
    BOOT
    ============================================================ */
 function boot(){
-  applyTheme(readTheme());
-  $('#themeBtn').onclick = cycleTheme;
-  /* while on "auto", the OS flipping at sunset should update the button label too */
-  darkMQ.addEventListener('change', () => { if (readTheme() === 'auto') paintThemeBtn('auto'); });
   buildTabs();
   buildPresets();
   $('#btnNext').onclick = stepFwd;
@@ -2602,6 +2554,12 @@ function boot(){
   setMode('bubble');
 }
 boot();
+
+/* Listed in the ? overlay that shared/chrome.js builds. */
+window.DSA_KEYS = [
+  ['\u2190 \u2192', 'Step back / step forward'],
+  ['Space', 'Run and pause']
+];
 </script>
 <script>
 if ('serviceWorker' in navigator) {

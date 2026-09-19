@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-topic="heap-sort" data-kind="lab">
 <head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
@@ -15,6 +15,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Heap Lab — Sorting by Tournament</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="shared/chrome.css">
+<script src="shared/catalog.js" defer></script>
+<script src="shared/chrome.js" defer></script>
 <script>
 /* Pick the theme up before first paint: a dark-mode reader opening this lab
    should never get a white flash on the way in. */
@@ -29,66 +33,42 @@ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)
    ============================================================ */
 
 :root{
-  --violet:#7C3AED; --cyan:#0891B2; --amber:#D97706; --rose:#E11D48;
-  --emerald:#059669; --blue:#2563EB; --pink:#DB2777;
+  /* ---------- palette ----------
+     The colours live in shared/tokens.css now. These are aliases onto the
+     shared set, so every rule below keeps the name it was written with and
+     still follows the theme -- a custom property holding var(--x) re-resolves
+     when --x moves, which is why there is no second copy for dark.
+     --bg, --line, --node-ink, --shadow, --shadow-lg and --sel already match
+     the shared names and come straight through; --ink does not, so it is
+     aliased below like the rest.
 
-  --bg:#FBF9F6; --bg2:#FFFFFF;
-  --ink:#141221; --ink2:#4A4560; --ink3:#7A7490;
-  --line:#E4DFF0; --line2:#CFC8E4;
-  --card:#FFFFFF; --card2:#F6F3FB;
-  --shadow:0 12px 40px -12px rgba(52,32,92,.22), 0 2px 8px -2px rgba(52,32,92,.10);
-  --shadow-lg:0 30px 70px -20px rgba(52,32,92,.34);
+     The seven "colour" names were a fixed violet/cyan/amber palette. They are
+     now roles: the lab's own accent, its complement, and the status colours.
+     That is what makes a lab look like the deck it belongs to.           */
+  --ink:var(--fg);
+  --bg2:var(--surface);
+  --ink2:var(--fg-dim);
+  --ink3:var(--fg-faint);
+  --line2:var(--line-strong);
+  --card:var(--surface);
+  --card2:var(--surface-2);
 
-  --node-fill:#EEF0FF; --node-stroke:#8B87C9; --node-ink:#241F45;
-  --edge:#B6AFD4;
+  --violet:var(--accent);
+  --pink:var(--accent-2);
+  --cyan:var(--info);
+  --blue:var(--info);
+  --amber:var(--warn);
+  --rose:var(--bad);
+  --emerald:var(--ok);
 
-  --blob1:rgba(124,58,237,.16); --blob2:rgba(6,182,212,.16); --blob3:rgba(245,158,11,.15);
-  --grid:rgba(90,70,150,.055);
-  --sel:rgba(124,58,237,.16);
-}
-/* The media query is guarded so an explicit light choice still wins,
-   and both [data-theme] blocks exist so the button wins in either
-   direction over whatever the operating system thinks. */
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  color-scheme:dark;
-  --violet:#A78BFA; --cyan:#22D3EE; --amber:#FBBF24; --rose:#FB7185;
-  --emerald:#34D399; --blue:#60A5FA; --pink:#F472B6;
+  --node-fill:var(--svg-node);
+  --node-stroke:var(--line-strong);
+  --edge:var(--svg-rule);
 
-  --bg:#080716; --bg2:#0E0C22;
-  --ink:#F2EEFF; --ink2:#B9B2D8; --ink3:#8079A6;
-  --line:#241F44; --line2:#332C5C;
-  --card:#12102A; --card2:#191634;
-  --shadow:0 14px 44px -12px rgba(0,0,0,.72), 0 2px 10px -2px rgba(0,0,0,.5);
-  --shadow-lg:0 34px 80px -22px rgba(0,0,0,.85);
-
-  --node-fill:#221E45; --node-stroke:#6F67B8; --node-ink:#EFEBFF;
-  --edge:#4A4278;
-
-  --blob1:rgba(167,139,250,.22); --blob2:rgba(34,211,238,.18); --blob3:rgba(251,191,36,.15);
-  --grid:rgba(160,140,255,.05);
-  --sel:rgba(167,139,250,.24);
-}}
-:root[data-theme="dark"]{
-  color-scheme:dark;
-  --violet:#A78BFA; --cyan:#22D3EE; --amber:#FBBF24; --rose:#FB7185;
-  --emerald:#34D399; --blue:#60A5FA; --pink:#F472B6;
-
-  --bg:#080716; --bg2:#0E0C22;
-  --ink:#F2EEFF; --ink2:#B9B2D8; --ink3:#8079A6;
-  --line:#241F44; --line2:#332C5C;
-  --card:#12102A; --card2:#191634;
-  --shadow:0 14px 44px -12px rgba(0,0,0,.72), 0 2px 10px -2px rgba(0,0,0,.5);
-  --shadow-lg:0 34px 80px -22px rgba(0,0,0,.85);
-
-  --node-fill:#221E45; --node-stroke:#6F67B8; --node-ink:#EFEBFF;
-  --edge:#4A4278;
-
-  --blob1:rgba(167,139,250,.22); --blob2:rgba(34,211,238,.18); --blob3:rgba(251,191,36,.15);
-  --grid:rgba(160,140,255,.05);
-  --sel:rgba(167,139,250,.24);
-}
-:root[data-theme="light"]{
-  color-scheme:light;
+  --blob1:hsl(var(--topic-h) 70% 55% / .16);
+  --blob2:hsl(calc(var(--topic-h) - 40) 65% 55% / .13);
+  --blob3:hsl(calc(var(--topic-h) + 46) 70% 55% / .12);
+  --grid:var(--grid-line);
 }
 
 *{box-sizing:border-box}
@@ -117,7 +97,7 @@ body{
   background-size:44px 44px;mask-image:radial-gradient(ellipse at center,#000 30%,transparent 78%)}
 
 /* ---------- stage ---------- */
-#fit{position:fixed;inset:0;display:grid;place-items:center;z-index:1}
+#fit{position:fixed;inset:var(--chrome-h) 0 0 0;display:grid;place-items:center;z-index:1}
 #stage{width:1280px;height:720px;position:relative;transform-origin:center center}
 .slide{
   position:absolute;inset:0;padding:34px 52px 58px;
@@ -341,7 +321,7 @@ kbd{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;font-weight:750;pa
 #chrome{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:12px;
   padding:10px 18px;pointer-events:none}
 #chrome > *{pointer-events:auto}
-#prog{position:fixed;top:0;left:0;height:4px;z-index:30;
+#prog{position:fixed;top:var(--chrome-h);left:0;height:4px;z-index:30;
   background:linear-gradient(90deg,var(--violet),var(--pink),var(--amber));
   transition:width .35s cubic-bezier(.2,.8,.25,1);border-radius:0 3px 3px 0}
 .cbtn{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;cursor:pointer;
@@ -465,6 +445,24 @@ body.laser,body.laser *{cursor:none !important}
 .heap.compact .acell .ix{font-size:9.5px}
 .heap.compact .band{height:15px;font-size:9.5px;letter-spacing:.05em}
 .heap.compact .hbands{margin-top:4px}
+
+/* ---------- reduced motion ----------
+   Overriding the keyframes rather than hunting down every selector that
+   uses them: each animation keeps its resting frame, so nothing vanishes
+   or ends up parked 3px off, it just stops moving. The blurred blobs are
+   switched off outright -- they are the expensive ones and they are pure
+   decoration. */
+@media (prefers-reduced-motion:reduce){
+  @keyframes drift  {from{transform:none}                to{transform:none}}
+  @keyframes march  {from{stroke-dashoffset:0}           to{stroke-dashoffset:0}}
+  @keyframes nudge  {from{transform:none}                to{transform:none}}
+  @keyframes pulse  {from{r:24;opacity:.55}              to{r:24;opacity:.55}}
+  @keyframes slideIn{from{opacity:1;transform:none}      to{opacity:1;transform:none}}
+  @keyframes blink  {from{opacity:1}                     to{opacity:1}}
+  #bg .blob{animation:none}
+  .slide.on{animation:none}
+  .frag{transition:none}
+}
 </style>
 </head>
 <body>
@@ -490,7 +488,6 @@ body.laser,body.laser *{cursor:none !important}
       <kbd>&rarr;</kbd><kbd>Space</kbd> next &nbsp; <kbd>&larr;</kbd> back &nbsp; <kbd>M</kbd> menu &nbsp;
       <kbd>T</kbd> theme &nbsp; <kbd>S</kbd> timer &nbsp; <kbd>L</kbd> laser &nbsp; <kbd>F</kbd> fullscreen
     </div>
-    <p class="tiny">Paired with the deck: <a href="heap-sort.html">open heap-sort.html &rarr;</a></p>
   </div>
 </section>
 
@@ -1439,13 +1436,11 @@ i = n-<span class="nu">1</span>;
 <canvas id="laser"></canvas>
 
 <div id="chrome">
-  <a class="cbtn" id="btnHub" href="index.html" title="Back to hub">&#8962;</a>
   <div class="cbtn" id="btnPrev" title="Previous (&larr;)">&#8249;</div>
   <div class="cbtn" id="btnNext" title="Next (&rarr;)">&#8250;</div>
   <div id="counter" title="Slide menu (M)">1 / 31</div>
   <div id="slidename"></div>
   <div class="cbtn" id="btnLaser" title="Laser pointer (L)">&#9673;</div>
-  <div class="cbtn" id="btnTheme" title="Colour theme — auto, light, dark (T)">&#9680;</div>
   <div class="cbtn" id="btnMenu" title="Menu (M)">&#9776;</div>
   <div class="cbtn" id="btnFull" title="Fullscreen (F)">&#9974;</div>
 </div>
@@ -1687,7 +1682,6 @@ document.addEventListener("click",function(e){
 
 document.getElementById("btnNext").onclick=next;
 document.getElementById("btnPrev").onclick=prev;
-document.getElementById("btnTheme").onclick=toggleTheme;
 document.getElementById("btnLaser").onclick=function(){ setLaser(!laserOn); };
 document.getElementById("btnMenu").onclick=toggleMenu;
 document.getElementById("counter").onclick=toggleMenu;
@@ -1705,7 +1699,6 @@ document.addEventListener("keydown",function(e){
   else if(k==="ArrowUp"){ e.preventDefault(); go(idx-1,false); }
   else if(k==="Home"){ e.preventDefault(); go(0,false); }
   else if(k==="End"){ e.preventDefault(); go(slides.length-1,true); }
-  else if(k==="t"||k==="T"){ toggleTheme(); }
   else if(k==="l"||k==="L"){ setLaser(!laserOn); }
   else if(k==="m"||k==="M"){ toggleMenu(); }
   else if(k==="Escape"){ closeMenu(); setLaser(false); }
@@ -1715,25 +1708,8 @@ document.addEventListener("keydown",function(e){
   }
 });
 
-/* ---------- theme: auto / light / dark, one shared key across the app ---------- */
-var THEME_MODES=["auto","light","dark"];
-var THEME_ICON={auto:"&#9680;",light:"&#9728;",dark:"&#9790;"};
-function applyTheme(mode,persist){
-  if(mode==="auto") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme",mode);
-  if(persist){ try{ localStorage.setItem("dsa.theme",mode); }catch(err){} }
-  document.getElementById("btnTheme").innerHTML=THEME_ICON[mode];
-}
-function toggleTheme(){
-  var cur="auto";
-  try{ var v=localStorage.getItem("dsa.theme"); if(THEME_MODES.indexOf(v)>=0) cur=v; }catch(err){}
-  applyTheme(THEME_MODES[(THEME_MODES.indexOf(cur)+1)%THEME_MODES.length],true);
-}
-(function initTheme(){
-  var mode="auto";
-  try{ var v=localStorage.getItem("dsa.theme"); if(THEME_MODES.indexOf(v)>=0) mode=v; }catch(err){}
-  applyTheme(mode,false);
-})();
+/* The theme lives in shared/chrome.js now: one toggle, one T key and one
+   localStorage entry for the whole app. */
 
 /* ---------- menu ---------- */
 function buildMenu(){
@@ -1820,7 +1796,8 @@ window.addEventListener("blur",function(){ lseen=false; lpts=[]; });
 
 /* ---------- fit stage to viewport ---------- */
 function fit(){
-  var s=Math.min((window.innerWidth-36)/1280,(window.innerHeight-64)/720);
+  var ch=parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--chrome-h"))||44;
+  var s=Math.min((window.innerWidth-36)/1280,(window.innerHeight-64-ch)/720);
   stage.style.transform="scale("+s+")";
 }
 window.addEventListener("resize",function(){ fit(); if(laserOn) sizeLaser(); });
@@ -1955,6 +1932,17 @@ function renderHeap(host){
   if(view!=="tree")  host.appendChild(heapArray(vals,n,hl,showIdx,compact,swap,
                                                  host.hasAttribute("data-nobands")));
 }
+
+/* Listed in the ? overlay that shared/chrome.js builds. */
+window.DSA_KEYS = [
+  ['\u2190 \u2192', 'Back / forward, one reveal at a time'],
+  ['\u2191 \u2193', 'Whole slide back / forward'],
+  ['Home End', 'First slide / last slide'],
+  ['M', 'Jump to any slide'],
+  ['L', 'Laser pointer'],
+  ['S', 'Start the timer on a timed slide'],
+  ['F', 'Fullscreen']
+];
 
 /* ---------- boot ---------- */
 [].slice.call(document.querySelectorAll(".tree")).forEach(renderTree);

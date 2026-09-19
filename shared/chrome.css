@@ -1,0 +1,169 @@
+/* ============================================================
+   shared/chrome.css — the fixed bar across the top of every page,
+   the shortcut overlay behind `?`, and the panel the fixed-stage
+   labs show instead of pretending to fit on a phone.
+
+   The markup is built by shared/chrome.js. Everything here is
+   namespaced `dsa-` so it cannot collide with a page's own rules,
+   and it reads only shared tokens so it themes itself.
+   ============================================================ */
+
+.dsa-bar{
+  position:fixed; top:0; left:0; right:0; z-index:900;
+  height:var(--chrome-h);
+  display:flex; align-items:center; gap:10px;
+  padding:0 clamp(10px,2.5vw,20px);
+  font-family:var(--mono); font-size:12px; line-height:1;
+  color:var(--fg-dim);
+  background:color-mix(in srgb, var(--surface) 88%, transparent);
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(10px) saturate(1.3);
+  -webkit-backdrop-filter:blur(10px) saturate(1.3);
+}
+/* No color-mix (older Safari): a solid bar is the right thing to lose to. */
+@supports not (background:color-mix(in srgb, red 50%, transparent)){
+  .dsa-bar{ background:var(--surface); }
+}
+
+.dsa-bar a,
+.dsa-bar button{
+  font-family:inherit; font-size:inherit; line-height:1;
+  color:var(--fg-dim); background:none;
+  border:1px solid transparent; border-radius:var(--radius);
+  padding:6px 9px; cursor:pointer; text-decoration:none;
+  display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+  transition:color .15s ease, border-color .15s ease, background .15s ease;
+}
+.dsa-bar a:hover,
+.dsa-bar button:hover{ color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft); }
+.dsa-bar :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+/* Also a plain <span> on the hub itself, where there is nowhere to go,
+   so it cannot inherit the flex layout the <a>/<button> rule gives. */
+.dsa-home{ display:inline-flex; align-items:center; gap:6px; padding:6px 9px; font-weight:500; }
+.dsa-home .dsa-glyph{ font-size:14px; }
+
+/* breadcrumb: kind, then topic. The topic is the loud half. */
+.dsa-crumb{
+  display:flex; align-items:center; gap:7px;
+  min-width:0; overflow:hidden;
+  padding-left:2px;
+}
+.dsa-crumb .dsa-sep{ color:var(--fg-faint); }
+.dsa-crumb .dsa-kind{
+  color:var(--fg-faint); text-transform:uppercase; letter-spacing:.12em; font-size:10.5px;
+}
+.dsa-crumb .dsa-topic{
+  color:var(--fg); font-weight:500;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.dsa-spacer{ flex:1 1 auto; min-width:0; }
+
+/* the sibling switch — the deck for a lab, the lab for a deck */
+.dsa-sibling{ border-color:var(--line)!important; }
+.dsa-sibling .dsa-short{ display:none; }
+.dsa-sibling[data-desktop="true"]::after{
+  content:'desktop'; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--fg-faint); border:1px solid var(--line); border-radius:999px; padding:2px 6px;
+}
+
+.dsa-badge{
+  font-size:9.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--warn); border:1px solid var(--warn); border-radius:999px;
+  padding:3px 7px; white-space:nowrap;
+}
+
+/* Narrow screens: the breadcrumb kind and the sibling's label go first,
+   because the hub link and the theme toggle are what you actually reach for. */
+@media (max-width:720px){
+  .dsa-crumb .dsa-kind,
+  .dsa-crumb .dsa-sep{ display:none; }
+  .dsa-sibling .dsa-label{ display:none; }
+  .dsa-sibling .dsa-short{ display:inline; }
+  .dsa-home .dsa-label{ display:none; }
+  .dsa-bar{ gap:4px; }
+}
+
+/* ---------- shortcut overlay ---------- */
+.dsa-overlay{
+  position:fixed; inset:0; z-index:950;
+  display:none; align-items:center; justify-content:center;
+  padding:20px;
+  background:color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+}
+.dsa-overlay.is-open{ display:flex; }
+.dsa-sheet{
+  width:min(560px,100%); max-height:82vh; overflow-y:auto;
+  background:var(--surface); color:var(--fg);
+  border:1px solid var(--line); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg);
+  padding:22px 24px 18px;
+  font-family:var(--sans); font-size:14px;
+}
+.dsa-sheet h2{
+  font-family:var(--mono); font-size:12px; font-weight:500;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--accent);
+  margin:0 0 14px;
+}
+.dsa-sheet h3{
+  font-family:var(--mono); font-size:10.5px; font-weight:500;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--fg-faint);
+  margin:18px 0 8px; padding-top:12px; border-top:1px solid var(--line);
+}
+.dsa-sheet h3:first-of-type{ border-top:0; padding-top:0; margin-top:4px; }
+.dsa-keys{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:7px 14px; align-items:baseline; }
+.dsa-keys dt{ text-align:right; white-space:nowrap; }
+.dsa-keys dd{ margin:0; color:var(--fg-dim); }
+.dsa-sheet kbd{
+  font-family:var(--mono); font-size:11px; line-height:1;
+  display:inline-block; padding:4px 6px; margin:0 1px;
+  color:var(--fg); background:var(--surface-3);
+  border:1px solid var(--line); border-bottom-width:2px; border-radius:4px;
+}
+.dsa-sheet .dsa-dismiss{
+  margin-top:18px; font-family:var(--mono); font-size:11px; color:var(--fg-faint);
+}
+
+/* ---------- fixed-stage labs on a small screen ----------
+   These four labs scale a 1280x720 stage; below ~760px the type is
+   smaller than the controls you are asked to click. Say so plainly
+   rather than shipping something unusable. */
+.dsa-rotate{ display:none; }
+@media (max-width:760px){
+  html[data-desktop="true"] .dsa-rotate{
+    position:fixed; inset:var(--chrome-h) 0 0 0; z-index:880;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; padding:28px 24px; text-align:center;
+    background:var(--bg); color:var(--fg);
+    font-family:var(--sans);
+  }
+  html[data-desktop="true"] .dsa-rotate h2{
+    font-family:var(--serif); font-size:22px; font-weight:600; margin:0; line-height:1.25;
+  }
+  html[data-desktop="true"] .dsa-rotate p{
+    margin:0; max-width:34ch; font-size:14.5px; line-height:1.55; color:var(--fg-dim);
+  }
+  html[data-desktop="true"] .dsa-rotate .dsa-rotate-icon{
+    font-size:34px; line-height:1; color:var(--accent);
+  }
+  html[data-desktop="true"] .dsa-rotate a{
+    margin-top:4px; font-family:var(--mono); font-size:12px;
+    color:var(--accent); text-decoration:none;
+    border:1px solid var(--accent-line); border-radius:var(--radius);
+    padding:9px 14px; background:var(--accent-soft);
+  }
+  /* Landscape on a phone is tall enough to be worth a try, so let it through. */
+  @media (orientation:landscape) and (min-width:560px){
+    html[data-desktop="true"] .dsa-rotate{ display:none; }
+  }
+}
+
+/* ---------- motion ---------- */
+@media (prefers-reduced-motion:reduce){
+  .dsa-bar a, .dsa-bar button{ transition:none; }
+}
+
+@media print{
+  .dsa-bar, .dsa-overlay, .dsa-rotate{ display:none!important; }
+}

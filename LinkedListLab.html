@@ -562,6 +562,9 @@ function setMode(m){
   $('#opName').textContent = 'pick an operation ←';
   note(MODES[m].label + ' selected. State is kept per structure — switch tabs freely.');
   renderAll();
+  /* #<mode> in the address bar, plus the bookmark the hub's Continue
+     card reads. See shared/chrome.js. */
+  if (window.DSAChrome) window.DSAChrome.moved();
 }
 function buildTabs(){
   $('#tabs').innerHTML = '';
@@ -612,7 +615,9 @@ function boot(){
     if (ev.key === 'ArrowRight'){ stepFwd(); ev.preventDefault(); }
     if (ev.key === 'ArrowLeft'){ stepBack(); ev.preventDefault(); }
   });
-  setMode('sll');
+  /* Resume the section the address bar names, the way the decks do. */
+  const want = decodeURIComponent((location.hash || '').slice(1));
+  setMode(MODES[want] ? want : 'sll');
 }
 /* ============ operations: C code + step scripts ============ */
 const NL = a => a || 'NULL';
@@ -2117,6 +2122,19 @@ int deleteRear(void) {
 ],
 };
 boot();
+
+/* ---------- the overview, the address bar, the bookmark ----------
+   A tab is not a slide, so this track is measured in sections: the hub
+   shows which one you were last in rather than pretending the deque tab
+   is eighty per cent of anything. shared/chrome.js does the rest. */
+const MODE_IDS = Object.keys(MODES);
+window.DSA_TRACK = {
+  unit: 'section',
+  title: 'Jump to a structure',
+  items: () => MODE_IDS.map(m => ({ group:'', name: MODES[m].label, hash: m })),
+  current: () => MODE_IDS.indexOf(mode),
+  go: i => setMode(MODE_IDS[i])
+};
 
 /* Listed in the ? overlay that shared/chrome.js builds. */
 window.DSA_KEYS = [

@@ -586,6 +586,9 @@ function show(k){
   document.getElementById("codeHd").textContent=sc.name.toLowerCase()+".c";
   document.querySelectorAll(".grp button").forEach(b=>b.classList.toggle("on",b.dataset.k===k));
   render();
+  /* #<scenario> in the address bar, plus the bookmark the hub's Continue
+     card reads. See shared/chrome.js. */
+  if (window.DSAChrome) window.DSAChrome.moved();
 }
 function render(){
   const sc=SCEN[cur], snap=snaps[i];
@@ -635,7 +638,28 @@ addEventListener("keydown",e=>{
 });
 /* The theme lives in shared/chrome.js now: one toggle, one T key and one
    localStorage entry for the whole app. */
-show("pv");
+/* Resume the scenario the address bar names, the way the decks do. */
+const want = decodeURIComponent((location.hash || "").slice(1));
+show(SCEN[want] ? want : "pv");
+
+/* ---------- the overview, the address bar, the bookmark ----------
+   Scenarios, not slides: "you were last in Use after free" is a useful
+   thing for the hub to say, "you are 60% through memory" is not. The
+   two groups are the two the rail already draws.
+   SCEN lists the model first and the traps after, so grouping in
+   declaration order gives exactly those two blocks. */
+const SCEN_IDS = Object.keys(SCEN);
+window.DSA_TRACK = {
+  unit: 'section',
+  title: 'Jump to a scenario',
+  items: () => SCEN_IDS.map(k => ({
+    group: SCEN[k].bug ? 'The classic traps' : 'The model',
+    name: SCEN[k].name,
+    hash: k
+  })),
+  current: () => SCEN_IDS.indexOf(cur),
+  go: i => show(SCEN_IDS[i])
+};
 
 /* Listed in the ? overlay that shared/chrome.js builds. */
 window.DSA_KEYS = [

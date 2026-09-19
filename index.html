@@ -300,6 +300,99 @@ h2 .count{font-size:.7rem; color:var(--fg-faint); letter-spacing:.1em}
 }
 .act.soon{opacity:.45; pointer-events:none}
 
+
+/* ---------- continue where you left off ----------
+   Written by shared/chrome.js on every page as you move through it, read
+   back here. It is the one thing a front door owes you that a grid of
+   links does not: the way back in. */
+.resume{
+  position:relative; display:grid;
+  /* Placed explicitly rather than left to auto-flow: the Resume button is
+     last in the source so it falls to the bottom when the card collapses
+     to two columns, and is pinned to the right-hand column when it does
+     not. Auto-flow put it above the line of text it acts on. */
+  grid-template-columns:auto minmax(0,1fr) auto;
+  grid-template-rows:auto auto auto; align-items:center; gap:.5rem 1.15rem;
+  padding:1.15rem 1.35rem; border-radius:16px; margin-bottom:1rem;
+  border:1px solid hsl(var(--topic-h) 80% 58% / .34);
+  background:
+    linear-gradient(100deg, hsl(var(--topic-h) 85% 55% / .11), transparent 62%),
+    var(--glass);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  overflow:hidden;
+}
+.resume .glyph{ grid-column:1; grid-row:1 / span 3; }
+.resume-head{ grid-column:2; grid-row:1; display:flex; align-items:baseline; flex-wrap:wrap; gap:.55rem; min-width:0; }
+.resume-title{
+  font-family:var(--serif); font-weight:600; font-size:1.14rem;
+  letter-spacing:-.01em; margin:0; color:var(--fg);
+}
+.resume-kind{
+  font-family:var(--mono); font-size:.62rem; letter-spacing:.16em; text-transform:uppercase;
+  color:hsl(var(--topic-h) var(--card-s) var(--card-l));
+  border:1px solid hsl(var(--topic-h) 80% 58% / .4); border-radius:999px; padding:.18rem .5rem;
+}
+.resume-where{
+  grid-column:2; grid-row:2; min-width:0; margin:0;
+  font-size:.85rem; color:var(--fg-dim); line-height:1.5;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.resume-where b{ color:var(--fg); font-weight:600; }
+.resume-go{
+  grid-column:3; grid-row:1 / span 3; align-self:center; justify-self:end;
+  display:inline-flex; align-items:center; gap:.5rem;
+  font-family:var(--mono); font-size:.7rem; letter-spacing:.1em; text-transform:uppercase;
+  text-decoration:none; padding:.6rem .95rem; border-radius:9px; white-space:nowrap;
+  color:hsl(var(--topic-h) var(--card-s) var(--card-l));
+  border:1px solid hsl(var(--topic-h) 80% 58% / .5);
+  background:hsl(var(--topic-h) 80% 58% / .12);
+  transition:background .2s ease, border-color .2s ease;
+}
+.resume-go i{ font-style:normal; transition:transform .2s ease; }
+.resume-go:hover{ background:hsl(var(--topic-h) 80% 58% / .22); border-color:hsl(var(--topic-h) 80% 58% / .8); }
+.resume-go:hover i{ transform:translateX(4px); }
+.resume-go:focus-visible{ outline:2px solid hsl(var(--topic-h) var(--card-s) var(--card-l)); outline-offset:2px; }
+
+/* the bar under the line of text, only for things measured in slides */
+.resume-bar{
+  grid-column:2; grid-row:3; height:3px; border-radius:999px; margin-top:.15rem;
+  background:var(--line-strong); overflow:hidden;
+}
+.resume-bar i{
+  display:block; height:100%; border-radius:999px;
+  background:linear-gradient(90deg,
+    hsl(var(--topic-h) var(--card-s) var(--card-l) / .55),
+    hsl(var(--topic-h) var(--card-s) var(--card-l)));
+}
+
+@media (max-width:620px){
+  .resume{ grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto auto auto; }
+  .resume .glyph{ grid-row:1 / span 3; }
+  .resume-go{ grid-column:1 / -1; grid-row:4; justify-self:stretch; justify-content:center; margin-top:.65rem; }
+}
+
+/* ---------- per-action progress ----------
+   A ring rather than a number alone: at a glance you want "barely
+   started" vs "nearly done", and only then the exact slide. */
+.act .pr{
+  display:inline-flex; align-items:center; gap:.35rem;
+  font-size:.62rem; letter-spacing:.06em; color:var(--fg-faint);
+  /* "Circ-Doubly" and "Expression tree" are real section names. Cap them
+     rather than letting one card grow a row taller than its neighbours. */
+  max-width:11ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.act:hover .pr{ color:inherit; }
+.act .ring{
+  width:11px; height:11px; border-radius:50%; flex:0 0 auto;
+  background:conic-gradient(currentColor calc(var(--p) * 1%), var(--line-strong) 0);
+  -webkit-mask:radial-gradient(closest-side, transparent 56%, #000 58%);
+  mask:radial-gradient(closest-side, transparent 56%, #000 58%);
+}
+/* No mask support: a filled pie still reads as a progress dot. */
+@supports not ((mask:radial-gradient(closest-side, transparent 56%, #000 58%)) or (-webkit-mask:radial-gradient(closest-side, transparent 56%, #000 58%))){
+  .act .ring{ width:9px; height:9px; }
+}
+
 /* ---------- entrance ---------- */
 .reveal{opacity:0; transform:translateY(16px)}
 .reveal.in{animation:rise .6s cubic-bezier(.2,.7,.3,1) forwards}
@@ -330,7 +423,7 @@ footer .mark{
      comes. The reset has to match the specificity that set the drift. */
   .orb.a, .orb.b, .orb.c, .chip .dot, h1{animation:none}
   .reveal, .reveal.in{opacity:1; transform:none; animation:none}
-  .topic, .act, .act i, .glyph{transition:none}
+  .topic, .act, .act i, .glyph, .resume-go, .resume-go i{transition:none}
 }
 </style>
 <noscript><style>.reveal{opacity:1;transform:none}</style></noscript>
@@ -405,6 +498,11 @@ footer .mark{
       <div class="stats reveal" id="stats"></div>
     </header>
 
+    <section id="resumeWrap" hidden>
+      <h2>Continue</h2>
+      <div id="resume"></div>
+    </section>
+
     <section>
       <h2>Topics <span class="count" id="topicCount"></span></h2>
       <div class="grid" id="topics"></div>
@@ -433,6 +531,102 @@ document.addEventListener('DOMContentLoaded', function(){
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   };
 
+  /* ---------- where you got to ----------
+     shared/chrome.js writes one `dsa.progress.<topic>.<deck|lab>` record
+     per page as you move through it. Keyed by page and not by topic on
+     purpose: the B-Trees deck and the B-Trees lab are the same subject
+     but not the same place, and a bookmark in one is no use in the other.
+
+     Anything unparseable is dropped without comment. A hub that throws
+     because of a stale localStorage entry is worse than one with no
+     Continue card. */
+  var PREFIX = 'dsa.progress.';
+
+  function readProgress(){
+    var out = {}, i, key, rest, dot, rec;
+    try {
+      for (i = 0; i < localStorage.length; i++) {
+        key = localStorage.key(i);
+        if (!key || key.indexOf(PREFIX) !== 0) continue;
+        rest = key.slice(PREFIX.length);
+        dot = rest.lastIndexOf('.');
+        if (dot < 1) continue;
+        var id = rest.slice(0, dot), kind = rest.slice(dot + 1);
+        if (kind !== 'deck' && kind !== 'lab') continue;
+        if (!cat.byId(id)) continue;                 /* topic since removed */
+        try { rec = JSON.parse(localStorage.getItem(key)); } catch (e) { continue; }
+        if (!rec || typeof rec.at !== 'number' || typeof rec.total !== 'number') continue;
+        if (rec.total < 1 || rec.at < 1 || rec.at > rec.total) continue;
+        rec.topicId = id;
+        rec.pageKind = kind;
+        out[id + '.' + kind] = rec;
+      }
+    } catch (e) {}
+    return out;
+  }
+
+  var progress = readProgress();
+
+  function pct(rec){ return Math.round(rec.at / rec.total * 100); }
+
+  /* The chip that rides on a Deck or Lab action. Slides get a ring and a
+     count; sections get the name of the one you were in, because "tab 7
+     of 10" is not a measure of anything. */
+  function chip(rec){
+    if (!rec) return '';
+    if (rec.unit === 'section') {
+      return rec.label
+        ? '<span class="pr" title="You were last in: ' + esc(rec.label) + '">' +
+          esc(rec.label) + '</span>'
+        : '';
+    }
+    return '<span class="pr"><span class="ring" style="--p:' + pct(rec) + '"></span>' +
+           rec.at + '/' + rec.total + '</span>';
+  }
+
+  function renderResume(){
+    /* The most recent record that is actually somewhere -- being parked on
+       slide one is not progress worth advertising. */
+    var best = null;
+    Object.keys(progress).forEach(function(k){
+      var r = progress[k];
+      if (r.at < 2) return;
+      if (!best || r.ts > best.ts) best = r;
+    });
+    if (!best) return;
+
+    var t = cat.byId(best.topicId);
+    var file = t && t[best.pageKind];
+    if (!file) return;
+
+    var where = best.unit === 'section'
+      ? (best.label ? 'You were in <b>' + esc(best.label) + '</b>.'
+                    : 'Pick up where you left off.')
+      : 'Slide <b>' + best.at + '</b> of ' + best.total +
+        (best.label ? ' — ' + esc(best.label) : '');
+
+    var bar = best.unit === 'section' ? ''
+      : '<div class="resume-bar"><i style="width:' + pct(best) + '%"></i></div>';
+
+    var kindWord = best.pageKind === 'lab' ? 'Lab' : 'Deck';
+    /* Source order matches reading order -- the card is placed by explicit
+       grid areas, so the link can come last here and still sit on the right. */
+    document.getElementById('resume').innerHTML =
+      '<article class="resume" data-topic="' + best.topicId + '">' +
+        '<span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#' + t.icon + '"/></svg></span>' +
+        '<div class="resume-head">' +
+          '<h3 class="resume-title">' + esc(t.title) + '</h3>' +
+          '<span class="resume-kind">' + kindWord + '</span>' +
+        '</div>' +
+        '<p class="resume-where">' + where + '</p>' +
+        bar +
+        '<a class="resume-go" href="' + file + '#' + encodeURIComponent(best.hash || best.at) + '"' +
+          ' aria-label="Resume the ' + esc(t.title) + ' ' + kindWord.toLowerCase() + '">' +
+          'Resume <i>&#8594;</i></a>' +
+      '</article>';
+    document.getElementById('resumeWrap').hidden = false;
+  }
+
   document.getElementById('stats').innerHTML =
     '<div class="stat"><b>' + cat.modules() + '</b><span>Modules</span></div>' +
     '<div class="stat"><b>' + cat.decks() + '</b><span>Decks</span></div>' +
@@ -443,15 +637,24 @@ document.addEventListener('DOMContentLoaded', function(){
     String(cat.topics.length).padStart(2, '0');
 
   document.getElementById('topics').innerHTML = cat.topics.map(function(t){
+    /* An action you have already started goes back to where you were, the
+       way every "continue watching" list does. Home still gets you to the
+       first slide in one keystroke once you are there. */
+    var act = function(file, label, kind, extra){
+      var rec = progress[t.id + '.' + kind];
+      var href = file + (rec && rec.at > 1 ? '#' + encodeURIComponent(rec.hash || rec.at) : '');
+      var title = rec && rec.at > 1
+        ? (rec.unit === 'section' ? 'Resume in ' + rec.label
+                                  : 'Resume at slide ' + rec.at + ' of ' + rec.total)
+        : 'Start at the beginning';
+      return '<a class="act" href="' + href + '" title="' + esc(title) + '">' +
+             label + ' ' + chip(rec) + '<i>&#8594;</i>' + (extra || '') + '</a>';
+    };
+
     var acts = '';
-    if (t.deck) {
-      acts += '<a class="act" href="' + t.deck + '">Deck <i>&#8594;</i></a>';
-    }
-    if (t.lab) {
-      acts += '<a class="act" href="' + t.lab + '">Lab <i>&#8594;</i>' +
-              (t.desktop ? '<span class="tag" title="Fixed stage: needs a wider screen">desktop</span>' : '') +
-              '</a>';
-    }
+    if (t.deck) acts += act(t.deck, 'Deck', 'deck', '');
+    if (t.lab) acts += act(t.lab, 'Lab', 'lab',
+      t.desktop ? '<span class="tag" title="Fixed stage: needs a wider screen">desktop</span>' : '');
     return '<article class="topic reveal" data-topic="' + t.id + '">' +
       '<span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#' + t.icon + '"/></svg></span>' +
       '<h3 class="topic-title">' + esc(t.title) + '</h3>' +
@@ -459,6 +662,8 @@ document.addEventListener('DOMContentLoaded', function(){
       '<div class="acts">' + acts + '</div>' +
     '</article>';
   }).join('');
+
+  renderResume();
 
   /* cursor-tracking spotlight */
   document.querySelectorAll('.topic').forEach(function(card){

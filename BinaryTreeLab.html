@@ -1404,6 +1404,9 @@ function setMode(m){
   note(board ? 'Every table you need for Unit 3, plus scenario cards that ask you to defend a choice.'
              : MODES[m].label + ' — build a tree on the left, then pick an operation.');
   renderAll();
+  /* #<mode> in the address bar, plus the bookmark the hub's Continue
+     card reads. See shared/chrome.js. */
+  if (window.DSAChrome) window.DSAChrome.moved();
 }
 
 /* ================================================================
@@ -4537,9 +4540,24 @@ function boot(){
     if (ev.key === 'ArrowLeft'){ stepBack(); ev.preventDefault(); }
     if (ev.key === ' '){ toggleAuto(); ev.preventDefault(); }
   });
-  setMode('basics');
+  /* Resume the section the address bar names, the way the decks do. */
+  const want = decodeURIComponent((location.hash || '').slice(1));
+  setMode(MODES[want] ? want : 'basics');
 }
 boot();
+
+/* ---------- the overview, the address bar, the bookmark ----------
+   A tab is not a slide, so this track is measured in sections: the hub
+   shows which one you were last in rather than pretending the heaps tab
+   is eighty per cent of anything. shared/chrome.js does the rest. */
+const MODE_IDS = Object.keys(MODES);
+window.DSA_TRACK = {
+  unit: 'section',
+  title: 'Jump to a topic',
+  items: () => MODE_IDS.map(m => ({ group:'', name: MODES[m].label, hash: m })),
+  current: () => MODE_IDS.indexOf(mode),
+  go: i => setMode(MODE_IDS[i])
+};
 
 /* Listed in the ? overlay that shared/chrome.js builds. */
 window.DSA_KEYS = [

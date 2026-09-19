@@ -893,6 +893,9 @@ function setMode(m){
     ? 'Three weeks of rows in one table — plus a live race of every algorithm on the current input.'
     : MODES[m].label + ' selected.');
   renderAll();
+  /* #<mode> in the address bar, plus the bookmark the hub's Continue
+     card reads. See shared/chrome.js. */
+  if (window.DSAChrome) window.DSAChrome.moved();
 }
 function buildTabs(){
   $('#tabs').innerHTML = '';
@@ -2551,9 +2554,24 @@ function boot(){
     if (ev.key === ' '){ toggleAuto(); ev.preventDefault(); }
   });
   $('#custom').value = INPUT.join(' ');
-  setMode('bubble');
+  /* Resume the section the address bar names, the way the decks do. */
+  const want = decodeURIComponent((location.hash || '').slice(1));
+  setMode(MODES[want] ? want : 'bubble');
 }
 boot();
+
+/* ---------- the overview, the address bar, the bookmark ----------
+   A tab is not a slide, so this track is measured in sections: the hub
+   shows which one you were last in rather than pretending merge sort
+   is eighty per cent of anything. shared/chrome.js does the rest. */
+const MODE_IDS = Object.keys(MODES);
+window.DSA_TRACK = {
+  unit: 'section',
+  title: 'Jump to an algorithm',
+  items: () => MODE_IDS.map(m => ({ group:'', name: MODES[m].label, hash: m })),
+  current: () => MODE_IDS.indexOf(mode),
+  go: i => setMode(MODE_IDS[i])
+};
 
 /* Listed in the ? overlay that shared/chrome.js builds. */
 window.DSA_KEYS = [

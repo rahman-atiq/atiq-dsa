@@ -823,7 +823,9 @@ function show(i){
   elCount.textContent=(idx+1)+' / '+slides.length;
   elChap.textContent=slides[idx].dataset.chapter||'';
   btnPrev.disabled=idx===0; btnNext.disabled=idx===slides.length-1;
-  if(location.hash!=='#'+(idx+1)) history.replaceState(null,'','#'+(idx+1));
+  /* The address bar, the `dsa.progress.*` bookmark and the O overview all
+     hang off this one call. See shared/chrome.js. */
+  if (window.DSAChrome) window.DSAChrome.moved();
 }
 btnPrev.addEventListener('click',function(){show(idx-1);});
 btnNext.addEventListener('click',function(){show(idx+1);});
@@ -1192,6 +1194,28 @@ drawMini('caseLR',{w:340,h:215,nodes:[
    values, so they are stale the moment the palette moves. Draw again.
    ================================================================== */
 document.addEventListener('dsa:theme', repaintAll);
+
+/* The overview behind O, the #n in the address bar, and the bookmark the
+   hub reads for its Continue card. shared/chrome.js does all three from
+   this; the deck only has to describe itself. */
+var trackItems = null;
+window.DSA_TRACK = {
+  unit: 'slide',
+  title: 'Jump to a slide',
+  items: function(){
+    /* The slides never change, so build the list once. */
+    if (!trackItems) trackItems = slides.map(function(s){
+      var h = s.querySelector('h1, h2');
+      return {
+        group: s.dataset.chapter || '',
+        name: h ? h.textContent.replace(/\s+/g, ' ').trim() : ''
+      };
+    });
+    return trackItems;
+  },
+  current: function(){ return idx; },
+  go: function(i){ show(i); }
+};
 
 /* Listed in the ? overlay that shared/chrome.js builds. */
 window.DSA_KEYS = [

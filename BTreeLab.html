@@ -336,21 +336,8 @@ body.laser,body.laser *{cursor:none !important}
   box-shadow:0 0 0 4px rgba(225,29,72,.20),var(--shadow)}
 .cbtn.on:hover{color:#fff;border-color:#E11D48;transform:translateY(-2px)}
 
-/* ---------- menu overlay ---------- */
-#menu{position:fixed;inset:0;z-index:40;background:color-mix(in srgb,var(--bg) 88%,transparent);
-  backdrop-filter:blur(14px);display:none;padding:44px 52px;overflow:auto}
-#menu.on{display:block;animation:slideIn .3s ease}
-#menu h3{margin-bottom:16px;font-size:26px}
-.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
-.mitem{padding:10px 13px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);
-  cursor:pointer;font-size:13.5px;font-weight:700;color:var(--ink2);transition:all .18s ease;
-  display:flex;gap:9px;align-items:baseline}
-.mitem:hover{border-color:var(--violet);color:var(--violet);transform:translateY(-2px)}
-.mitem.cur{border-color:var(--violet);background:color-mix(in srgb,var(--violet) 12%,var(--card));color:var(--violet)}
-.mitem .mn{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--ink3);flex:0 0 auto}
-.macts{font-size:11.5px;font-weight:850;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
-  margin:18px 0 8px}
-.macts:first-of-type{margin-top:0}
+/* The slide menu used to live here, four private copies of the same
+   overlay. It is shared/chrome.js's overview now, behind O or M. */
 
 /* ============================================================
    B-TREE ADDITIONS
@@ -528,7 +515,7 @@ body.laser,body.laser *{cursor:none !important}
       <span class="chip"><span class="dot dot-a"></span>Ends in working C code</span>
     </div>
     <div class="keycaps">
-      <kbd>&rarr;</kbd><kbd>Space</kbd> next &nbsp; <kbd>&larr;</kbd> back &nbsp; <kbd>M</kbd> menu &nbsp;
+      <kbd>&rarr;</kbd><kbd>Space</kbd> next &nbsp; <kbd>&larr;</kbd> back &nbsp; <kbd>O</kbd> overview &nbsp;
       <kbd>T</kbd> theme &nbsp; <kbd>L</kbd> laser &nbsp; <kbd>F</kbd> fullscreen
     </div>
   </div>
@@ -1415,7 +1402,7 @@ BTNode *<span class="fn">bt_search</span>(BTNode *x, <span class="kw">int</span>
         <p style="margin-top:7px;font-size:16.5px">A B-tree is an m-way search tree that keeps every leaf on one
           level and every page at least half full &mdash; and it manages both without measuring anything, because
           it only ever changes height at the root.</p>
-        <p class="tiny" style="margin-top:10px">Press <kbd>M</kbd> to jump to any slide &middot; <kbd>L</kbd> for the laser pointer
+        <p class="tiny" style="margin-top:10px">Press <kbd>O</kbd> to jump to any slide &middot; <kbd>L</kbd> for the laser pointer
           &middot; <kbd>T</kbd> to flip the theme.</p></div>
     </div>
   </div>
@@ -1423,17 +1410,16 @@ BTNode *<span class="fn">bt_search</span>(BTNode *x, <span class="kw">int</span>
 
 </div></div>
 
-<div id="menu"><h3>Jump to a slide</h3><div id="mbody"></div></div>
 
 <canvas id="laser"></canvas>
 
 <div id="chrome">
   <div class="cbtn" id="btnPrev" title="Previous (&larr;)">&#8249;</div>
   <div class="cbtn" id="btnNext" title="Next (&rarr;)">&#8250;</div>
-  <div id="counter" title="Slide menu (M)">1 / 25</div>
+  <div id="counter" title="Slide overview (O)">1 / 25</div>
   <div id="slidename"></div>
   <div class="cbtn" id="btnLaser" title="Laser pointer (L)">&#9673;</div>
-  <div class="cbtn" id="btnMenu" title="Menu (M)">&#9776;</div>
+  <div class="cbtn" id="btnMenu" title="Slide overview (O)">&#9776;</div>
   <div class="cbtn" id="btnFull" title="Fullscreen (F)">&#9974;</div>
 </div>
 
@@ -1651,14 +1637,15 @@ function paint(){
   document.getElementById("counter").textContent=(idx+1)+" / "+slides.length;
   document.getElementById("slidename").textContent=slides[idx].getAttribute("data-name")||"";
   document.getElementById("prog").style.width=((idx)/(slides.length-1)*100)+"%";
-  var m=document.querySelectorAll(".mitem");
-  for(var i=0;i<m.length;i++) m[i].classList.toggle("cur", +m[i].getAttribute("data-i")===idx);
 }
 function go(n,showAll){
   if(n<0||n>=slides.length) return;
   idx=n; collectFrags();
   fi = showAll ? frags.length : 0;
   paint();
+  /* #n in the address bar, the hub's Continue bookmark, and the open
+     overview's current marker. See shared/chrome.js. */
+  if (window.DSAChrome) window.DSAChrome.moved();
 }
 function next(){
   if(fi<frags.length){ fi++; frags[fi-1].classList.add("shown"); return; }
@@ -1686,16 +1673,14 @@ document.addEventListener("click",function(e){
   var q=t.closest(".qcell");
   if(q){ q.classList.toggle("rev");
     var ans=q.getAttribute("data-ans"); if(ans) q.classList.add(ans); return; }
-
-  var mi=t.closest(".mitem");
-  if(mi){ go(+mi.getAttribute("data-i"),false); closeMenu(); return; }
 });
 
 document.getElementById("btnNext").onclick=next;
 document.getElementById("btnPrev").onclick=prev;
 document.getElementById("btnLaser").onclick=function(){ setLaser(!laserOn); };
-document.getElementById("btnMenu").onclick=toggleMenu;
-document.getElementById("counter").onclick=toggleMenu;
+function openOverview(){ if(window.DSAChrome) window.DSAChrome.toggleOverview(); }
+document.getElementById("btnMenu").onclick=openOverview;
+document.getElementById("counter").onclick=openOverview;
 document.getElementById("btnFull").onclick=function(){
   if(document.fullscreenElement) document.exitFullscreen();
   else document.documentElement.requestFullscreen();
@@ -1711,32 +1696,33 @@ document.addEventListener("keydown",function(e){
   else if(k==="Home"){ e.preventDefault(); go(0,false); }
   else if(k==="End"){ e.preventDefault(); go(slides.length-1,true); }
   else if(k==="l"||k==="L"){ setLaser(!laserOn); }
-  else if(k==="m"||k==="M"){ toggleMenu(); }
-  else if(k==="Escape"){ closeMenu(); setLaser(false); }
+  /* O and M open the overview -- shared/chrome.js binds both, and
+     swallows Escape itself while it is open. */
+  else if(k==="Escape"){ setLaser(false); }
   else if(k==="f"||k==="F"){ document.getElementById("btnFull").click(); }
 });
 
 /* The theme lives in shared/chrome.js now: one toggle, one T key and one
    localStorage entry for the whole app. */
 
-/* ---------- menu ---------- */
-function buildMenu(){
-  var body=document.getElementById("mbody"), html="", act=null, open=false;
-  slides.forEach(function(s,i){
-    var a=s.getAttribute("data-act")||"";
-    if(a!==act){
-      if(open) html+="</div>";
-      html+='<div class="macts">'+a+'</div><div class="mgrid">';
-      act=a; open=true;
-    }
-    html+='<div class="mitem" data-i="'+i+'"><span class="mn">'+(i+1)+'</span><span>'+
-          (s.getAttribute("data-name")||"")+'</span></div>';
-  });
-  if(open) html+="</div>";
-  body.innerHTML=html;
-}
-function toggleMenu(){ document.getElementById("menu").classList.toggle("on"); }
-function closeMenu(){ document.getElementById("menu").classList.remove("on"); }
+/* ---------- the overview, the address bar, the bookmark ----------
+   All three come out of this one description of the deck. The grouped
+   jump-to-a-slide menu this lab used to build itself now lives in
+   shared/chrome.js, which builds the same thing from `items()` -- so
+   the decks get it too, and there is one copy instead of five. */
+var trackItems=null;
+window.DSA_TRACK = {
+  unit: 'slide',
+  title: 'Jump to a slide',
+  items: function(){
+    if(!trackItems) trackItems = slides.map(function(s){
+      return { group: s.getAttribute("data-act")||"", name: s.getAttribute("data-name")||"" };
+    });
+    return trackItems;
+  },
+  current: function(){ return idx; },
+  go: function(i){ go(i,false); }
+};
 
 /* ---------- laser pointer (Google-Slides style) ---------- */
 var LIFE=420;                                  /* ms a trail point survives */
@@ -1815,16 +1801,18 @@ window.DSA_KEYS = [
   ['\u2190 \u2192', 'Back / forward, one reveal at a time'],
   ['\u2191 \u2193', 'Whole slide back / forward'],
   ['Home End', 'First slide / last slide'],
-  ['M', 'Jump to any slide'],
   ['L', 'Laser pointer'],
   ['F', 'Fullscreen']
 ];
 
 /* ---------- boot ---------- */
 [].slice.call(document.querySelectorAll(".tree")).forEach(renderBT);
-buildMenu();
 fit();
-go(0,false);
+/* Resume wherever the address bar points, the way the decks do. */
+(function(){
+  var h=parseInt((location.hash||"").replace("#",""),10);
+  go(isNaN(h) ? 0 : Math.max(0,Math.min(slides.length-1,h-1)), false);
+})();
 })();
 </script>
 <script>

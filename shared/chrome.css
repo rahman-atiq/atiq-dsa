@@ -214,6 +214,45 @@
   .dsa-ov-grid{ grid-template-columns:1fr; }
 }
 
+/* ---------- the update toast ----------
+   A new service worker has installed while an old one is still driving
+   this tab. Bottom corner, out of the way of the bar and of whatever
+   the reader is actually doing, and it waits for a click rather than
+   reloading a deck out from under them. */
+.dsa-toast{
+  position:fixed; z-index:940;
+  left:clamp(10px,2.5vw,20px); bottom:clamp(10px,2.5vw,20px);
+  display:flex; align-items:center; gap:10px;
+  max-width:min(420px, calc(100vw - 2 * clamp(10px,2.5vw,20px)));
+  padding:10px 10px 10px 14px;
+  font-family:var(--mono); font-size:12px; line-height:1.35;
+  color:var(--fg); background:var(--surface);
+  border:1px solid var(--line); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg);
+  opacity:0; transform:translateY(8px);
+  transition:opacity .22s ease, transform .22s ease;
+  pointer-events:none;
+}
+.dsa-toast.is-open{ opacity:1; transform:none; pointer-events:auto; }
+.dsa-toast-text{ min-width:0; color:var(--fg-dim); }
+.dsa-toast button{
+  font-family:inherit; font-size:inherit; line-height:1;
+  cursor:pointer; border-radius:var(--radius);
+  transition:color .15s ease, background .15s ease, border-color .15s ease;
+}
+.dsa-toast-go{
+  flex:0 0 auto; padding:7px 11px; font-weight:500;
+  color:var(--accent); background:var(--accent-soft);
+  border:1px solid var(--accent-line);
+}
+.dsa-toast-go:hover{ color:var(--bg); background:var(--accent); border-color:var(--accent); }
+.dsa-toast-x{
+  flex:0 0 auto; padding:6px 8px; font-size:14px;
+  color:var(--fg-faint); background:none; border:1px solid transparent;
+}
+.dsa-toast-x:hover{ color:var(--fg); border-color:var(--line); }
+.dsa-toast :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
 /* ---------- between pages ----------
    A cross-fade so moving deck -> lab -> hub reads as one app rather
    than three white flashes. Chrome-only today and a no-op everywhere
@@ -224,6 +263,7 @@
 @media (prefers-reduced-motion:reduce){
   .dsa-bar a, .dsa-bar button{ transition:none; }
   .dsa-ov-item{ transition:none; }
+  .dsa-toast{ transition:none; transform:none; }
   /* The cross-fade is motion too. `navigation:auto` cannot be turned off
      from a media query, so kill the animations it generates instead. */
   ::view-transition-group(*),
@@ -232,7 +272,7 @@
 }
 
 @media print{
-  .dsa-bar, .dsa-overlay, .dsa-rotate{ display:none!important; }
+  .dsa-bar, .dsa-overlay, .dsa-rotate, .dsa-toast{ display:none!important; }
 }
 
 /* ---------- announcements ----------

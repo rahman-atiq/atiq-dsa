@@ -726,10 +726,6 @@ document.addEventListener('DOMContentLoaded', function(){
     items.forEach(function(el){ io.observe(el); });
   }
 });
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
-}
 </script>
 </body>
 </html>

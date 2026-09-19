@@ -15,13 +15,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Cheap, and it runs first: the failures it catches (a link into
+  # nothing, a page missing from the catalog and so from the offline
+  # copy, a second theme key) are all invisible in a diff and obvious
+  # to a reader.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/check.mjs
+
   deploy:
+    needs: check
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # The repo keeps `__BUILD__`; the artifact gets the commit. A
+      # service worker whose bytes never change is a service worker the
+      # browser never re-fetches, which is how a deploy stays invisible
+      # until the reader closes every tab. Stamping it here means the
+      # file differs on every deploy and the update toast has something
+      # to notice.
+      - name: Stamp the service worker
+        run: |
+          set -euo pipefail
+          BUILD="${GITHUB_SHA::8}"
+          sed -i "s/__BUILD__/${BUILD}/g" sw.js
+          # Assert the constant itself moved, not merely that the file
+          # was touched. A stamp that lands anywhere else changes the
+          # bytes -- so browsers fetch the file and offer an update --
+          # while the cache name stays put and the update never lands.
+          # Written as explicit ifs: `set -e` deliberately ignores a
+          # command negated with `!`, so `! grep ...` is not an assertion.
+          if ! grep -q "const BUILD = '${BUILD}';" sw.js; then
+            echo "::error::sw.js was not stamped; the cache name is frozen"
+            exit 1
+          fi
+          if grep -q "__BUILD__" sw.js; then
+            echo "::error::a __BUILD__ placeholder survived the stamp"
+            exit 1
+          fi
+          echo "cache: dsa-deck-${BUILD}"
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -531,6 +531,110 @@
     return box;
   }
 
+  /* ---------------- the service worker ----------------
+     Registered here rather than in seventeen copies of the same four
+     lines at the bottom of seventeen pages.
+
+     The worker caches aggressively, which is the point offline, and a
+     nuisance the rest of the time: without this the reader keeps seeing
+     the previous deploy until they close every tab. So when a new worker
+     finishes installing while an old one is still driving the page, say
+     so and let them choose the moment. Nothing reloads on its own --
+     mid-slide is nobody's idea of a good time for a refresh. */
+  var swToast = null;
+  var asked = false;      /* this tab's reader pressed Reload */
+  var reloaded = false;   /* belt and braces against a double refresh */
+
+  function dismissToast() {
+    if (!swToast) return;
+    var box = swToast;
+    swToast = null;
+    box.classList.remove('is-open');
+    /* After the fade, not during it. A second update landing later
+       should build a fresh toast, not talk to this one's ghost. */
+    setTimeout(function () {
+      if (box.parentNode) box.parentNode.removeChild(box);
+    }, 400);
+  }
+
+  function reloadNow() {
+    if (reloaded) return;
+    reloaded = true;
+    try { location.reload(); } catch (e) {}
+  }
+
+  function offerUpdate(worker) {
+    if (swToast) return;
+    var box = el('div', 'dsa-toast');
+    box.setAttribute('role', 'status');
+    box.appendChild(span('dsa-toast-text', 'A newer version is ready.'));
+
+    var go = el('button', 'dsa-toast-go', 'Reload');
+    go.type = 'button';
+    go.addEventListener('click', function () {
+      /* Another tab may have taken the update already, which leaves this
+         worker redundant and the message going nowhere. A plain reload
+         lands on the new version just the same. */
+      if (worker && worker.state === 'installed') {
+        asked = true;
+        try { worker.postMessage({ type: 'DSA_SKIP_WAITING' }); } catch (e) {}
+        /* controllerchange normally beats this. It is here for the case
+           where it does not, so the button is never simply dead. */
+        setTimeout(reloadNow, 1600);
+      } else {
+        reloadNow();
+      }
+    });
+
+    var no = el('button', 'dsa-toast-x', '×');
+    no.type = 'button';
+    no.setAttribute('aria-label', 'Dismiss');
+    no.addEventListener('click', dismissToast);
+
+    box.appendChild(go);
+    box.appendChild(no);
+    document.body.appendChild(box);
+    swToast = box;
+    /* Next frame, so the entry transition has a state to come from. */
+    requestAnimationFrame(function () { box.classList.add('is-open'); });
+    announce('A newer version of this page is ready. Reload to use it.');
+  }
+
+  function watchUpdates(reg) {
+    /* Already waiting when we got here: a worker that installed during a
+       previous visit and never got its moment. */
+    if (reg.waiting && navigator.serviceWorker.controller) offerUpdate(reg.waiting);
+
+    reg.addEventListener('updatefound', function () {
+      var sw = reg.installing;
+      if (!sw) return;
+      sw.addEventListener('statechange', function () {
+        /* No controller means this is the first install on this origin --
+           there is no old version to replace and nothing to announce. */
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(sw);
+      });
+    });
+  }
+
+  function registerSW() {
+    if (!('serviceWorker' in navigator)) return;
+    if (location.protocol === 'file:') return;
+
+    /* Only the tab that asked. A second tab swapping the worker is no
+       reason to yank this one out from under whoever is reading it --
+       their toast is still up, and its button falls back to a plain
+       reload once the worker it was holding has gone redundant. */
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (asked) reloadNow();
+    });
+
+    var start = function () {
+      navigator.serviceWorker.register('sw.js').then(watchUpdates).catch(function () {});
+    };
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start);
+  }
+
   /* ---------------- keys ----------------
      Capture phase, so an open panel can swallow a key before the page's
      own handler sees it. With everything shut we touch only the keys we
@@ -607,6 +711,8 @@
   /* The page booted itself before this deferred script ran, so the first
      record of where the reader is has to come from here. */
   if (track) { syncHash(); writeProgress(); }
+
+  registerSW();
 
   window.DSAChrome = {
     cycleTheme: cycleTheme,

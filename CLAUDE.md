@@ -15,10 +15,15 @@ this file is the things that are easy to get wrong.
   artefacts meant to be readable end to end on their own. Only chrome
   and tokens are shared.
 - **One list.** `shared/catalog.js` is the single source of truth for
-  what exists. The hub cards, the breadcrumb, the sibling link and the
-  service worker's precache set all read it. Never hand-maintain a second
-  copy of that list anywhere — that defect is the reason half of
-  `docs/PLAN.md` exists.
+  what exists. The hub cards, the breadcrumb, the sibling link, the track
+  cards and the service worker's precache set all read it. Never
+  hand-maintain a second copy of that list anywhere — that defect is the
+  reason half of `docs/PLAN.md` exists.
+- **Topics belong to tracks, tracks own hubs.** `dsa` is the front door,
+  `python` sits beside it, and a topic with no `track` is a DSA topic. A
+  hub shows only its own track's topics and its own track's Continue. The
+  home link and `H` go to the page's own hub, not to `index.html` — read
+  the header comment in `shared/chrome.js` before changing that.
 - **`sw.js` ships with the literal `__BUILD__`.** CI substitutes the
   commit sha. Never commit a stamped one.
 
@@ -45,6 +50,10 @@ that looks right in light and wrong in dark has almost always aliased a
 token to a hard-coded colour.
 
 ## Touching a page
+
+A hub page names its track in `data-topic` (`python`), except the front
+door, which says `hub` because it predates tracks. Both are `data-kind="hub"`,
+and the checker holds each hub file to the track that claims it.
 
 Every page carries the same head: `data-topic` / `data-kind` on `<html>`,
 two `theme-color` metas, `shared/tokens.css`, `shared/chrome.css`,

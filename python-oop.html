@@ -1,0 +1,2626 @@
+<!DOCTYPE html>
+<html lang="en" data-topic="python-oop" data-kind="deck">
+<head>
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow">
+<!-- The browser UI colour, one per scheme so the automatic case needs no
+     script. shared/chrome.js flips the `media` attributes when the reader
+     picks light or dark outright. Values are --surface from tokens.css. -->
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" data-scheme="light">
+<meta name="theme-color" content="#1A2127" media="(prefers-color-scheme: dark)" data-scheme="dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DSA Deck">
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python OOP · Deck · Atiq's DSA</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="shared/chrome.css">
+<script src="shared/catalog.js" defer></script>
+<script src="shared/chrome.js" defer></script>
+<style>
+:root{
+  /* ---------- palette ----------
+     The colours live in shared/tokens.css. These are aliases, so every rule
+     below keeps the name it was written with and still follows the theme: a
+     custom property holding var(--x) re-resolves when --x moves, which is
+     why none of this needs a second copy per theme. */
+  --paper:var(--bg);
+  --slide:var(--surface);
+  --slide-0:var(--surface-0);
+  --ink:var(--fg);
+  --dim:var(--fg-dim);
+  --faint:var(--fg-faint);
+  --rule:var(--line);
+  --panel-bg:var(--surface-2);
+  --box-bg:var(--surface-2);
+  --btn-bg:var(--surface);
+  --pre-bg:var(--code-bg);
+  --pre-ink:var(--code-fg);
+  --code-ink:var(--code-accent);
+  --block:var(--warn);
+  --block-soft:var(--warn-soft);
+  --done:var(--ok);
+  --done-soft:var(--ok-soft);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+#progress{position:fixed;top:var(--chrome-h);left:0;height:3px;background:var(--accent);width:0;z-index:50;transition:width .28s ease}
+#deck{height:100%;position:relative}
+.slide{display:none;height:100%;overflow-y:auto;overflow-x:hidden;padding:calc(var(--chrome-h) + var(--pad)) var(--pad) 76px;background:var(--slide);scrollbar-width:thin}
+.slide.is-active{display:block;animation:fadein .22s ease both}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.inner{max-width:1080px;margin:0 auto}
+#bar{position:fixed;left:0;right:0;bottom:0;height:56px;z-index:40;display:flex;align-items:center;gap:14px;padding:0 var(--pad);background:linear-gradient(to top,var(--slide) 62%,var(--slide-0));font-family:var(--mono);font-size:12px;color:var(--faint)}
+#bar .chapter{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bar button,#bar a{font-family:var(--mono);font-size:12px;border:1px solid var(--rule);background:var(--slide);color:var(--ink);border-radius:3px;padding:6px 12px;cursor:pointer;text-decoration:none}
+#bar button:hover,#bar a:hover{border-color:var(--accent);color:var(--accent)}
+#bar button:disabled{opacity:.35;cursor:default;border-color:var(--rule);color:var(--faint)}
+#count{min-width:56px;text-align:right}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* The slide heading is a focus target, not a control: script sets
+   tabindex="-1" and focuses it so a screen reader lands on the new title.
+   Nothing here is in the tab order, so there is no keyboard arrival to
+   signal -- and :focus-visible alone does not know that, so it painted a
+   ring round every title. Suppress both; the focus move still does its
+   work unseen. */
+[tabindex="-1"]:focus,[tabindex="-1"]:focus-visible{outline:none}
+h1{font-size:clamp(30px,5.4vw,52px);line-height:1.08;font-weight:700;letter-spacing:-.015em;margin:0 0 18px}
+h2{font-size:clamp(23px,3.4vw,34px);line-height:1.18;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+h3{font-size:16px;font-weight:600;margin:26px 0 8px}
+.kicker{font-family:var(--mono);font-size:12px;color:var(--accent);margin:0 0 10px}
+.sub{color:var(--dim);font-size:clamp(16px,2vw,19px);margin:0 0 26px;max-width:62ch;font-style:italic}
+p{max-width:66ch;margin:0 0 14px}
+ul,ol{max-width:66ch;padding-left:22px;margin:0 0 16px}
+li{margin-bottom:9px}
+li::marker{color:var(--faint)}
+.tight li{margin-bottom:5px}
+code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);padding:1px 5px;border-radius:3px;color:var(--code-ink)}
+.small{font-size:14px;color:var(--dim)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,3.5vw,44px);align-items:start}
+.cols.wide-left{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.cols.wide-right{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
+.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+@media (max-width:820px){.cols,.cols.wide-left,.cols.wide-right,.cols3{grid-template-columns:1fr;gap:24px}}
+.panel{border:1px solid var(--rule);border-radius:4px;padding:18px 20px;background:var(--panel-bg)}
+.panel h3{margin-top:0}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;margin:18px 0;font-size:15.5px;max-width:66ch}
+.note p:last-child{margin-bottom:0}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.note.good{border-left-color:var(--ok);background:var(--ok-soft)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:6px 0 16px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--dim);border-bottom:1.5px solid var(--ink)}
+td:first-child{color:var(--dim)}
+tbody tr:last-child td{border-bottom:none}
+.num{font-family:var(--mono)}
+.alert{color:var(--bad);font-weight:600}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.62;background:var(--pre-bg);border-left:3px solid var(--accent);padding:14px 16px;margin:0 0 16px;border-radius:0 4px 4px 0;overflow-x:auto;color:var(--pre-ink)}
+pre code{background:none;padding:0;border-radius:0;color:inherit;font-size:inherit;font-family:inherit}
+.tok-c{color:var(--tok-c);font-style:italic}
+.tok-k{color:var(--tok-k);font-weight:500}
+.tok-n{color:var(--tok-n)}
+.tok-s{color:var(--tok-s)}
+.tok-d{color:var(--accent);font-weight:500}
+
+/* ---------- a real interpreter's output ----------
+   Every block with this class is literal stdout from running the code
+   beside it on the version named in the header -- not a transcript typed
+   to look like one. Where a number in this deck came from a machine, it
+   is in one of these. */
+.term{
+  font-family:var(--mono);font-size:12.5px;line-height:1.6;
+  background:var(--surface-3);border:1px solid var(--rule);border-left:3px solid var(--ok);
+  padding:0;margin:0 0 16px;border-radius:0 4px 4px 0;overflow:hidden;color:var(--pre-ink)
+}
+.term .cmd{
+  display:flex;gap:8px;align-items:center;
+  padding:7px 14px;border-bottom:1px solid var(--rule);background:var(--surface-2);
+  font-size:11px;letter-spacing:.06em;color:var(--faint)
+}
+.term .cmd b{color:var(--ok);font-weight:500}
+.term pre{background:none;border:none;margin:0;padding:12px 14px;border-radius:0;font-size:12.5px}
+
+/* ---------- object-model diagrams ---------- */
+.treebox{border:1px solid var(--rule);border-radius:4px;background:var(--box-bg);padding:10px;overflow-x:auto}
+svg.tree{display:block;height:auto;margin-inline:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:10px}
+.legend i{font-style:normal;display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.controls button,.controls select{font-family:var(--mono);font-size:12px;padding:7px 11px;border:1px solid var(--rule);background:var(--btn-bg);color:var(--ink);border-radius:3px;cursor:pointer}
+.controls button:hover,.controls select:hover{border-color:var(--accent);color:var(--accent)}
+.controls button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.controls input[type=text]{font-family:var(--mono);font-size:12px;padding:7px 9px;width:130px;border:1px solid var(--rule);border-radius:3px;background:var(--btn-bg);color:var(--ink)}
+.controls input::placeholder{color:var(--faint)}
+.controls label{color:var(--dim);font-family:var(--mono);font-size:12px}
+.stat{font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+.stat b{color:var(--ink);font-weight:500}
+
+/* ---------- the lookup trace ----------
+   One row per probe. The rows are the algorithm's steps in order, so the
+   shape of the list is the shape of the rule. */
+.trace{font-family:var(--mono);font-size:12.5px;margin:10px 0 0;padding:0;list-style:none;max-width:none}
+.trace li{
+  display:flex;gap:10px;align-items:baseline;margin:0;padding:6px 10px;
+  border-left:2px solid var(--rule);color:var(--dim)
+}
+.trace li .n{color:var(--faint);min-width:2.2em}
+.trace li.hit{border-left-color:var(--ok);background:var(--ok-soft);color:var(--ink)}
+.trace li.miss{border-left-color:var(--rule)}
+.trace li.fail{border-left-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.trace li.decide{border-left-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.answer{font-family:var(--mono);font-size:13px;margin-top:12px;padding:10px 12px;border:1px solid var(--accent-line);border-radius:4px;background:var(--accent-soft)}
+.answer b{color:var(--accent)}
+
+/* ---------- namespace boxes ---------- */
+.ns{font-family:var(--mono);font-size:12px;border:1px solid var(--rule);border-radius:4px;background:var(--box-bg);overflow:hidden}
+.ns h4{margin:0;padding:6px 10px;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:var(--surface-3);border-bottom:1px solid var(--rule)}
+.ns .row{display:flex;justify-content:space-between;gap:12px;padding:5px 10px;border-bottom:1px solid var(--rule)}
+.ns .row:last-child{border-bottom:none}
+.ns .row b{font-weight:500;color:var(--ink)}
+.ns .row span{color:var(--dim);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ns .empty{padding:7px 10px;color:var(--faint);font-style:italic}
+.ns.is-hit{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+
+/* ---------- the dunder bench ---------- */
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin:10px 0}
+.dgrid button{font-family:var(--mono);font-size:11.5px;text-align:left;padding:7px 9px;border:1px solid var(--rule);background:var(--btn-bg);color:var(--dim);border-radius:3px;cursor:pointer}
+.dgrid button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.expr{font-family:var(--mono);font-size:12.5px;margin:0;padding:0;list-style:none;max-width:none}
+.expr li{display:flex;gap:10px;align-items:baseline;padding:5px 10px;border-bottom:1px solid var(--rule)}
+.expr li:last-child{border-bottom:none}
+.expr .e{min-width:16ch;color:var(--ink)}
+.expr .r{color:var(--ok)}
+.expr .r.err{color:var(--bad)}
+
+/* ---------- prediction-first exercises ---------- */
+ol.props{counter-reset:p;list-style:none;padding-left:0;max-width:none}
+ol.props li{counter-increment:p;position:relative;padding-left:40px;margin-bottom:14px}
+ol.props li::before{content:counter(p);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;border:1px solid var(--rule);font-family:var(--mono);font-size:12px;color:var(--accent);display:flex;align-items:center;justify-content:center}
+
+@media print{.slide{display:block!important;height:auto;page-break-after:always;padding:24px}#bar,#progress{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<script>
+/* Pick the theme up before first paint: a dark-mode reader opening this deck
+   should never get a white flash on the way in. */
+(function(){try{var t=localStorage.getItem('dsa.theme');
+if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+</head>
+<body>
+<div id="progress"></div>
+<main id="deck">
+
+<!-- 1 -->
+<section class="slide" data-chapter="Opening">
+ <div class="inner">
+  <div class="treebox" style="margin-bottom:26px">
+    <svg class="tree" id="heroModel" role="img" aria-label="An instance, its class, and the chain of classes an attribute lookup walks"></svg>
+    <div class="legend"><span id="heroCap">one instance, one class, one chain — and one rule that searches them in a fixed order</span></div>
+  </div>
+  <h1>Python OOP</h1>
+  <p class="sub">Classes, properties, mixins, descriptors and metaclasses are not five features. They are five consequences of one lookup rule, and the rule fits on a slide.</p>
+  <p class="small">This deck goes from <code>class Dog:</code> to writing your own metaclass, but it refuses to teach them as a list. Everything here runs: the MRO diagrams are computed by a real C3 linearization in the page, the lookup traces are a real implementation of the algorithm, and every number came out of CPython 3.14.6 rather than out of memory. Arrow keys, or the buttons below, to move through the deck.</p>
+ </div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">01 — the failure</p>
+  <h2>A program of dicts and functions has nowhere to put a rule</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Here is a bank account, written the way you would write it on day one. It works, and it is wrong in two ways that will not show up for months.</p>
+<pre><code>def make_account(owner, balance=0):
+    return {"owner": owner, "balance": balance}
+
+def deposit(acct, amount):
+    acct["balance"] += amount
+
+def withdraw(acct, amount):
+    acct["balance"] -= amount
+
+# ... 40 files and 3 months later
+acct["balnce"] = 500          # a typo is a new key, silently
+acct["balance"] = -2_000_000  # the rule was never written down</code></pre>
+    <p>The rule "a balance may never go below zero" exists in somebody's head. There is no place in this program to put it where every write has to go past it, because <b>every write is a write to a dict from anywhere</b>.</p>
+    <div class="note bad"><p style="margin-bottom:0">Count the places that could break the invariant: every line in the codebase that can reach the dict. Count the places that check it: the ones you remembered. The second number never catches up with the first.</p></div>
+   </div>
+   <div class="panel">
+    <h3>And the second failure</h3>
+    <p class="small">Dispatch. The same shape of code, asked to handle more than one kind of thing:</p>
+<pre><code>def area(s):
+    if s["type"] == "circle":
+        return pi * s["r"] ** 2
+    if s["type"] == "rect":
+        return s["w"] * s["h"]
+    raise ValueError(s["type"])</code></pre>
+    <p class="small">Now add a triangle. You edit <code>area</code>, <code>perimeter</code>, <code>draw</code>, <code>scale</code> and <code>to_json</code> — five functions, in five files, and <b>nothing tells you when you miss one</b>. The fifth one fails in production, on the one input nobody tested.</p>
+    <table>
+     <thead><tr><th>change</th><th>files touched</th></tr></thead>
+     <tbody>
+      <tr><td>New shape kind</td><td class="num">5 functions, 1 per branch</td></tr>
+      <tr><td>New operation</td><td class="num">1 function</td></tr>
+      <tr><td>Missed a branch</td><td class="alert">runtime, in production</td></tr>
+     </tbody>
+    </table>
+    <p class="small" style="margin-bottom:0">Note which way round that is. Adding a <i>kind</i> is expensive, adding an <i>operation</i> is cheap. Remember it — at the end of the deck it is the reason a function sometimes beats a class.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-chapter="The problem">
+ <div class="inner">
+  <p class="kicker">02 — and what does not fix it</p>
+  <h2>Four patches that leave the hole exactly where it was</h2>
+  <p>Before reaching for classes, it is worth watching the obvious repairs fail. Each of these is something people really ship.</p>
+  <div class="cols3">
+   <div class="panel">
+    <h3>A naming convention</h3>
+    <p class="small">"Only functions in <code>account.py</code> may touch the balance key." Nothing enforces it. The rule survives exactly as long as the one person who remembers it.</p>
+   </div>
+   <div class="panel">
+    <h3>A checking helper</h3>
+    <p class="small"><code>def check(acct): assert acct["balance"] &gt;= 0</code> — real, and useless, because it has to be <i>called</i>. The bug is the write that forgot to call it.</p>
+   </div>
+   <div class="panel">
+    <h3>A "type" field</h3>
+    <p class="small">Moves dispatch from five if-chains to five if-chains that agree on a spelling. The branching, and the missed branch, are untouched.</p>
+   </div>
+  </div>
+  <div class="cols" style="margin-top:8px">
+   <div class="panel">
+    <h3>Defensive checks at every call site</h3>
+    <p class="small" style="margin-bottom:0">This one does work — and that is what makes it instructive. It works by putting the invariant in <i>N</i> places, so it holds until someone adds the <i>N</i>+1th. The cost of correctness grows with the size of the program, which is the definition of a design that does not scale.</p>
+   </div>
+   <div>
+    <div class="note"><p>The common thread: in every patch, <b>the data and the rules about the data are in different places</b>, and only convention connects them. Any fix that leaves them apart is a fix that has to be reapplied forever.</p></div>
+    <p class="small" style="margin-bottom:0">So the interesting question is not "how do I check the balance?" It is "how do I make it impossible to reach the balance without going past the check?"</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-chapter="The reframe">
+ <div class="inner">
+  <p class="kicker">03 — the reframe</p>
+  <h2>Stop asking what the data looks like. Ask who is allowed to touch it.</h2>
+  <div class="cols">
+   <div>
+    <p>Both failures have the same shape once the question is turned around:</p>
+    <ul>
+      <li><b>The invariant.</b> Not "where do I check the balance", but "how do I make the balance reachable only through code that checks it?"</li>
+      <li><b>The dispatch.</b> Not "how do I branch on the kind", but "how does the <i>value itself</i> decide what a call means, so no caller has to?"</li>
+    </ul>
+    <p>Those two questions have one answer: attach the functions to the data, and let the lookup of a name on a value decide which function runs. That is all an object is.</p>
+    <div class="note"><p style="margin-bottom:0">An object is a <b>namespace with a search path</b>. Everything in the rest of this deck — <code>self</code>, <code>@property</code>, inheritance, <code>super()</code>, mixins, dunder methods, descriptors, metaclasses — is a consequence of what that search path is and what it finds.</p></div>
+   </div>
+   <div class="panel">
+    <h3>The same account, with the hole closed</h3>
+<pre><code>class Account:
+    def __init__(self, owner, balance=0):
+        self.owner = owner
+        self.balance = balance   # goes through the setter
+
+    @property
+    def balance(self):
+        return self._balance
+
+    @balance.setter
+    def balance(self, v):
+        if v &lt; 0:
+            raise ValueError("balance may not go negative")
+        self._balance = v</code></pre>
+    <p class="small">Every assignment to <code>acct.balance</code> anywhere in the program now runs those three lines. Not by convention — <b>by the lookup rule</b>, which finds the property before it finds anything else.</p>
+    <p class="small" style="margin-bottom:0">The call sites did not change. <code>acct.balance = 500</code> still reads like a plain attribute, because it still is one: what changed is what the name resolves to. That is the slide the next eight build toward.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-chapter="Objects">
+ <div class="inner">
+  <p class="kicker">04 — what a class statement is</p>
+  <h2>A class body is a block of code that runs, once, immediately</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Most languages treat a class as a declaration the compiler reads. Python treats it as a <b>statement it executes</b>: the body runs top to bottom in a fresh namespace, and whatever is left in that namespace becomes the class.</p>
+<pre><code>class Noisy:
+    print("   class body executing")
+    x = 1
+    print("   after x = 1:", [k for k in dir() if k == 'x'])</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 noisy.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>   class body executing, namespace so far: []
+   after x = 1: ['x']</pre>
+    </div>
+    <p>No instance exists. Nothing was called. The <code>print</code> ran at <i>definition</i> time, because a class body is just code.</p>
+    <p>And when the body finishes, Python hands its three results — the name, the bases, the namespace — to a callable that builds the class object:</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>The class statement, desugared</h3>
+<pre><code>class Dog(Animal):
+    sound = "woof"
+    def speak(self): ...
+
+# is, near enough:
+ns = {}
+exec(class_body, ns)            # run the body
+Dog = type("Dog", (Animal,), ns)  # build the class</code></pre>
+     <div class="term">
+       <div class="cmd"><b>&gt;&gt;&gt;</b> type('D', (object,), {'greet': lambda self: 'hi'})</div>
+<pre>&lt;class '__main__.D'&gt;
+D().greet()   -&gt; 'hi'
+type(D) is type          -&gt; True
+type(type)               -&gt; &lt;class 'type'&gt;</pre>
+     </div>
+     <p class="small" style="margin-bottom:0"><code>type</code> is a class whose instances are classes. Sit with that for a second: it is the whole of metaclasses, twenty-five slides early, and you have already seen it work.</p>
+    </div>
+    <div class="note"><p style="margin-bottom:0">Two facts to keep: a class body <b>runs</b>, and the thing that turns its namespace into a class is <b>an ordinary callable you can replace</b>.</p></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-chapter="Objects">
+ <div class="inner">
+  <p class="kicker">05 — instances</p>
+  <h2>Two dictionaries, and a rule about which one wins</h2>
+  <div class="cols wide-right">
+   <div>
+    <p>An instance is a dict plus a pointer to its class. The class is a dict plus a pointer to its bases. Almost everything else is bookkeeping.</p>
+<pre><code>class Dog:
+    species = "canis"         # lands in Dog.__dict__
+
+    def __init__(self, name):
+        self.name = name      # lands in the instance __dict__</code></pre>
+    <p class="small">Click the buttons to run statements against a live model of the two namespaces. <code>self.x = ...</code> only ever writes to the instance; the class is untouched, which is why one dog's name is not every dog's name.</p>
+    <div class="controls">
+      <button id="nsNew" type="button">rex = Dog("Rex")</button>
+      <button id="nsSet" type="button">rex.name = "Max"</button>
+      <button id="nsShadow" type="button">rex.species = "wolf"</button>
+      <button id="nsDel" type="button">del rex.species</button>
+      <button id="nsClass" type="button">Dog.species = "lupus"</button>
+      <button id="nsReset" type="button">reset</button>
+    </div>
+    <p class="stat" id="nsSay">A fresh interpreter. Nothing has been created yet.</p>
+   </div>
+   <div>
+    <div class="cols" style="gap:14px">
+      <div class="ns" id="nsInstBox">
+        <h4>rex.__dict__</h4>
+        <div id="nsInst"><div class="empty">no instance yet</div></div>
+      </div>
+      <div class="ns" id="nsClsBox">
+        <h4>Dog.__dict__</h4>
+        <div id="nsCls"></div>
+      </div>
+    </div>
+    <div class="answer" id="nsAns">rex.species &rarr; <b>?</b></div>
+    <p class="small" style="margin-top:14px">Watch the third button. Assigning to <code>rex.species</code> does not change <code>Dog.species</code> — it creates a <i>new</i> entry in the instance that hides the class's one. Deleting it does not delete the class attribute; it uncovers it again.</p>
+    <p class="small" style="margin-bottom:0">"Shadowing", not "overwriting". The distinction is the reason the next slide's bug is so hard to see.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-chapter="Objects">
+ <div class="inner">
+  <p class="kicker">06 — the classic</p>
+  <h2>The mutable class attribute, which every Python programmer ships once</h2>
+  <div class="cols">
+   <div>
+    <p><b>Predict before you read on.</b> Two dogs. Only the first is ever touched. What does the second one print?</p>
+<pre><code>class Dog:
+    tricks = []
+
+    def add(self, t):
+        self.tricks.append(t)
+
+a, b = Dog(), Dog()
+a.add("sit")
+print(b.tricks)</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 dogs.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>b.tricks after only a added: ['sit']
+a.tricks is Dog.tricks: True</pre>
+    </div>
+    <p>There is only ever one list. It was created once, when the class body ran, and it lives in <code>Dog.__dict__</code> — so every instance that looks up <code>tricks</code> and finds nothing of its own gets <i>that</i> list.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>Why the previous slide explains it</h3>
+     <p class="small"><code>self.tricks.append(t)</code> contains no assignment. It <b>reads</b> <code>self.tricks</code> — which misses in the instance and hits in the class — and then mutates the object it found. Nothing ever writes to the instance dict, so nothing ever shadows.</p>
+     <p class="small" style="margin-bottom:0">Change it to <code>self.tricks = self.tricks + [t]</code> and the bug vanishes, because assignment writes to the instance. The same expression, one character of difference in intent, opposite behaviour.</p>
+    </div>
+    <div class="note good"><p style="margin-bottom:0"><b>The rule:</b> a class attribute is shared by every instance. That is fine for <code>species = "canis"</code>, which is immutable, and a bug for <code>[]</code> or <code>{}</code>, which are not. Per-instance mutable state is created in <code>__init__</code>:</p></div>
+<pre><code>class Dog:
+    def __init__(self):
+        self.tricks = []      # a new list per instance</code></pre>
+    <p class="small" style="margin-bottom:0">Twenty-four slides from here, <code>@dataclass</code> will refuse to let you write the broken version at all — it raises at class-creation time rather than letting you find out in production. That refusal is the same rule, enforced earlier.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-chapter="Objects">
+ <div class="inner">
+  <p class="kicker">07 — methods</p>
+  <h2><code>self</code> is not magic. It is the argument you can see.</h2>
+  <div class="cols">
+   <div>
+    <p>A method is a plain function, stored in the class namespace like any other value. The only unusual thing happens when you look it up <i>through an instance</i>.</p>
+<pre><code>class Dog:
+    def speak(self, loud=False):
+        return "WOOF" if loud else "woof"
+
+rex = Dog()
+
+rex.speak()        # 'woof'
+Dog.speak(rex)     # 'woof'  — the same call
+Dog.__dict__['speak']
+# &lt;function Dog.speak at 0x...&gt;
+rex.speak
+# &lt;bound method Dog.speak of &lt;Dog object&gt;&gt;</code></pre>
+    <p>Looking the function up on the class gives you a function. Looking it up on an <b>instance</b> gives you a <i>bound method</i>: a small object holding the function and the instance, which calls the function with that instance as the first argument.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>Who does the binding?</h3>
+     <p class="small">Not the interpreter, specially. Functions implement <code>__get__</code>, and the lookup rule calls <code>__get__</code> on anything it finds in a class that defines it. The bound method is the <i>return value</i> of that call.</p>
+<pre><code>f = Dog.__dict__['speak']
+f.__get__(rex, Dog)
+# &lt;bound method Dog.speak of &lt;Dog object&gt;&gt;
+f.__get__(rex, Dog)()   # 'woof'</code></pre>
+     <p class="small" style="margin-bottom:0">That mechanism is the <b>descriptor protocol</b>, and it has its own slide later. For now, note only this: <code>self</code> is not a keyword, not a compiler trick, and not special-cased. It is the first parameter of a function that something handed the instance to.</p>
+    </div>
+    <div class="note"><p style="margin-bottom:0">Which is why <code>self</code> is spelled out in every signature: Python would rather show you the argument than hide it. Rename it to <code>this</code> and every method still works — it is a convention, and the only reason to keep it is that everyone else has.</p></div>
+    <p class="small" style="margin-bottom:0">Now we have seen the lookup rule do three different things — find a class attribute, be shadowed by an instance one, and call <code>__get__</code> on what it found. The next slide states the rule exactly, once, and then we can stop guessing.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-chapter="Attribute lookup">
+ <div class="inner">
+  <p class="kicker">08 — the one rule</p>
+  <h2>What <code>obj.name</code> actually does</h2>
+  <div class="treebox" style="margin-bottom:20px">
+    <svg class="tree" id="lkSvg" role="img" aria-label="A class chain with an instance below it, showing where each name is found"></svg>
+  </div>
+  <div class="cols wide-left">
+   <div>
+    <ol class="props">
+     <li>Walk <code>type(obj).__mro__</code> in order. Stop at the first class whose <code>__dict__</code> holds the name; call what you found <b>M</b>.</li>
+     <li>If <b>M</b> is a <b>data descriptor</b> — it defines <code>__set__</code> or <code>__delete__</code> — return <code>M.__get__(obj)</code>. <b>Stop. The instance never gets a say.</b></li>
+     <li>If the name is in <code>obj.__dict__</code>, return that.</li>
+     <li>If <b>M</b> exists, return <code>M.__get__(obj)</code> if it is a descriptor, otherwise <b>M</b> itself.</li>
+     <li>If nothing was found and the class defines <code>__getattr__</code>, call it.</li>
+     <li>Otherwise raise <code>AttributeError</code>.</li>
+    </ol>
+    <p class="small">Six steps. Every remaining slide in this deck is one of them, used deliberately. <code>@property</code> is step 2. A method is step 4. <code>__slots__</code> is step 2. A mixin changes step 1. A metaclass changes what is <i>in</i> the dicts that step 1 walks.</p>
+    <div class="note"><p style="margin-bottom:0">Note the order of 2 and 3. Nearly everyone assumes the instance always wins — it does not, and the exception is precisely the mechanism that lets <code>@property</code> enforce an invariant no assignment can dodge.</p></div>
+   </div>
+   <div>
+    <p class="small" style="margin:0 0 4px">Look a name up on <code>rex</code>, an instance of <code>Dog(Animal)</code>. The walk below is produced by a real implementation of the six steps, not a recording.</p>
+    <div class="controls">
+      <button type="button" data-lk="age">age</button>
+      <button type="button" data-lk="sound">sound</button>
+      <button type="button" data-lk="name">name</button>
+      <button type="button" data-lk="speak">speak</button>
+      <button type="button" data-lk="kingdom">kingdom</button>
+      <button type="button" data-lk="colour">colour</button>
+    </div>
+    <ol class="trace" id="lkTrace"></ol>
+    <div class="answer" id="lkAns"></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-chapter="Attribute lookup">
+ <div class="inner">
+  <p class="kicker">09 — the step everybody gets wrong</p>
+  <h2>A data descriptor outranks the instance dictionary</h2>
+  <div class="cols">
+   <div>
+    <p>This is the experiment. Put a value directly into the instance's <code>__dict__</code>, bypassing every setter, then read the attribute back. If the instance dict always won, the answer would be obvious.</p>
+<pre><code>class Loud:                       # data: defines __set__
+    def __get__(self, obj, owner): return "from descriptor"
+    def __set__(self, obj, v): raise AttributeError("read-only")
+
+class Holder:
+    x = Loud()
+
+h = Holder()
+h.__dict__['x'] = "from instance dict"   # smuggled in
+print(vars(h), h.x)</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 descr.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>vars(h) = {'x': 'from instance dict'}   h.x = from descriptor
+vars(h2) = {'y': 'from instance dict'}  h2.y = from instance dict</pre>
+    </div>
+    <p>The value is right there in the instance, and the read does not return it. <code>Holder.x</code> defines <code>__set__</code>, so step 2 fires and step 3 never runs.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>The second line of that output</h3>
+     <p class="small"><code>h2</code>'s class holds a descriptor with <b>only</b> <code>__get__</code> — a non-data descriptor. Same smuggled instance value, opposite answer: the instance dict wins, because a non-data descriptor is step 4 and the instance is step 3.</p>
+     <table>
+      <thead><tr><th>what the class holds</th><th>who wins</th></tr></thead>
+      <tbody>
+       <tr><td><code>__get__</code> + <code>__set__</code><br><span class="small">property, slot, validator</span></td><td><b>the class</b>, always</td></tr>
+       <tr><td><code>__get__</code> only<br><span class="small">function, classmethod, staticmethod</span></td><td><b>the instance</b>, if it has one</td></tr>
+       <tr><td>a plain value<br><span class="small">strings, ints, lists</span></td><td><b>the instance</b>, if it has one</td></tr>
+      </tbody>
+     </table>
+    </div>
+    <div class="note"><p><b>Why the language is built this way.</b> Methods are non-data descriptors, so <code>obj.method = something_else</code> is allowed to shadow a method on one instance — occasionally useful, and harmless.</p><p style="margin-bottom:0">Properties are data descriptors, so <code>obj.balance = -1</code> <i>cannot</i> dodge the setter, no matter what the caller does. The invariant from slide four holds because of this row of the table.</p></div>
+    <p class="small" style="margin-bottom:0">This is also why <code>__slots__</code> works at all, and why a class with <code>__slots__</code> refuses attributes it did not declare. Both are on their own slide later.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-chapter="Attribute lookup">
+ <div class="inner">
+  <p class="kicker">10 — the hooks</p>
+  <h2>Three ways to intercept the rule, and one that will bite you</h2>
+  <div class="cols3">
+   <div class="panel">
+    <h3><code>__getattr__</code></h3>
+    <p class="small">Called <b>only when the normal lookup failed</b>. Step 5. Cheap: an attribute that exists costs nothing extra, because this never runs for it.</p>
+<pre><code>def __getattr__(self, n):
+    if n.startswith("get_"):
+        return lambda: self.data[n[4:]]
+    raise AttributeError(n)</code></pre>
+    <p class="small" style="margin-bottom:0">Always <code>raise AttributeError</code> for names you do not handle. Returning <code>None</code> instead breaks <code>hasattr</code>, <code>copy</code>, <code>pickle</code> and every library that probes for optional hooks.</p>
+   </div>
+   <div class="panel">
+    <h3><code>__getattribute__</code></h3>
+    <p class="small">Called for <b>every</b> attribute access, before anything else. It <i>is</i> the six-step rule; overriding it replaces the rule wholesale.</p>
+<pre><code>def __getattribute__(self, n):
+    log(n)
+    return object.__getattribute__(self, n)</code></pre>
+    <p class="small" style="margin-bottom:0"><span class="alert">The trap:</span> writing <code>self.anything</code> inside it calls it again. Infinite recursion, and the traceback is a thousand identical frames. Always delegate to <code>object.__getattribute__</code>.</p>
+   </div>
+   <div class="panel">
+    <h3><code>__setattr__</code></h3>
+    <p class="small">Called for <b>every</b> assignment, including the ones in <code>__init__</code>. The symmetric trap, and the more common one:</p>
+<pre><code>def __setattr__(self, n, v):
+    self.__dict__[n] = v       # correct
+    # self.n = v               # recursion
+</code></pre>
+    <p class="small" style="margin-bottom:0">Useful for freezing an object after construction, or for validating any name rather than one named field.</p>
+   </div>
+  </div>
+  <div class="note"><p style="margin-bottom:0"><b>Reach for these last.</b> In order of preference: a plain attribute, then <code>@property</code> for one named field, then a descriptor for the same rule on many fields, then <code>__getattr__</code> for a genuinely open-ended namespace — a proxy, an RPC stub, a config object over a dict. <code>__getattribute__</code> is for people writing tracing tools, and it makes every attribute in the class slower.</p></div>
+ </div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-chapter="Encapsulation">
+ <div class="inner">
+  <p class="kicker">11 — privacy</p>
+  <h2>There is no private, and the thing that looks like it is not it</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Python has no access control. It has one convention and one name transformation, and confusing them for security is how people end up disappointed.</p>
+    <table>
+     <thead><tr><th>spelling</th><th>what it actually does</th></tr></thead>
+     <tbody>
+      <tr><td><code>balance</code></td><td>Public. Part of the contract.</td></tr>
+      <tr><td><code>_balance</code></td><td><b>Nothing at all.</b> A note to a human: not part of the contract, may change. Every tool and every caller can still touch it.</td></tr>
+      <tr><td><code>__balance</code></td><td>The compiler rewrites the name to <code>_ClassName__balance</code>, inside the class body only. That is the whole mechanism.</td></tr>
+     </tbody>
+    </table>
+<pre><code>class Safe:
+    def __init__(self):
+        self.__token = "s3cret"</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 mangle.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>vars(s) = {'_Safe__token': 's3cret'}
+s.__token      -&gt; AttributeError: 'Safe' object has no attribute '__token'
+s._Safe__token -&gt; s3cret</pre>
+    </div>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>What mangling is for</h3>
+     <p class="small">Not secrecy — <b>collision avoidance</b>. A base class that stores <code>self.__cache</code> is guaranteed that no subclass, written by someone who never read it, can clobber that name by accident. The two <code>__cache</code> attributes are different keys.</p>
+     <p class="small" style="margin-bottom:0">Use it in a base class meant to be subclassed by strangers. Everywhere else, one underscore says what you mean and costs nothing.</p>
+    </div>
+    <div class="note bad"><p style="margin-bottom:0">If your threat model includes the caller, Python is the wrong tool. A determined caller reads <code>vars(obj)</code>. What <code>_</code> and <code>__</code> buy you is a clear line between the part of the class you promise to keep working and the part you reserve the right to rewrite on Tuesday.</p></div>
+    <p>The real encapsulation tool in Python is the one on the next slide: not hiding the attribute, but <b>controlling what happens when it is touched</b> — while it still reads like an attribute at every call site.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-chapter="Encapsulation">
+ <div class="inner">
+  <p class="kicker">12 — properties</p>
+  <h2>Why Python does not need a getter on every field</h2>
+  <div class="cols">
+   <div>
+    <p>In a language without properties, exposing a field is a one-way door: change your mind later and every call site changes with it. So people write getters for everything, defensively, forever.</p>
+<pre><code>class Circle:          # version 1, day one
+    def __init__(self, r):
+        self.r = r</code></pre>
+    <p>Ship it. Two months later you need to reject negative radii and to cache the area. In Python the class changes and <b>nothing else does</b>:</p>
+<pre><code>class Circle:          # version 2
+    def __init__(self, r):
+        self.r = r              # still goes through the setter
+
+    @property
+    def r(self):
+        return self._r
+
+    @r.setter
+    def r(self, v):
+        if v &lt;= 0:
+            raise ValueError(f"radius must be positive, got {v}")
+        self._r = v
+
+    @property
+    def area(self):             # computed, read-only
+        return pi * self._r ** 2</code></pre>
+    <p class="small" style="margin-bottom:0"><code>c.r = 5</code> and <code>c.area</code> are untouched at every call site in the codebase. This is why "always write getters" is cargo cult here: the refactor it defends against is free.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>What <code>@property</code> is underneath</h3>
+     <p class="small">No syntax was added to the language for this. <code>property</code> is a class whose instances define <code>__get__</code>, <code>__set__</code> and <code>__delete__</code> — a data descriptor, step 2 of the rule.</p>
+<pre><code>r = property(get_r, set_r)   # the decorator form
+                             # is the same thing</code></pre>
+     <p class="small" style="margin-bottom:0">Which is the whole reason an assignment cannot dodge it. There is no check to forget, because there is no check: there is a lookup, and the lookup finds the property first.</p>
+    </div>
+    <div class="note"><p><b>When not to.</b> A property that is only <code>return self._x</code> with no validation, no computation and no logging is a getter with extra steps. Delete it and expose the attribute.</p><p style="margin-bottom:0">And keep them cheap. <code>c.area</code> looks like an attribute, so callers will write it inside a loop; if it costs a database query, name it <code>fetch_area()</code> so the cost is visible at the call site.</p></div>
+    <p class="small" style="margin-bottom:0">Cheap is relative, and measurable: a property read is about <b>3&times;</b> the cost of a plain attribute read. The measurement slide has the numbers, and the answer is still "use them" for all but the hottest loops.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-chapter="Encapsulation">
+ <div class="inner">
+  <p class="kicker">13 — the invariant, closed</p>
+  <h2>The account from slide two, with the hole welded shut</h2>
+  <div class="cols wide-left">
+   <div>
+<pre><code>class Account:
+    def __init__(self, owner, balance=0):
+        self.owner = owner
+        self.balance = balance        # validated, even here
+
+    @property
+    def balance(self):
+        return self._balance
+
+    @balance.setter
+    def balance(self, v):
+        if not isinstance(v, (int, float)):
+            raise TypeError("balance must be a number")
+        if v &lt; 0:
+            raise ValueError("balance may not go negative")
+        self._balance = v
+
+    def withdraw(self, amount):
+        self.balance = self.balance - amount   # raises if under
+        return amount</code></pre>
+    <p>Now count the ways to reach an invalid balance. <code>a.balance = -1</code> raises. <code>a.withdraw(10**9)</code> raises. Constructing with a bad value raises, because <code>__init__</code> assigns through the same setter rather than writing <code>self._balance</code> directly.</p>
+    <div class="note good"><p style="margin-bottom:0">The one remaining door is <code>a._balance = -1</code> or <code>a.__dict__['_balance'] = -1</code> — a caller deliberately reaching past the underscore. That is not a leak, it is the line from slide eleven: below the underscore you are on your own, and you did it on purpose.</p></div>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>The two disciplines that make it hold</h3>
+     <ul class="tight">
+       <li><b>Assign through the public name in <code>__init__</code>.</b> Writing <code>self._balance = balance</code> there is the single most common way this pattern is broken: the object is born invalid and every later write is guarded.</li>
+       <li><b>Never read <code>self._balance</code> outside the property.</b> The moment a method reads the private name, the property stops being the only path and starts being one of two.</li>
+     </ul>
+    </div>
+    <div class="panel">
+     <h3>What this bought, precisely</h3>
+     <p class="small">Not "encapsulation" as an abstract virtue. A concrete change in what is possible:</p>
+     <table>
+      <thead><tr><th></th><th>dict version</th><th>class version</th></tr></thead>
+      <tbody>
+       <tr><td>Places that can break it</td><td class="alert">every line</td><td class="num">1, on purpose</td></tr>
+       <tr><td>Places that check</td><td class="num">the ones you recall</td><td class="num">all of them</td></tr>
+       <tr><td>Cost of a typo</td><td class="alert">a new key, silently</td><td class="num">AttributeError</td></tr>
+      </tbody>
+     </table>
+     <p class="small" style="margin-bottom:0">Line three is the quiet win. <code>acct["balnce"] = 500</code> succeeds; <code>acct.balnce = 500</code> on a <code>__slots__</code> class raises immediately, and even without slots it fails the next time something reads <code>balance</code>.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-chapter="Inheritance">
+ <div class="inner">
+  <p class="kicker">14 — what inheritance is for</p>
+  <h2>Inherit to be substitutable, not to save typing</h2>
+  <div class="cols">
+   <div>
+    <p>The test is not "does a square have the same fields as a rectangle". It is: <b>can code written against the base keep its promises when handed the subclass?</b> Here is a contract that a square breaks.</p>
+<pre><code>class Rect:
+    def __init__(self, w, h): self.w, self.h = w, h
+    def set_w(self, w): self.w = w
+    def area(self): return self.w * self.h
+
+class Square(Rect):              # "a square IS-A rectangle"
+    def __init__(self, n): super().__init__(n, n)
+    def set_w(self, w): self.w = self.h = w   # keeps it square
+
+def contract(r):                       # written against Rect
+    r.set_w(5)                         # only the width changes
+    return r.area()                    # so: 5 * original height</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 lsp.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>contract(Rect(2, 3))  = 15   (expected 15)
+contract(Square(2))   = 25   (expected 15)</pre>
+    </div>
+    <p>Nothing is wrong with either class in isolation. The error is the <code>class Square(Rect)</code> line: it promised substitutability that the override cannot honour.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>The three questions, in order</h3>
+     <ol class="tight">
+       <li><b>Is every one of these really one of those?</b> Not in the dictionary — in the code. Does every method of the base still mean what it said?</li>
+       <li><b>Am I inheriting to reuse code?</b> Then you want an attribute, not a base class. A <code>Car</code> is not an <code>Engine</code>; it has one.</li>
+       <li><b>Am I inheriting to be polymorphic?</b> In Python you usually do not need to: duck typing dispatches on the method, not the class. Two slides on.</li>
+     </ol>
+    </div>
+    <div class="note bad"><p style="margin-bottom:0"><b>The smell:</b> a subclass that overrides a method to <i>narrow</i> what it accepts, to raise <code>NotImplementedError</code>, or to ignore an argument the base honours. Each one says "this is not really one of those" out loud.</p></div>
+    <p class="small">The honest fix for the square is that neither is a subclass of the other: both are <code>Shape</code>s with an <code>area()</code>, and a <code>Square</code> has one side. The inheritance was never carrying weight — only the word "is-a" was.</p>
+    <p class="small" style="margin-bottom:0">Slide 33 has the rest of this argument, including the cases where inheritance genuinely is the right answer. First, the machinery: what actually happens when a subclass calls up.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-chapter="Inheritance">
+ <div class="inner">
+  <p class="kicker">15 — super()</p>
+  <h2><code>super()</code> does not mean "my parent"</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>It means: <b>the next class after me in the MRO of <code>type(self)</code></b>. With single inheritance those are the same thing, which is why the misunderstanding survives so long. With two bases they are not, and here is the proof.</p>
+<pre><code>class L1:
+    def who(self): return "L1"
+
+class L2(L1):                       # L2's only base is L1
+    def who(self): return "L2 -&gt; " + super().who()
+
+class L3(L1):
+    def who(self): return "L3 -&gt; " + super().who()
+
+class L4(L2, L3):
+    def who(self): return "L4 -&gt; " + super().who()</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 super.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>L4().who() = L4 -&gt; L2 -&gt; L3 -&gt; L1
+L2.__bases__ = ['L1']</pre>
+    </div>
+    <p>Read those two lines together. Inside <code>L2.who</code>, <code>super()</code> resolved to <b>L3</b> — a class that is not a base of L2, that L2's author may never have heard of, and that did not exist when L2 was written.</p>
+   </div>
+   <div>
+    <div class="note"><p style="margin-bottom:0"><code>super()</code> is not a reference to a class. It is a <b>position in a list</b> — and which list it is depends on the type of the object the method was called on, not on the class the method was written in.</p></div>
+    <div class="panel">
+     <h3>Consequences worth knowing</h3>
+     <ul class="tight">
+       <li>A method that calls <code>super()</code> may end up calling a sibling class rather than an ancestor. That is not a bug; it is the mechanism that makes mixins compose.</li>
+       <li>Hard-coding <code>L1.who(self)</code> instead of <code>super().who()</code> works until someone inherits from you twice over — then it silently skips L3 and any state L3 was maintaining.</li>
+       <li>The zero-argument <code>super()</code> only works inside a class body: the compiler passes the class and the instance to it invisibly. Outside one, spell it <code>super(L2, self)</code>.</li>
+     </ul>
+    </div>
+    <p class="small" style="margin-bottom:0">So everything now depends on what that list is. The next slide computes it — with the actual algorithm, which is stricter and more interesting than "left to right, depth first".</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-chapter="Inheritance">
+ <div class="inner">
+  <p class="kicker">16 — C3 linearization</p>
+  <h2>How <code>__mro__</code> is computed, one merge step at a time</h2>
+  <div class="cols wide-right">
+   <div>
+    <p>The MRO is built by <b>merging</b> the MROs of the bases, plus the list of bases itself. At each step, take the first head that appears in <b>no other list's tail</b> — because being in a tail means something still has to come before it.</p>
+    <p class="small">Pick a hierarchy and step through. The lists, the choice and the rejections below are computed by a C3 implementation in this page, checked against CPython on 4,000 random hierarchies.</p>
+    <div class="controls">
+      <label for="mroPick">hierarchy</label>
+      <select id="mroPick">
+        <option value="diamond">the diamond — D(B, C)</option>
+        <option value="classic">the textbook case — M(K1, K2, K3)</option>
+        <option value="mixin">a mixin stack — Job(Loud, Timed)</option>
+        <option value="impossible">the one that cannot exist — C(A, B)</option>
+      </select>
+      <button id="mroStep" type="button">step</button>
+      <button id="mroAll" type="button">run to the end</button>
+      <button id="mroReset" type="button">reset</button>
+    </div>
+    <div class="treebox">
+      <svg class="tree" id="mroSvg" role="img" aria-label="The inheritance graph of the selected hierarchy"></svg>
+    </div>
+    <p class="stat" id="mroSay" style="margin-top:10px"></p>
+   </div>
+   <div>
+    <div class="ns"><h4>lists still being merged</h4><div id="mroLists"></div></div>
+    <div class="answer" id="mroOut" style="margin-top:12px"></div>
+    <p class="small" style="margin-top:14px">Run the last one. Two classes, one inheriting from the other, and a third that asks for them in the wrong order — every head is blocked, so no ordering exists and the <code>class</code> statement itself raises:</p>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 impossible.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>class A: pass
+class B(A): pass
+class C(A, B): pass
+
+TypeError: Cannot create a consistent method
+resolution order (MRO) for bases A, B</pre>
+    </div>
+    <p class="small" style="margin-bottom:0">Reading it: <code>C(A, B)</code> asks for A before B, while B's own MRO puts B before A. Both cannot hold. Python refuses at class-creation time rather than picking one and surprising you at a call — which is the same instinct as the validator slide near the end of this deck.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 18 -->
+<section class="slide" data-chapter="Inheritance">
+ <div class="inner">
+  <p class="kicker">17 — cooperative inheritance</p>
+  <h2>A chain of <code>super()</code> calls is only as strong as its weakest link</h2>
+  <div class="cols">
+   <div>
+    <p>Multiple inheritance works when every class in the MRO passes the call along. Here each mixin does its bit and calls up:</p>
+<pre><code>class Base:
+    def __init__(self, **kw): print("Base", kw)
+
+class Loud(Base):
+    def __init__(self, **kw):
+        print("Loud"); super().__init__(**kw)
+
+class Timed(Base):
+    def __init__(self, **kw):
+        print("Timed"); super().__init__(**kw)
+
+class Job(Loud, Timed):
+    def __init__(self, **kw):
+        print("Job"); super().__init__(**kw)</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 coop.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>MRO: ['Job', 'Loud', 'Timed', 'Base', 'object']
+   Job.__init__
+   Loud.__init__
+   Timed.__init__
+   Base.__init__ {'n': 1}</pre>
+    </div>
+    <p class="small" style="margin-bottom:0">Note again: <code>Loud</code> calls <code>super()</code> and reaches <code>Timed</code>, which is not its base. Neither mixin knows the other exists.</p>
+   </div>
+   <div>
+    <p>Now one link forgets the call — a single missing line, in a class that looks perfectly reasonable on its own:</p>
+<pre><code>class Rude(Base):
+    def __init__(self, **kw):
+        print("Rude (no super call)")   # chain ends here
+
+class Job2(Loud, Rude): pass</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 coop.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>MRO: ['Job2', 'Loud', 'Rude', 'Base', 'object']
+   Loud.__init__
+   Rude.__init__ (no super call)</pre>
+    </div>
+    <div class="note bad"><p style="margin-bottom:0"><code>Base.__init__</code> never ran. No exception, no warning — the object is simply half-initialised, and it fails later somewhere that has nothing to do with <code>Rude</code>. This is the characteristic multiple-inheritance bug, and why the pattern needs discipline rather than cleverness.</p></div>
+    <div class="panel">
+     <h3>The rules that keep a chain working</h3>
+     <ul class="tight">
+       <li><b>Every</b> class in the chain calls <code>super().__init__(**kw)</code>, including the ones that "obviously do not need to".</li>
+       <li>Accept and forward <code>**kwargs</code>, so a class further along can take arguments you have never heard of.</li>
+       <li>There is one class at the bottom that does <i>not</i> call up — and it should be <code>object</code>, or a base you own.</li>
+       <li>If you cannot make every link cooperate — because one is third-party — do not use multiple inheritance here. Use composition.</li>
+     </ul>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-chapter="Inheritance">
+ <div class="inner">
+  <p class="kicker">18 — mixins</p>
+  <h2>The one multiple-inheritance pattern that reliably pays</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>A mixin is a class that is never instantiated on its own, holds no state of its own if it can help it, and adds one orthogonal capability to whatever it is mixed into.</p>
+<pre><code>class ReprMixin:
+    """__repr__ from whatever the instance holds."""
+    def __repr__(self):
+        fields = ", ".join(f"{k}={v!r}"
+                           for k, v in vars(self).items())
+        return f"{type(self).__name__}({fields})"
+
+class ComparableMixin:
+    """Ordering from one method the class must define."""
+    def _key(self): raise NotImplementedError
+    def __eq__(self, o): return self._key() == o._key()
+    def __lt__(self, o): return self._key() &lt;  o._key()
+
+class Version(ReprMixin, ComparableMixin):
+    def __init__(self, major, minor):
+        self.major, self.minor = major, minor
+    def _key(self):
+        return (self.major, self.minor)</code></pre>
+    <p class="small" style="margin-bottom:0">Each mixin is testable alone, has one reason to change, and composes with any class that meets its one requirement. <code>Version</code> reads as a list of the capabilities it wants.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>What makes a mixin good</h3>
+     <ul class="tight">
+       <li><b>One capability.</b> A "UtilsMixin" is a bag, not a mixin.</li>
+       <li><b>Named for the capability</b>, not for the thing it is mixed into: <code>ReprMixin</code>, <code>JSONSerialisableMixin</code>, <code>LoginRequiredMixin</code>.</li>
+       <li><b>A stated requirement.</b> Above, "you must define <code>_key</code>" — and it raises <code>NotImplementedError</code> so a class that forgets fails loudly.</li>
+       <li><b>No <code>__init__</code></b> where possible. If it must have one, it cooperates by the previous slide's rules.</li>
+     </ul>
+    </div>
+    <div class="note bad"><p style="margin-bottom:0"><b>Where it goes wrong:</b> mixins that talk to each other, mixins that expect a particular order, and stacks deep enough that answering "where does this method come from?" needs <code>Class.__mro__</code> printed out. Once you are reading the MRO to understand your own code, the mixins have stopped paying for themselves.</p></div>
+    <p class="small">The Python standard library uses this well — <code>socketserver.ThreadingMixIn</code> is one capability, added to any server. Django's class-based views are the cautionary tale in the other direction.</p>
+    <p class="small" style="margin-bottom:0">Six slides from here, the same <code>Version</code> class appears written with composition and with <code>@dataclass(order=True)</code> instead. Both are shorter. Knowing when the mixin is still the right answer is the point.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 20 -->
+<section class="slide" data-chapter="Protocols">
+ <div class="inner">
+  <p class="kicker">19 — duck typing</p>
+  <h2>The interface is the set of methods, and nothing declares it</h2>
+  <div class="cols">
+   <div>
+    <p>In a nominal type system, <code>len(x)</code> works because <code>x</code>'s class was declared to implement an interface. In Python it works because the class defines <code>__len__</code>. There is no declaration, no registration and no inheritance involved.</p>
+<pre><code>class Bag:
+    def __init__(self, items): self.items = items
+    def __len__(self):   return len(self.items)
+    def __iter__(self):  return iter(self.items)
+    def __contains__(self, x): return x in self.items
+
+b = Bag([1, 2, 3])
+len(b)            # 3
+list(b)           # [1, 2, 3]
+2 in b            # True
+if b: ...         # True — falls back to __len__ != 0</code></pre>
+    <p><code>Bag</code> inherits from nothing. It is usable everywhere a sized, iterable container is expected, because the functions that need those things ask the object, not its ancestry.</p>
+    <div class="note"><p style="margin-bottom:0">This is the same lookup rule again, one level up: <code>len(x)</code> is <code>type(x).__len__(x)</code>. The builtin is a thin wrapper over an attribute lookup <i>on the type</i> — which is why assigning <code>b.__len__ = ...</code> on an instance does nothing.</p></div>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>What this buys, and what it costs</h3>
+     <table>
+      <thead><tr><th></th><th>consequence</th></tr></thead>
+      <tbody>
+       <tr><td>Buys</td><td>Your class works with code written before it existed. No base class to import, no interface to implement, no adapter.</td></tr>
+       <tr><td>Buys</td><td>Testing with a stand-in is trivial: anything with the right methods is the right type.</td></tr>
+       <tr><td>Costs</td><td>The requirement is invisible. "This function needs something with <code>.read()</code>" lives in a docstring, or nowhere.</td></tr>
+       <tr><td>Costs</td><td>Failures are late and can be partial: half the protocol works, then the call that needs <code>__exit__</code> raises.</td></tr>
+      </tbody>
+     </table>
+     <p class="small" style="margin-bottom:0">Two slides on, <code>abc</code> and <code>typing.Protocol</code> each buy back one of those costs — in opposite ways, and they are not interchangeable.</p>
+    </div>
+    <p class="small">First, though: the set of dunder methods <i>is</i> the language's extension surface. Nearly every piece of syntax is a method call on the type, and implementing the method makes the syntax work on your class.</p>
+    <p class="small" style="margin-bottom:0">Next slide: watch the syntax switch on, one method at a time.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-chapter="Protocols">
+ <div class="inner">
+  <p class="kicker">20 — the data model</p>
+  <h2>Every piece of syntax is a method you can define</h2>
+  <p class="small">A <code>Vector</code> that starts with nothing but two fields. Switch a dunder on and the expressions below start working — each result is dispatched through the same method table Python uses, and each failure is the message CPython actually prints.</p>
+  <div class="cols wide-right">
+   <div>
+    <div class="dgrid" id="dunGrid"></div>
+    <p class="stat" id="dunSay"></p>
+    <div class="note" style="margin-top:14px"><p style="margin-bottom:0"><code>__repr__</code> first, always. It is what the debugger, the REPL, a list of your objects and every log line will show. <code>__str__</code> is for the human-facing form, and falls back to <code>__repr__</code> when absent — so defining only <code>__str__</code> is the wrong way round.</p></div>
+   </div>
+   <div>
+    <ul class="expr" id="dunExpr"></ul>
+    <p class="small" style="margin-top:12px">Two to try deliberately:</p>
+    <ul class="tight small">
+      <li>Turn on <b>only</b> <code>__len__</code> and look at <code>bool(v)</code>. Truthiness falls back to length, so a vector of length zero becomes falsy — the single most surprising consequence of defining <code>__len__</code> on something that is not really a container.</li>
+      <li>Turn on <code>__eq__</code> and watch <code>hash(v)</code> break. That is not this page being clever; it is the language, and it is the next slide.</li>
+    </ul>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 22 -->
+<section class="slide" data-chapter="Protocols">
+ <div class="inner">
+  <p class="kicker">21 — the contract</p>
+  <h2><code>__eq__</code> and <code>__hash__</code> are one decision, not two</h2>
+  <div class="cols">
+   <div>
+    <p>Define <code>__eq__</code> alone and Python removes the inherited <code>__hash__</code>. Your objects stop being usable as dict keys or set members — deliberately, and at the first attempt rather than later:</p>
+<pre><code>class P:
+    def __init__(self, x): self.x = x
+    def __eq__(self, o): return isinstance(o, P) and self.x==o.x</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 eq.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>P.__hash__ is None
+hash(P(1)) -&gt; TypeError: unhashable type: 'P'</pre>
+    </div>
+    <p>The rule it is protecting: <b>objects that compare equal must hash equal</b>. Default hashing is by identity, so two equal-but-distinct objects would land in different buckets and a dict would hold both.</p>
+    <p class="small" style="margin-bottom:0">So write them together, from the same fields:</p>
+<pre><code>    def __hash__(self):
+        return hash((self.x,))   # same fields as __eq__</code></pre>
+   </div>
+   <div>
+    <p>And now the harder half. A correct <code>__hash__</code> is still a bug if the fields it reads can change:</p>
+<pre><code>k = Key(1)
+d = {k: "found"}
+k.v = 2            # mutate the key, after insertion
+print(d.get(k))
+print(len(d), list(d.values()))</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 mutablekey.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>d.get(k)        -&gt; None
+len(d) = 1      still inside: ['found']
+d.get(Key(2))   -&gt; None</pre>
+    </div>
+    <div class="note bad"><p style="margin-bottom:0">The entry is still in the dict. The key object is still the same object. And neither the original key nor an equal fresh one can find it, because it was filed under the old hash. No exception is raised — the value is simply unreachable. This is the quietest data-loss bug in the language.</p></div>
+    <div class="panel">
+     <h3>The discipline</h3>
+     <ul class="tight">
+       <li>Hash only <b>immutable</b> fields — ideally a frozen object.</li>
+       <li><code>@dataclass(frozen=True)</code> generates both methods and blocks the mutation, in one line.</li>
+       <li>If the object must be mutable, leave it unhashable. Unusable as a key beats silently lost.</li>
+     </ul>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 23 -->
+<section class="slide" data-chapter="Protocols">
+ <div class="inner">
+  <p class="kicker">22 — naming the interface</p>
+  <h2>ABCs and Protocols solve the same problem from opposite ends</h2>
+  <div class="cols">
+   <div>
+    <div class="panel">
+     <h3><code>abc.ABC</code> — nominal, enforced at runtime</h3>
+<pre><code>from abc import ABC, abstractmethod
+
+class Store(ABC):
+    @abstractmethod
+    def get(self, k): ...
+    @abstractmethod
+    def put(self, k, v): ...</code></pre>
+     <div class="term">
+       <div class="cmd"><b>$</b> python3 abc_demo.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>Store() -&gt; TypeError: Can't instantiate abstract class
+Store without an implementation for abstract
+method 'get'</pre>
+     </div>
+     <p class="small" style="margin-bottom:0">A subclass that forgets a method fails <b>the first time anyone constructs it</b>, with the method named. You inherit from it, so the relationship is declared — and a class you do not own cannot join without <code>Store.register(...)</code>.</p>
+    </div>
+   </div>
+   <div>
+    <div class="panel">
+     <h3><code>typing.Protocol</code> — structural, checked by the type checker</h3>
+<pre><code>from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class Sized(Protocol):
+    def __len__(self) -&gt; int: ...
+
+class Bag:                     # inherits from nothing
+    def __len__(self): return 3</code></pre>
+     <div class="term">
+       <div class="cmd"><b>$</b> python3 proto_demo.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>isinstance(Bag(), Sized) = True
+Bag has no idea Sized exists</pre>
+     </div>
+     <p class="small" style="margin-bottom:0">Duck typing with a name on it. The requirement becomes writable in a signature — <code>def total(x: Sized) -&gt; int</code> — and mypy checks it, without anyone inheriting anything. <code>runtime_checkable</code> only checks that the methods <i>exist</i>, not their signatures.</p>
+    </div>
+   </div>
+  </div>
+  <div class="cols" style="margin-top:6px">
+   <div class="note"><p style="margin-bottom:0"><b>Choose ABC</b> when you own the hierarchy and want implementations to fail loudly at construction: a plugin base class, a framework extension point, something with shared concrete helpers alongside the abstract methods.</p></div>
+   <div class="note"><p style="margin-bottom:0"><b>Choose Protocol</b> when you are describing what a <i>parameter</i> needs — especially for types you do not own. "Anything with <code>.read()</code>" is a Protocol; making every caller inherit from your <code>Readable</code> base is not an option you have.</p></div>
+  </div>
+ </div>
+</section>
+
+<!-- 24 -->
+<section class="slide" data-chapter="Composition">
+ <div class="inner">
+  <p class="kicker">23 — composition</p>
+  <h2>Has-a survives changes that is-a does not</h2>
+  <div class="cols">
+   <div>
+    <p>The inheritance version reads well right up to the day the requirements move:</p>
+<pre><code>class Job(LoggingMixin, RetryMixin, TimingMixin, Base):
+    def run(self): ...</code></pre>
+    <ul class="tight small">
+      <li>Where does <code>run</code>'s logging happen? Somewhere in the MRO.</li>
+      <li>Can one job retry but not log? Only by making a new class.</li>
+      <li>Can retry behaviour be swapped at runtime? No — the MRO is fixed when the class is created.</li>
+      <li>Can you test the retry logic alone? Only through a class that mixes it in.</li>
+    </ul>
+    <p>The composed version answers all four, and the answer is the same sentence each time: <b>they are objects, so they are values you can pass, swap and test</b>.</p>
+<pre><code>class Job:
+    def __init__(self, task, retry=None, logger=None):
+        self.task   = task
+        self.retry  = retry or NoRetry()
+        self.logger = logger or NullLogger()
+
+    def run(self):
+        self.logger.info("starting %s", self.task)
+        return self.retry.call(self.task)</code></pre>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>The trade honestly stated</h3>
+     <table>
+      <thead><tr><th></th><th>inheritance</th><th>composition</th></tr></thead>
+      <tbody>
+       <tr><td>Wiring</td><td>none — implicit</td><td>explicit, and more typing</td></tr>
+       <tr><td>Swappable at runtime</td><td>no</td><td>yes</td></tr>
+       <tr><td>Testable alone</td><td>awkward</td><td>trivially</td></tr>
+       <tr><td>Where does X happen?</td><td>read the MRO</td><td>read <code>__init__</code></td></tr>
+       <tr><td>Two of the same kind</td><td>impossible</td><td>two attributes</td></tr>
+      </tbody>
+     </table>
+     <p class="small" style="margin-bottom:0">"More typing" is a real cost, not a rhetorical one. For three capabilities, the mixin version is shorter and perfectly clear. The composed version pays off at the point where behaviour has to vary per instance rather than per class.</p>
+    </div>
+    <div class="note good"><p style="margin-bottom:0"><b>Where inheritance still wins:</b> a framework contract you do not control (<code>Exception</code>, <code>Enum</code>, a Django <code>Model</code>); a genuine specialisation where every base method still means what it said; and sharing a small, stable set of concrete helpers with an <code>ABC</code>. "Favour composition" is advice, not a prohibition.</p></div>
+    <p class="small" style="margin-bottom:0">And if the delegation is only ever forwarding — <code>def info(self, *a): return self.logger.info(*a)</code> for nine methods — that is composition being used where a plain attribute would do. Let callers reach the collaborator.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 25 -->
+<section class="slide" data-chapter="Composition">
+ <div class="inner">
+  <p class="kicker">24 — dataclasses</p>
+  <h2>The boilerplate has a generator, and it is stricter than you are</h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Most classes are a handful of fields with an <code>__init__</code> that assigns them, a <code>__repr__</code> for debugging, and an <code>__eq__</code> that compares them. All three are derivable from the field list, so Python derives them:</p>
+<pre><code>from dataclasses import dataclass, field
+
+@dataclass(frozen=True, slots=True, order=True)
+class Version:
+    major: int
+    minor: int = 0
+    tags: list[str] = field(default_factory=list)</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 dc.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>generated: ['__init__', '__repr__', '__eq__']
+Point(1, 2) == Point(1, 2)  -&gt; True
+repr(Point(1, 2))           -&gt; 'Point(x=1, y=2)'</pre>
+    </div>
+    <p class="small">The generated <code>__eq__</code> compares the tuple of fields, so value semantics arrive for free — and with <code>frozen=True</code> a matching <code>__hash__</code> arrives with them, which is the contract from slide 22 satisfied by construction.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>The four arguments worth knowing</h3>
+     <table>
+      <thead><tr><th>argument</th><th>what it does</th></tr></thead>
+      <tbody>
+       <tr><td><code>frozen=True</code></td><td>Assignment raises. Generates <code>__hash__</code>. Makes the object usable as a dict key and safe to share.</td></tr>
+       <tr><td><code>slots=True</code></td><td>Adds <code>__slots__</code> from the fields. Smaller instances, no stray attributes, no <code>__dict__</code>.</td></tr>
+       <tr><td><code>order=True</code></td><td>Generates the four comparisons from the field tuple — the <code>ComparableMixin</code> of slide 19, in one word.</td></tr>
+       <tr><td><code>kw_only=True</code></td><td>Callers must name the fields. Kills the "which of these five ints is which" class of bug.</td></tr>
+      </tbody>
+     </table>
+    </div>
+    <div class="note good"><p style="margin-bottom:0"><b>And the mutable default is refused outright.</b> Writing <code>tags: list[str] = []</code> raises <code>ValueError: mutable default &lt;class 'list'&gt; for field tags is not allowed: use default_factory</code> — at class-creation time, before a single instance exists. Slide 7's bug, promoted from "found in production" to "cannot be written". <code>field(default_factory=list)</code> is the spelling that means "a new one per instance".</p></div>
+    <p class="small" style="margin-bottom:0">Reach for a plain class when there is real behaviour and few fields; a dataclass when it is mostly fields; <code>NamedTuple</code> when it must be a tuple; and a plain <code>dict</code> when the keys are genuinely dynamic and there is no invariant to keep.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 26 -->
+<section class="slide" data-chapter="The object model">
+ <div class="inner">
+  <p class="kicker">25 — descriptors</p>
+  <h2>The protocol that everything else on this deck was already using</h2>
+  <div class="cols wide-right">
+   <div>
+    <p>A descriptor is any object that defines <code>__get__</code>, and optionally <code>__set__</code> or <code>__delete__</code>. Put one in a class, and the lookup rule calls it instead of returning it. You have seen this four times already without the name:</p>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 descriptors.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre> meth: function     __get__=True  __set__=False
+ prop: property     __get__=True  __set__=True
+   cm: classmethod  __get__=True  __set__=False
+   sm: staticmethod __get__=True  __set__=False</pre>
+    </div>
+    <p>Methods, properties, <code>classmethod</code> and <code>staticmethod</code> are not four language features. They are four descriptors in the standard library, and you can write a fifth.</p>
+    <p>Here is the one worth writing: a validated field, defined once and used on as many attributes as you like — which is the thing <code>@property</code> cannot do without repeating itself per field.</p>
+   </div>
+   <div>
+<pre><code>class Positive:
+    def __set_name__(self, owner, name):
+        self.name = "_" + name          # told its own name
+
+    def __get__(self, obj, owner=None):
+        if obj is None: return self     # accessed on the class
+        return getattr(obj, self.name)
+
+    def __set__(self, obj, value):      # __set__ =&gt; data descriptor
+        if value &lt;= 0:
+            raise ValueError(f"{self.name[1:]} must be positive")
+        setattr(obj, self.name, value)
+
+class Rectangle:
+    width  = Positive()
+    height = Positive()
+
+    def __init__(self, width, height):
+        self.width, self.height = width, height</code></pre>
+    <div class="note"><p style="margin-bottom:0">Two properties became two lines. Ten would still be ten lines, and the validation exists exactly once. <code>__set_name__</code> is what makes it reusable: the class tells the descriptor which attribute it was assigned to, so the descriptor does not have to be told its own name twice.</p></div>
+    <p class="small" style="margin-bottom:0"><b>The one trap:</b> state belongs on the <i>instance</i>, not the descriptor. A descriptor is created once, at class-creation time, and shared by every instance — <code>self.value = value</code> inside <code>__set__</code> would make every rectangle the same width. Store under a per-instance key, as above.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 27 -->
+<section class="slide" data-chapter="The object model">
+ <div class="inner">
+  <p class="kicker">26 — __slots__</p>
+  <h2>Trading the instance dictionary for descriptors</h2>
+  <div class="cols">
+   <div>
+    <p>Declaring <code>__slots__</code> tells Python not to give instances a <code>__dict__</code>. The attributes become <b>data descriptors on the class</b>, each one pointing at a fixed offset in the object — step 2 of the lookup rule, one more time.</p>
+<pre><code>class Point:
+    __slots__ = ('x', 'y')
+    def __init__(self, x, y):
+        self.x, self.y = x, y</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 slots.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>p.z = 1
+AttributeError: 'S' object has no attribute 'y'
+and no __dict__ for setting new attributes
+
+'x' in __slots__ conflicts with class variable
+subclass without __slots__ has __dict__: True</pre>
+    </div>
+    <p class="small">The first message is the real reason to use slots in a class that is not performance-critical: a typo becomes an error instead of a new attribute nobody reads. The last line is the usual disappointment — <b>one subclass without <code>__slots__</code> hands the dict back</b>, and every saving with it.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>What it saves, measured rather than quoted</h3>
+     <div class="term">
+       <div class="cmd"><b>$</b> python3 slotsize.py<span style="margin-left:auto">CPython 3.14.6, arm64</span></div>
+<pre>sys.getsizeof:
+  plain object 48 B + __dict__ 296 B = 344 B
+  slotted object 48 B, no dict      =  48 B
+  "86% saved"
+
+tracemalloc, 100k live instances:
+   2 fields: plain  96 B  slots  56 B   -40 B (42%)
+   5 fields: plain 120 B  slots  80 B   -40 B (33%)
+  10 fields: plain 168 B  slots 120 B   -48 B (29%)</pre>
+     </div>
+     <p class="small" style="margin-bottom:0">Those two blocks disagree, and the second one is right. <code>sys.getsizeof</code> on the dict reports a full standalone dict; instances of the same class actually <b>share their key table</b> (PEP 412), so the real per-instance cost is a fraction of what the naive measurement implies. The widely repeated "slots save you 80%" is an artefact of measuring it the easy way.</p>
+    </div>
+    <div class="note"><p style="margin-bottom:0"><b>Use slots</b> for classes you create in millions, and for value objects where a stray attribute is a bug. <code>@dataclass(slots=True)</code> is the least painful spelling. <b>Skip them</b> otherwise: they break multiple inheritance from two slotted classes, weak references unless you add <code>__weakref__</code>, and every library that assumes <code>vars(obj)</code> works.</p></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 28 -->
+<section class="slide" data-chapter="The object model">
+ <div class="inner">
+  <p class="kicker">27 — construction</p>
+  <h2><code>__new__</code> makes the object. <code>__init__</code> only fills it in.</h2>
+  <div class="cols">
+   <div>
+    <p>Calling <code>C(...)</code> runs two methods. <code>__new__</code> is a static method that <b>returns the new object</b>; <code>__init__</code> is handed that object and returns nothing.</p>
+<pre><code>obj = C.__new__(C, *args)        # allocate
+if isinstance(obj, C):
+    obj.__init__(*args)          # initialise
+return obj</code></pre>
+    <p>For ninety-nine classes in a hundred, <code>__init__</code> is all you need. <code>__new__</code> earns its place when the object must be fully formed <i>before</i> anyone sees it — which is exactly the case for immutable types:</p>
+<pre><code>class Odd(int):
+    def __new__(cls, v):
+        return super().__new__(cls, v * 2)</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 new.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>Odd(5)        -&gt; 10
+type(Odd(5))  -&gt; Odd</pre>
+    </div>
+    <p class="small" style="margin-bottom:0">An <code>int</code>'s value is fixed at allocation. There is no <code>self.value = ...</code> to write in <code>__init__</code>, so subclassing <code>int</code>, <code>str</code>, <code>tuple</code> or <code>frozenset</code> means <code>__new__</code> or nothing.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>The three legitimate uses</h3>
+     <ul class="tight">
+       <li><b>Subclassing an immutable builtin</b>, as above.</li>
+       <li><b>Returning an existing instance</b> — caching, interning, a singleton. Note the consequence: if <code>__new__</code> returns an object of the right type, <code>__init__</code> runs <i>again</i> on the cached instance. Guard it, or do the work in <code>__new__</code>.</li>
+       <li><b>Returning a different class entirely</b> — a factory hiding behind a constructor. Use sparingly: <code>Shape(...)</code> quietly handing back a <code>Circle</code> is a surprise in a traceback.</li>
+     </ul>
+    </div>
+    <div class="note bad"><p style="margin-bottom:0"><b>Not</b> a legitimate use: validating arguments. That is <code>__init__</code>'s job, or a property's, and doing it in <code>__new__</code> means doing it before the object exists — with worse error messages and no <code>self</code> to put anything on.</p></div>
+    <p class="small">A classmethod is usually the better factory anyway. <code>Date.from_iso("2026-09-20")</code> says what it does at the call site; a <code>__new__</code> that branches on argument types does not.</p>
+    <p class="small" style="margin-bottom:0">Next: the two hooks that removed most of the remaining reasons to write a metaclass.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 29 -->
+<section class="slide" data-chapter="The object model">
+ <div class="inner">
+  <p class="kicker">28 — the two modern hooks</p>
+  <h2><code>__init_subclass__</code> and <code>__set_name__</code></h2>
+  <div class="cols wide-left">
+   <div>
+    <p>Most of what metaclasses were used for was one of two things: reacting when someone subclasses you, and telling a class attribute what it was named. Both now have a plain hook, and neither needs a metaclass.</p>
+<pre><code>class Tracked:
+    def __set_name__(self, owner, name):
+        print(f"__set_name__(owner={owner.__name__}, name={name!r})")
+
+class Parent:
+    def __init_subclass__(cls, **kw):
+        super().__init_subclass__(**kw)
+        print(f"__init_subclass__(cls={cls.__name__})")
+
+class Child(Parent):
+    field = Tracked()
+    other = Tracked()</code></pre>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 hooks.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>__set_name__(owner=Child, name='field')
+__set_name__(owner=Child, name='other')
+__init_subclass__(cls=Child)</pre>
+    </div>
+    <p class="small" style="margin-bottom:0">Note the order, and that no instance was created: the descriptors are named first, in definition order, then the parent is told a subclass exists — all while <code>class Child</code> is still executing.</p>
+   </div>
+   <div>
+    <div class="panel">
+     <h3>What they are for</h3>
+     <ul class="tight">
+       <li><b>Plugin registration.</b> A base class that keeps a registry of every subclass ever defined — four lines, no metaclass:
+<pre style="margin:8px 0 0"><code>class Plugin:
+    registry = {}
+    def __init_subclass__(cls, key, **kw):
+        super().__init_subclass__(**kw)
+        cls.registry[key] = cls
+
+class Csv(Plugin, key="csv"): ...</code></pre></li>
+       <li><b>Enforcing a contract at definition time.</b> Check in <code>__init_subclass__</code> that the subclass defined what it must, and raise there — the error arrives when the file is imported, not when something is finally constructed in production.</li>
+       <li><b>Self-naming descriptors</b>, as on slide 25.</li>
+     </ul>
+    </div>
+    <div class="note good"><p style="margin-bottom:0">Reach for these <b>before</b> a metaclass, every time. They are ordinary methods, they compose through <code>super()</code>, they do not change the type of your class, and nobody inheriting from you has to care that they exist.</p></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 30 -->
+<section class="slide" data-chapter="The object model">
+ <div class="inner">
+  <p class="kicker">29 — metaclasses</p>
+  <h2>A class is an instance of something, and you can change what</h2>
+  <div class="cols">
+   <div>
+    <p>Slide 5 left a loose end: the class statement ends by calling <code>type(name, bases, ns)</code>. A metaclass replaces that callable, so it controls how the class object itself is built.</p>
+<pre><code>class Meta(type):
+    def __new__(mcls, name, bases, ns, **kw):
+        ns["built_by"] = mcls.__name__
+        return super().__new__(mcls, name, bases, ns, **kw)
+
+class Thing(metaclass=Meta):
+    pass
+
+Thing.built_by        # 'Meta'
+type(Thing)           # &lt;class 'Meta'&gt;
+isinstance(Thing, Meta)  # True — the class is an instance</code></pre>
+    <p class="small">Step through what <code>class</code> actually does. Each stage below is a real stage, in the order the interpreter runs it:</p>
+    <div class="controls">
+      <button id="mcStep" type="button">next stage</button>
+      <button id="mcAll" type="button">run it all</button>
+      <button id="mcReset" type="button">reset</button>
+    </div>
+    <ol class="trace" id="mcTrace"></ol>
+   </div>
+   <div>
+    <div class="treebox">
+      <svg class="tree" id="mcSvg" role="img" aria-label="The stages of executing a class statement"></svg>
+    </div>
+    <div class="note bad" style="margin-top:14px"><p style="margin-bottom:0"><b>Now the honest part.</b> In most codebases a metaclass is the wrong answer, because it is contagious: every subclass has the metaclass too, two bases with different metaclasses cannot be combined at all, and the surprise is invisible at the point where someone writes <code>class Mine(Yours)</code>.</p></div>
+    <div class="panel">
+     <h3>Try these first</h3>
+     <table>
+      <thead><tr><th>you want to…</th><th>use</th></tr></thead>
+      <tbody>
+       <tr><td>React to subclassing</td><td><code>__init_subclass__</code></td></tr>
+       <tr><td>Name a class attribute</td><td><code>__set_name__</code></td></tr>
+       <tr><td>Add or wrap methods</td><td>a class decorator</td></tr>
+       <tr><td>Generate boilerplate</td><td><code>@dataclass</code></td></tr>
+       <tr><td>Control instance creation</td><td><code>__new__</code></td></tr>
+       <tr><td>Control <i>class</i> creation, for a whole framework</td><td>a metaclass</td></tr>
+      </tbody>
+     </table>
+     <p class="small" style="margin-bottom:0">The last row is real — <code>abc.ABCMeta</code>, Django's <code>ModelBase</code> and <code>enum.EnumMeta</code> all earn it. Written once, in a library, used by thousands. That is the shape of a justified metaclass, and it is why you should recognise one rather than write one.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 31 -->
+<section class="slide" data-chapter="Measurement">
+ <div class="inner">
+  <p class="kicker">30 — measurement</p>
+  <h2>What the lookup rule actually costs</h2>
+  <div class="cols">
+   <div>
+    <p>The structural cost first, and this page can compute it: how many namespaces does a lookup probe before it answers? Every bar is produced by running the six-step rule in this page against a generated hierarchy.</p>
+    <div class="treebox">
+      <svg class="tree" id="msSvg" role="img" aria-label="Probes per lookup against the depth of the class hierarchy"></svg>
+    </div>
+    <div class="controls">
+      <button id="msRun" type="button">measure again</button>
+      <label><input type="checkbox" id="msMiss" checked> count a miss (attribute on the instance)</label>
+    </div>
+    <p class="stat" id="msSay"></p>
+    <p class="small" style="margin-bottom:0">A hit on the class you started from is one probe whatever the depth. A name that lives on the instance is the expensive case, because it is found <i>after</i> the whole MRO has been walked and missed — the rule looks at the type first, always.</p>
+   </div>
+   <div>
+    <p>Now the wall clock, from CPython rather than from this page — a browser cannot time an interpreter it is not running.</p>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 -m timeit …<span style="margin-left:auto">CPython 3.14.6, arm64, 2M reps</span></div>
+<pre>instance __dict__     8.0 ns
+__slots__             7.6 ns
+@property            25.6 ns
+__getattr__ miss     47.2 ns</pre>
+    </div>
+    <p class="small">A property is about three times a plain read, and still eight nanoseconds of actual work. Use them; just do not put one in the innermost loop of a numeric kernel.</p>
+    <p>And the measurement that contradicts the obvious prediction. If a deep MRO means more probes, deep hierarchies should be slower to read from:</p>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 -m timeit …<span style="margin-left:auto">CPython 3.14.6, arm64</span></div>
+<pre>depth  0 (MRO len  2):   7.8 ns
+depth  5 (MRO len  7):   7.8 ns
+depth 20 (MRO len 22):   7.8 ns
+depth 50 (MRO len 52):   7.8 ns</pre>
+    </div>
+    <div class="note good"><p style="margin-bottom:0">Flat. CPython keeps a <b>type attribute cache</b>: the result of walking an MRO for a name is memoised per type, and invalidated when any class in that MRO is modified. The walk on the left is what happens on a cold lookup and after an invalidation; the steady state is a cache hit regardless of depth.</p></div>
+    <p class="small" style="margin-bottom:0">So "flatten your hierarchy for speed" is folklore — at 50 levels deep it costs nothing measurable. Flatten it because <b>you</b> cannot find the method, which is a real cost and does not show up in a benchmark.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 32 -->
+<section class="slide" data-chapter="Implementation">
+ <div class="inner">
+  <p class="kicker">31 — putting it together</p>
+  <h2>Sixty lines that use every rule in this deck</h2>
+  <div class="cols">
+   <div>
+<pre><code>class Positive:               # slide 25: one rule, many fields
+    def __set_name__(self, owner, name):
+        self.name = "_" + name
+    def __get__(self, obj, owner=None):
+        return self if obj is None else getattr(obj, self.name)
+    def __set__(self, obj, value):
+        if value &lt;= 0:
+            raise ValueError(
+                f"{self.name[1:]} must be positive, got {value}")
+        setattr(obj, self.name, value)
+
+
+@dataclass(frozen=True, slots=True, order=True)
+class Money:                  # slides 22, 25: a value object
+    pence: int
+    def __add__(self, o): return Money(self.pence + o.pence)
+    def __sub__(self, o): return Money(self.pence - o.pence)
+    def __str__(self):    return f"GBP {self.pence / 100:,.2f}"
+
+
+class Ledger(ABC):            # slide 23: the interface
+    @abstractmethod
+    def record(self, account, delta, balance): ...
+
+
+class InMemoryLedger(Ledger):
+    def __init__(self):  self.entries = []
+    def record(self, account, delta, balance):
+        self.entries.append((account.owner, delta, balance))</code></pre>
+   </div>
+   <div>
+<pre><code>class Account:
+    limit = Positive()                # a data descriptor
+
+    def __init__(self, owner, ledger,
+                 limit=100_000, balance=Money(0)):
+        self.owner  = owner
+        self.ledger = ledger      # slide 24: composition
+        self.limit  = limit
+        self.balance = balance    # slide 14: through the setter
+
+    @property                     # slide 13: the invariant
+    def balance(self): return self._balance
+
+    @balance.setter
+    def balance(self, value):
+        if not isinstance(value, Money):
+            kind = type(value).__name__
+            raise TypeError(f"balance must be Money, got {kind}")
+        if value.pence &lt; 0:
+            raise ValueError("balance may not go negative")
+        if value.pence &gt; self.limit:
+            raise ValueError(f"{value} exceeds the limit")
+        self._balance = value
+
+    def deposit(self, amount):  self._apply(amount)
+    def withdraw(self, amount): self._apply(Money(-amount.pence))
+
+    def _apply(self, delta):
+        self.balance = self.balance + delta   # validated here
+        self.ledger.record(self, delta, self.balance)
+
+    def __repr__(self):           # slide 21: repr first
+        return (f"Account(owner={self.owner!r}, "
+                f"balance={self.balance})")
+
+    def __enter__(self):          # slide 21: a transaction
+        self._savepoint = self._balance
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if exc_type is not None: self._balance = self._savepoint
+        del self._savepoint
+        return False</code></pre>
+   </div>
+  </div>
+  <div class="cols">
+   <div>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 bank.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>Account(owner='Atiq', balance=GBP 380.00)
+  refused: ValueError: balance may not go negative
+  refused: ValueError: balance may not go negative
+  refused: TypeError: balance must be Money, got int
+  refused: ValueError: limit must be positive, got 0
+balance survived every refusal: GBP 380.00
+  rolled back after: payment provider timed out
+after the failed transaction: Account(..., balance=GBP 380.00)
+ledger: [('Atiq', +50000, 50000), ('Atiq', -12000, 38000),
+         ('Atiq', -30000, 8000)]</pre>
+    </div>
+   </div>
+   <div>
+    <div class="note bad"><p style="margin-bottom:0"><b>Read the last line of that output before you copy this code.</b> Three ledger entries, and only two transactions completed. The rollback restored the account's balance and did nothing about the entry the account had already handed to the ledger — because <code>__exit__</code> can only undo what <i>this object</i> owns.</p></div>
+    <p class="small" style="margin-bottom:0">That is not a typo in the slide; it is the real limitation of putting "undo" on one object. A unit of work spans every collaborator it touched, so either the ledger takes part in the transaction, or the account must not tell it anything until <code>__exit__</code> succeeds. Deciding which is design work, and no amount of OOP machinery makes the choice for you.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 33 -->
+<section class="slide" data-chapter="Implementation">
+ <div class="inner">
+  <p class="kicker">32 — the validator</p>
+  <h2>Write these three tests before the class is finished, not after</h2>
+  <div class="cols">
+   <div>
+    <p>An object model fails the way a tree does: it answers most questions correctly for a long time, and the one broken rule is invisible until something far away misbehaves. Three property checks catch nearly all of it.</p>
+<pre><code>def check_eq_hash(make, n=2000):
+    """Equal objects must hash equal. Collisions between
+       unequal ones are legal and must not fail."""
+    for _ in range(n):
+        a, b = make(), make()
+        if a == b:
+            assert hash(a) == hash(b), (a, b)
+
+def check_invariant(n=5000):
+    """Any sequence of public calls leaves the rule true.
+       A refusal is correct behaviour, not a failure."""
+    acct = Account("fuzz", InMemoryLedger())
+    for _ in range(n):
+        amount = Money(random.randint(1, 200_00))
+        try:
+            random.choice([acct.deposit, acct.withdraw])(amount)
+        except ValueError:
+            pass
+        assert 0 &lt;= acct.balance.pence &lt;= acct.limit
+
+def check_substitutable(cls):
+    """Slide 15, as a test: run the base class's contract
+       against every implementation of it."""
+    led = cls()
+    Account("sub", led).deposit(Money(100))
+    assert len(led.entries) == 1, f"{cls.__name__} dropped it"</code></pre>
+   </div>
+   <div>
+    <div class="term">
+      <div class="cmd"><b>$</b> python3 test_bank.py<span style="margin-left:auto">CPython 3.14.6</span></div>
+<pre>eq/hash agreed on 2000 random pairs
+invariant held over 5000 attempts
+   (4594 applied, 406 refused)
+InMemoryLedger honoured the Ledger contract
+caught the broken implementation:
+   LossyLedger did not record the entry</pre>
+    </div>
+    <p class="small">The last line matters most. <code>LossyLedger</code> is a deliberately broken subclass added to the test file — it silently drops deposits — and it exists to prove the contract test <b>can</b> fail. A green suite that has never gone red is not evidence.</p>
+    <div class="note good"><p style="margin-bottom:0"><b>The one to write first is <code>check_invariant</code>.</b> It is the executable form of the sentence that started this deck: "a balance may never go below zero". If the rule is worth a property and a setter, it is worth five lines that hammer on it randomly — that is what turns a comment into something the test suite defends.</p></div>
+    <p class="small" style="margin-bottom:0">Testing tip that costs nothing: <code>check_substitutable</code> takes the <i>class</i>, so it runs against every implementation you add later, including test doubles. A contract test written once is the cheapest protection against the substitutability failure on slide 15 — and it catches it at the point where someone writes the subclass.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 34 -->
+<section class="slide" data-chapter="Exit">
+ <div class="inner">
+  <p class="kicker">33 — where it loses, and what to do next</p>
+  <h2>Now the case against all of this</h2>
+  <div class="cols">
+   <div>
+    <div class="panel">
+     <h3>Where a class is the wrong answer</h3>
+     <table>
+      <thead><tr><th>situation</th><th>use instead</th></tr></thead>
+      <tbody>
+       <tr><td>One method, no state — <code>Validator.validate(x)</code></td><td>A function. It is not a class, it is a function wearing a hat.</td></tr>
+       <tr><td>Fields with no rules</td><td><code>@dataclass</code>, <code>NamedTuple</code>, or a dict if the keys are genuinely dynamic.</td></tr>
+       <tr><td>Adding <i>operations</i> often, kinds rarely</td><td>Functions over plain data — slide 2's table, read the other way round.</td></tr>
+       <tr><td>A fixed set of variants with a closed set of operations</td><td><code>match</code> on a tagged union is clearer than five one-method subclasses.</td></tr>
+       <tr><td>Sharing code between unrelated things</td><td>A module-level function. Inheritance is not a code-sharing tool.</td></tr>
+      </tbody>
+     </table>
+     <p class="small" style="margin-bottom:0">And the honest summary of the last thirty slides: <b>reach for a class when there is an invariant to protect, or a behaviour that varies by kind</b>. If there is neither, you are typing for nothing.</p>
+    </div>
+   </div>
+   <div>
+    <h3>Exercises — predict first, then run</h3>
+    <ol class="props">
+      <li><b>One character apart.</b> <code>class A: x = []</code>. Predict <code>A.x</code>, <code>b.x</code> and whether <code>'x' in vars(a)</code>, after <code>a.x += [1]</code>. Then after <code>a.x = a.x + [1]</code> on a fresh class. One of them changes the class attribute <i>and</i> creates an instance one. Which, and why?</li>
+      <li><b>The MRO.</b> Write down the MRO of <code>class D(B, C)</code> where <code>B(A)</code> and <code>C(A)</code>, before running anything. Now do the same for <code>class M(K1, K2, K3)</code> from slide 17. Check both with <code>__mro__</code>.</li>
+      <li><b>Break it deliberately.</b> Find the <i>shortest</i> program that puts a value into a dict and then makes it unreachable, without deleting it and without an exception. Fewer than ten lines is achievable.</li>
+      <li><b>The boundary.</b> Add <code>__slots__ = ('x',)</code> to a class that already has <code>x = 1</code> in its body. Predict what happens and when — at import, at construction, or at first access?</li>
+      <li><b>The chain.</b> Take slide 18's four-class cooperative chain and delete one <code>super().__init__()</code>. Predict which <code>__init__</code> bodies still run before you run it. Then move the deletion one class up and predict again.</li>
+      <li><b>Both descriptors.</b> Write one descriptor with <code>__get__</code> only and one with <code>__get__</code> and <code>__set__</code>. Put each on a class, smuggle a value into the instance's <code>__dict__</code>, and predict which read returns which value. Slide 10 has the answer; do not look first.</li>
+    </ol>
+    <p class="small" style="margin-bottom:0">Where to go from here: read <code>dataclasses.py</code> in the standard library — it is a class decorator that builds methods from a field list, and after this deck you can follow all of it. Then <code>enum.py</code>, which is the metaclass case done properly.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+</main>
+
+<nav id="bar">
+  <span id="count">1 / 34</span>
+  <button id="prev" aria-label="Previous slide">Back</button>
+  <button id="next" aria-label="Next slide">Next</button>
+  <span class="chapter" id="chapter"></span>
+</nav>
+
+<script>
+"use strict";
+/* ==================================================================
+   The deck.
+
+   Everything interactive on these slides runs on one model of the
+   Python object model -- the C3 linearization behind __mro__ and the
+   six-step attribute lookup -- implemented once, below, and viewed
+   six different ways. It is a model and not CPython: there is no
+   bytecode here and no reference counting. But the two algorithms
+   are the real ones, and they were checked against the interpreter
+   on 4,000 random hierarchies before this file was written, so a
+   diagram saying the MRO is D, B, C, A, object says it because this
+   computed it.
+
+   Wall-clock numbers are a different matter: a browser cannot time
+   an interpreter it is not running, so every nanosecond figure in
+   this deck is literal output from CPython 3.14.6 and is printed in
+   a block that says so.
+   ================================================================== */
+
+/* ---------- deck ---------- */
+var slides=Array.prototype.slice.call(document.querySelectorAll('.slide')),idx=0;
+var elProg=document.getElementById('progress'),elCount=document.getElementById('count'),
+    elChap=document.getElementById('chapter'),btnPrev=document.getElementById('prev'),btnNext=document.getElementById('next');
+
+function show(i){
+  idx=Math.max(0,Math.min(slides.length-1,i));
+  slides.forEach(function(s,k){s.classList.toggle('is-active',k===idx);});
+  slides[idx].scrollTop=0;
+  elProg.style.width=((idx+1)/slides.length*100)+'%';
+  elCount.textContent=(idx+1)+' / '+slides.length;
+  elChap.textContent=slides[idx].dataset.chapter||'';
+  btnPrev.disabled=idx===0;btnNext.disabled=idx===slides.length-1;
+  focusSlide();
+  /* The address bar, the `dsa.progress.*` bookmark, the O overview and the
+     spoken "slide 5 of 34" all hang off this one call. See shared/chrome.js. */
+  if (window.DSAChrome) window.DSAChrome.moved();
+}
+
+/* A slide change here is one display:none swapped for another: same
+   document, same URL, nothing for assistive tech to notice. Moving focus
+   onto the new slide's title is what makes it somewhere you arrived.
+
+   Not while the reader is on prev or next: clicking through a deck has to
+   leave focus on the button being clicked. */
+function focusSlide(){
+  var a = document.activeElement;
+  if (a === btnPrev || a === btnNext) return;
+  var t = slides[idx].querySelector('h1,h2,h3') || slides[idx];
+  t.setAttribute('tabindex', '-1');
+  try { t.focus({preventScroll:true}); } catch (e) { try { t.focus(); } catch (e2) {} }
+}
+btnPrev.addEventListener('click',function(){show(idx-1);});
+btnNext.addEventListener('click',function(){show(idx+1);});
+document.addEventListener('keydown',function(e){
+  var t=e.target.tagName; if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA') return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'){show(idx+1);e.preventDefault();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){show(idx-1);e.preventDefault();}
+  else if(e.key==='Home') show(0); else if(e.key==='End') show(slides.length-1);
+});
+(function(){var x0=null,y0=null,d=document.getElementById('deck');
+ d.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;y0=e.touches[0].clientY;},{passive:true});
+ d.addEventListener('touchend',function(e){if(x0===null)return;
+   var dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;
+   if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.8) show(idx+(dx<0?1:-1));x0=null;},{passive:true});})();
+
+/* ---------- highlighting ---------- */
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function highlight(src){
+  var re=/(#[^\n]*)|("""[\s\S]*?"""|'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*")|(@[\w.]+)|\b(def|class|return|if|elif|else|for|while|in|not|and|or|is|None|True|False|import|from|as|raise|try|except|finally|with|lambda|yield|pass|assert|del|global|nonlocal|async|await|self|cls|mcls)\b|(__\w+__)|\b(\d[\d_]*\.?\d*)\b/g;
+  var out='',last=0,m;
+  while((m=re.exec(src))!==null){
+    out+=esc(src.slice(last,m.index));
+    if(m[1]) out+='<span class="tok-c">'+esc(m[1])+'</span>';
+    else if(m[2]) out+='<span class="tok-s">'+esc(m[2])+'</span>';
+    else if(m[3]) out+='<span class="tok-d">'+esc(m[3])+'</span>';
+    else if(m[4]) out+='<span class="tok-k">'+esc(m[4])+'</span>';
+    else if(m[5]) out+='<span class="tok-d">'+esc(m[5])+'</span>';
+    else out+='<span class="tok-n">'+esc(m[6])+'</span>';
+    last=re.lastIndex;
+  }
+  return out+esc(src.slice(last));
+}
+Array.prototype.forEach.call(document.querySelectorAll('pre code'),function(el){el.innerHTML=highlight(el.textContent);});
+
+/* ==================================================================
+   the model
+   ================================================================== */
+
+/* A class is a name, a tuple of bases and a namespace -- which is all
+   the class statement ever hands to type(). */
+function PyClass(name, bases, dict){
+  this.name=name; this.bases=bases||[]; this.dict=dict||{};
+  this.mro=[this].concat(c3(this.bases).mro);
+}
+
+/* C3: repeatedly take the first head that appears in no other list's
+   tail, because being in a tail means something still has to come
+   before it. Throws when every head is blocked -- which is the one
+   thing a class statement can do that reading the bases will not
+   predict. */
+function c3(bases){
+  var seqs=bases.map(function(b){return b.mro.slice();});
+  if(bases.length) seqs.push(bases.slice());
+  var result=[],steps=[];
+  for(;;){
+    seqs=seqs.filter(function(s){return s.length;});
+    if(!seqs.length) return {mro:result,steps:steps};
+    var take=null,blocked=[];
+    for(var i=0;i<seqs.length;i++){
+      var head=seqs[i][0];
+      /* indexOf > 0 is the whole test: in a tail, not at a head. */
+      var inTail=seqs.some(function(s){return s.indexOf(head)>0;});
+      if(!inTail){take=head;break;}
+      if(blocked.indexOf(head)<0) blocked.push(head);
+    }
+    if(!take){
+      var err=new Error('Cannot create a consistent method resolution order (MRO) for bases '+
+        bases.map(function(b){return b.name;}).join(', '));
+      err.mroFailure=true; err.blocked=blocked;
+      err.remaining=seqs.map(function(s){return s.slice();});
+      /* The steps it did manage, so the stepper can walk up to the wall
+         rather than keeping its own second copy of this loop. */
+      err.steps=steps.slice(); err.partial=result.slice();
+      throw err;
+    }
+    steps.push({lists:seqs.map(function(s){return s.slice();}),take:take,blocked:blocked.slice()});
+    result.push(take);
+    seqs=seqs.map(function(s){return s.filter(function(x){return x!==take;});});
+  }
+}
+
+/* Enough kinds of namespace entry to make the lookup rule's branches
+   visible. `data` marks a descriptor defining __set__ or __delete__,
+   which is the only thing deciding whether the instance dict gets a
+   say at all. */
+function pyValue(v){return {kind:'value',repr:v};}
+function pyMethod(n){return {kind:'function',repr:'<function '+n+'>',descriptor:true,data:false};}
+function pyProperty(n){return {kind:'property',repr:'<property '+n+'>',descriptor:true,data:true};}
+
+/* The six steps from slide 9, in order, recording every probe. */
+function lookup(obj,name){
+  var steps=[],probes=0,cls=obj.cls,meta=null,metaOwner=null;
+
+  for(var i=0;i<cls.mro.length;i++){
+    var C=cls.mro[i]; probes++;
+    var hit=Object.prototype.hasOwnProperty.call(C.dict,name);
+    steps.push({kind:hit?'hit':'miss',cls:C,mroIndex:i,
+      text:(hit?'found in ':'not in ')+C.name+'.__dict__'});
+    if(hit){meta=C.dict[name];metaOwner=C;break;}
+  }
+
+  if(meta&&meta.descriptor&&meta.data){
+    steps.push({kind:'decide',text:metaOwner.name+'.'+name+' defines __set__ — a data descriptor, so it wins outright'});
+    return {value:meta.repr,via:'data descriptor on '+metaOwner.name,steps:steps,probes:probes,found:true};
+  }
+
+  probes++;
+  var own=Object.prototype.hasOwnProperty.call(obj.dict,name);
+  steps.push({kind:own?'hit':'miss',inst:true,
+    text:(own?'found in ':'not in ')+'the instance __dict__'});
+  if(own) return {value:obj.dict[name],via:'instance __dict__',steps:steps,probes:probes,found:true};
+
+  if(meta){
+    var nonData=meta.descriptor;
+    steps.push({kind:'decide',text:nonData
+      ? metaOwner.name+'.'+name+' is a non-data descriptor, so __get__ runs now'
+      : 'the plain class attribute on '+metaOwner.name+' is the answer'});
+    return {value:nonData&&meta.kind==='function'?'<bound method '+cls.name+'.'+name+'>':meta.repr,
+      via:(nonData?'non-data descriptor':'class attribute')+' on '+metaOwner.name,
+      steps:steps,probes:probes,found:true};
+  }
+
+  for(var j=0;j<cls.mro.length;j++){
+    if(Object.prototype.hasOwnProperty.call(cls.mro[j].dict,'__getattr__')){
+      steps.push({kind:'decide',text:'nothing found, so '+cls.mro[j].name+'.__getattr__ is called last'});
+      return {value:'<whatever __getattr__ returns>',via:'__getattr__',steps:steps,probes:probes,found:true};
+    }
+  }
+  steps.push({kind:'fail',text:"AttributeError: '"+cls.name+"' object has no attribute '"+name+"'"});
+  return {value:null,via:'AttributeError',steps:steps,probes:probes,found:false};
+}
+
+/* ==================================================================
+   drawing
+
+   Colours live in the CSS custom properties so the theme switch can
+   move them. These diagrams are SVG *strings*, not styled elements,
+   so nothing already on screen updates by itself: each render records
+   how to repeat itself and repaintAll() replays the lot once the
+   palette has changed.
+   ================================================================== */
+var C_INK,C_RULE,C_FAINT,C_DIM,C_ACCENT,C_SOFT,C_LINE,C_BAD,C_BADSOFT,C_OK,C_OKSOFT,C_NODE,C_BOX,C_WASH,C_ON;
+
+function readTokens(){
+  var cs=getComputedStyle(document.documentElement);
+  function t(n,fb){var v=(cs.getPropertyValue(n)||'').trim();return v||fb;}
+  C_INK    = t('--ink','#22303C');
+  C_RULE   = t('--svg-rule','#9FB3C0');
+  C_FAINT  = t('--faint','#8CA0AE');
+  C_DIM    = t('--dim','#5D7285');
+  C_ACCENT = t('--accent','#1A5E85');
+  C_SOFT   = t('--accent-soft','#E1EEF2');
+  C_LINE   = t('--accent-line','#9FC4D8');
+  C_BAD    = t('--bad','#A4303F');
+  C_BADSOFT= t('--bad-soft','#F7EAEC');
+  C_OK     = t('--ok','#3D6B2B');
+  C_OKSOFT = t('--ok-soft','#EDF2E4');
+  C_NODE   = t('--svg-node','#FFFFFF');
+  C_BOX    = t('--box-bg','#FAFCFD');
+  C_WASH   = t('--wash','#DCE5EA');
+  C_ON     = t('--on-fill','#FFFFFF');
+}
+readTokens();
+
+var _painters=[];
+function _paints(el,fn){
+  for(var i=0;i<_painters.length;i++){ if(_painters[i][0]===el){_painters[i][1]=fn;return;} }
+  _painters.push([el,fn]);
+}
+function repaintAll(){
+  readTokens();
+  for(var i=0;i<_painters.length;i++) _painters[i][1]();
+}
+
+function sizeSVG(svg,W){
+  var d=W<620?Math.min(W*1.5,720):W;
+  var narrow=(window.innerWidth||1024)<760;
+  svg.style.width=d+'px';
+  svg.style.maxWidth=(narrow||d>1100)?'none':'100%';
+}
+
+var MONO="font-family:'JetBrains Mono',ui-monospace,monospace";
+
+function rect(x,y,w,h,fill,stroke,extra){
+  return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="4" fill="'+fill+
+         '" stroke="'+stroke+'" stroke-width="1.2"'+(extra||'')+'/>';
+}
+function txt(x,y,s,fill,size,anchor,weight){
+  return '<text x="'+x+'" y="'+y+'" fill="'+fill+'" style="'+MONO+';font-size:'+(size||11)+'px'+
+         (weight?';font-weight:'+weight:'')+'" text-anchor="'+(anchor||'start')+'">'+esc(s)+'</text>';
+}
+/* Every diagram gets its own marker id. url(#x) resolves against the whole
+   document and takes the first match, and the first one here sits inside a
+   display:none slide -- which is how a deck full of arrows ended up with no
+   arrowheads anywhere. */
+var _arrowId='pyArrow0';
+function arrow(x1,y1,x2,y2,colour,dashed){
+  return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+colour+
+         '" stroke-width="1.3" marker-end="url(#'+_arrowId+')"'+(dashed?' stroke-dasharray="4 3"':'')+'/>';
+}
+function defs(svg){
+  _arrowId='pyArrow-'+((svg&&svg.id)||'x');
+  return '<defs><marker id="'+_arrowId+'" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">'+
+         '<path d="M0 0 L10 5 L0 10 z" fill="'+C_RULE+'"/></marker></defs>';
+}
+
+/* One namespace, drawn as a titled box of key/value rows. `hit` paints
+   the row the lookup stopped on. */
+function nsBox(x,y,w,title,rows,state,hitKey){
+  var H=22+Math.max(rows.length,1)*15+6;
+  var fill=state==='hit'?C_SOFT:(state==='bad'?C_BADSOFT:C_BOX);
+  var stroke=state==='hit'?C_ACCENT:(state==='bad'?C_BAD:C_RULE);
+  var s=rect(x,y,w,H,fill,stroke,state==='hit'?' stroke-width="2"':'');
+  s+='<line x1="'+x+'" y1="'+(y+21)+'" x2="'+(x+w)+'" y2="'+(y+21)+'" stroke="'+stroke+'" stroke-width="1"/>';
+  s+=txt(x+8,y+15,title,state==='hit'?C_ACCENT:C_INK,11.5,'start',600);
+  if(!rows.length) s+=txt(x+8,y+36,'(empty)',C_FAINT,10.5);
+  rows.forEach(function(r,i){
+    var yy=y+36+i*15, on=hitKey&&r[0]===hitKey;
+    if(on) s+='<rect x="'+(x+3)+'" y="'+(yy-10)+'" width="'+(w-6)+'" height="13" rx="2" fill="'+C_LINE+'" opacity="0.45"/>';
+    s+=txt(x+8,yy,r[0],on?C_ACCENT:C_INK,10.5,'start',on?600:null);
+    if(r[1]!=null) s+=txt(x+w-8,yy,r[1],on?C_ACCENT:C_DIM,10.5,'end');
+  });
+  return {svg:s,h:H};
+}
+
+/* The instance, its class, and the chain the lookup walks. Used by the
+   hero and by the tracer, which is the point: they are the same picture
+   of the same rule. */
+function renderModel(svg,spec,hi){
+  if(!svg) return;
+  _paints(svg,function(){renderModel(svg,spec,hi);});
+  hi=hi||{};
+  /* W is derived, not guessed: three 175-wide boxes past the instance
+     column came to 773 and the old 760 clipped `object` in half. */
+  var IW=170,CW=175,GAP=16,x0=0,cx=IW+46;
+  var W=cx+spec.classes.length*(CW+GAP)-GAP+10;
+  var parts=defs(svg),maxH=0;
+
+  var inst=nsBox(x0,58,IW,spec.instance.name+'.__dict__',spec.instance.rows,
+    hi.inst?'hit':null,hi.inst?hi.key:null);
+  parts+=inst.svg;
+  maxH=Math.max(maxH,58+inst.h);
+
+  spec.classes.forEach(function(C,i){
+    var x=cx+i*(CW+GAP);
+    var state=hi.cls===i?'hit':(hi.failed&&i===spec.classes.length-1?null:null);
+    var b=nsBox(x,18,CW,C.name+'.__dict__',C.rows,state,hi.cls===i?hi.key:null);
+    parts+=b.svg;
+    maxH=Math.max(maxH,18+b.h);
+    if(i<spec.classes.length-1) parts+=arrow(x+CW+2,40,x+CW+GAP-4,40,C_RULE);
+  });
+
+  /* The dashed hop from the instance to its type, labelled above the
+     arrow rather than beside it: beside it lands on the instance box. */
+  parts+=arrow(x0+IW+4,70,cx-6,46,C_RULE,true);
+  parts+=txt(x0+2,50,'type(' + spec.instance.name + ') \u2197',C_FAINT,10);
+  parts+=txt(cx,12,'__mro__',C_FAINT,10);
+
+  var H=maxH+16;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML=parts;
+  sizeSVG(svg,W);
+}
+</script>
+
+<script>
+"use strict";
+/* ---------- the remaining renderers ---------- */
+
+/* An inheritance graph. Positions are given per hierarchy rather than
+   solved: there are four of them, they are small, and a layout algorithm
+   would be more code than the pictures it draws. */
+function renderGraph(svg,spec,hi){
+  if(!svg) return;
+  _paints(svg,function(){renderGraph(svg,spec,hi);});
+  hi=hi||{};
+  var BW=74,BH=27,W=spec.w||420,H=spec.h||230,parts=defs(svg);
+
+  spec.edges.forEach(function(e){
+    var a=spec.nodes[e[0]],b=spec.nodes[e[1]];
+    /* child top edge to parent bottom edge */
+    parts+=arrow(a.x+BW/2,a.y,b.x+BW/2,b.y+BH+3,C_RULE);
+  });
+  spec.nodes.forEach(function(n,i){
+    var taken=hi.taken&&hi.taken.indexOf(n.name)>=0;
+    var blocked=hi.blocked&&hi.blocked.indexOf(n.name)>=0;
+    var fill=taken?C_SOFT:(blocked?C_BADSOFT:C_NODE);
+    var stroke=taken?C_ACCENT:(blocked?C_BAD:C_RULE);
+    parts+=rect(n.x,n.y,BW,BH,fill,stroke,(taken||blocked)?' stroke-width="2"':'');
+    parts+=txt(n.x+BW/2,n.y+18,n.name,taken?C_ACCENT:(blocked?C_BAD:C_INK),12,'middle',600);
+    if(hi.order&&hi.order.indexOf(n.name)>=0){
+      var k=hi.order.indexOf(n.name)+1;
+      parts+='<circle cx="'+(n.x+BW-2)+'" cy="'+(n.y+2)+'" r="8" fill="'+C_ACCENT+'"/>';
+      parts+=txt(n.x+BW-2,n.y+5.5,String(k),C_ON,9.5,'middle',600);
+    }
+  });
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML=parts;
+  sizeSVG(svg,W);
+}
+
+/* A vertical pipeline, one row per stage. */
+function renderStages(svg,stages,cur){
+  if(!svg) return;
+  _paints(svg,function(){renderStages(svg,stages,cur);});
+  var W=430,RH=30,GAP=7,parts=defs(svg);
+  stages.forEach(function(s,i){
+    var y=i*(RH+GAP)+4,done=i<cur,now=i===cur;
+    var fill=now?C_SOFT:(done?C_OKSOFT:C_BOX);
+    var stroke=now?C_ACCENT:(done?C_OK:C_RULE);
+    parts+=rect(30,y,W-34,RH,fill,stroke,now?' stroke-width="2"':'');
+    parts+=txt(42,y+19,s.label,now?C_ACCENT:C_INK,11.5,'start',now?600:null);
+    if(s.note) parts+=txt(W-10,y+19,s.note,now?C_ACCENT:C_FAINT,10,'end');
+    parts+='<circle cx="14" cy="'+(y+RH/2)+'" r="9" fill="'+(done?C_OK:(now?C_ACCENT:C_WASH))+'"/>';
+    parts+=txt(14,y+RH/2+3.5,done?'✓':String(i+1),(done||now)?C_ON:C_DIM,9.5,'middle',600);
+    if(i<stages.length-1) parts+='<line x1="14" y1="'+(y+RH)+'" x2="14" y2="'+(y+RH+GAP)+'" stroke="'+C_RULE+'" stroke-width="1.2"/>';
+  });
+  var H=stages.length*(RH+GAP)+4;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML=parts;
+  sizeSVG(svg,W);
+}
+
+/* Horizontal bars, for counts this page actually computed. */
+function renderBars(svg,rows,unit){
+  if(!svg) return;
+  _paints(svg,function(){renderBars(svg,rows,unit);});
+  /* L is the label gutter and the 95 is the room the value needs on the
+     right: at the old 96 and 56, "depth 20 (MRO 21)" ran off the left edge
+     and "22 probes" off the right. */
+  var W=520,RH=26,GAP=6,L=140,maxV=Math.max.apply(null,rows.map(function(r){return r.value;}))||1;
+  var parts=defs(svg);
+  rows.forEach(function(r,i){
+    var y=i*(RH+GAP)+4;
+    var w=Math.max(2,(W-L-95)*(r.value/maxV));
+    parts+=txt(L-10,y+17,r.label,C_DIM,11,'end');
+    parts+=rect(L,y+3,w,RH-6,r.hot?C_BADSOFT:C_SOFT,r.hot?C_BAD:C_ACCENT);
+    parts+=txt(L+w+8,y+17,r.value+' '+(unit||''),r.hot?C_BAD:C_ACCENT,11,'start',600);
+  });
+  var H=rows.length*(RH+GAP)+8;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML=parts;
+  sizeSVG(svg,W);
+}
+
+/* ==================================================================
+   slide 1 -- the hero
+   ================================================================== */
+var HERO={
+  instance:{name:'rex',rows:[['name',"'Rex'"],['age','3']]},
+  classes:[
+    {name:'Dog',rows:[['sound',"'woof'"],['name','<property>'],['speak','<function>']]},
+    {name:'Animal',rows:[['kingdom',"'animalia'"],['speak','<function>']]},
+    {name:'object',rows:[['__repr__','<slot wrapper>']]}
+  ]
+};
+(function(){
+  var svg=document.getElementById('heroModel'); if(!svg) return;
+  renderModel(svg,HERO,{cls:0,key:'name'});
+})();
+
+/* ==================================================================
+   slide 6 -- two dictionaries
+   ================================================================== */
+(function(){
+  var instEl=document.getElementById('nsInst'); if(!instEl) return;
+  var clsEl=document.getElementById('nsCls'),ansEl=document.getElementById('nsAns'),
+      sayEl=document.getElementById('nsSay'),
+      instBox=document.getElementById('nsInstBox'),clsBox=document.getElementById('nsClsBox');
+
+  var inst=null,clsSpecies="'canis'";
+
+  function rows(el,dict,order){
+    var keys=order||Object.keys(dict||{});
+    if(!dict){el.innerHTML='<div class="empty">no instance yet</div>';return;}
+    if(!keys.length){el.innerHTML='<div class="empty">{}</div>';return;}
+    el.innerHTML=keys.map(function(k){
+      return '<div class="row"><b>'+esc(k)+'</b><span>'+esc(dict[k])+'</span></div>';
+    }).join('');
+  }
+
+  function draw(say){
+    var clsDict={species:clsSpecies,__init__:'<function>'};
+    rows(instEl,inst);
+    rows(clsEl,clsDict,['species','__init__']);
+
+    if(inst){
+      /* The same lookup the rest of the deck uses -- the answer below is
+         computed, not written down. */
+      var Dog=new PyClass('Dog',[new PyClass('object',[],{})],
+        {species:pyValue(clsSpecies),__init__:pyMethod('__init__')});
+      var r=lookup({cls:Dog,dict:inst},'species');
+      ansEl.innerHTML='rex.species &rarr; <b>'+esc(r.value)+'</b> &nbsp;<span style="color:var(--dim)">'+
+        esc('(' + r.via + ')')+'</span>';
+      instBox.classList.toggle('is-hit',r.via==='instance __dict__');
+      clsBox.classList.toggle('is-hit',r.via!=='instance __dict__');
+    }else{
+      ansEl.innerHTML='rex.species &rarr; <b>NameError</b> <span style="color:var(--dim)">(no instance yet)</span>';
+      instBox.classList.remove('is-hit'); clsBox.classList.remove('is-hit');
+    }
+    if(say) sayEl.textContent=say;
+  }
+
+  function need(){ if(!inst){ draw('Create rex first.'); return false; } return true; }
+
+  document.getElementById('nsNew').addEventListener('click',function(){
+    inst={name:"'Rex'"};
+    draw('__init__ ran and assigned self.name. One key, in the instance.');
+  });
+  document.getElementById('nsSet').addEventListener('click',function(){
+    if(!need()) return;
+    inst.name="'Max'";
+    draw('An existing instance key was replaced. The class never saw it.');
+  });
+  document.getElementById('nsShadow').addEventListener('click',function(){
+    if(!need()) return;
+    inst.species="'wolf'";
+    draw('A NEW instance key now hides the class attribute. Dog.species is untouched.');
+  });
+  document.getElementById('nsDel').addEventListener('click',function(){
+    if(!need()) return;
+    if(!('species' in inst)){ draw("AttributeError: species — there is nothing to delete on the instance."); return; }
+    delete inst.species;
+    draw('The shadow is gone, so the class attribute is visible again. It was never overwritten.');
+  });
+  document.getElementById('nsClass').addEventListener('click',function(){
+    clsSpecies=clsSpecies==="'canis'"?"'lupus'":"'canis'";
+    draw('Writing to the class changes it for every instance that has no key of its own.');
+  });
+  document.getElementById('nsReset').addEventListener('click',function(){
+    inst=null; clsSpecies="'canis'";
+    draw('A fresh interpreter. Nothing has been created yet.');
+  });
+  draw();
+})();
+
+/* ==================================================================
+   slide 9 -- the lookup tracer
+   ================================================================== */
+(function(){
+  var svg=document.getElementById('lkSvg'); if(!svg) return;
+  var traceEl=document.getElementById('lkTrace'),ansEl=document.getElementById('lkAns');
+
+  var objectC=new PyClass('object',[],{__repr__:pyMethod('__repr__')});
+  var Animal=new PyClass('Animal',[objectC],{kingdom:pyValue("'animalia'"),speak:pyMethod('speak')});
+  var Dog=new PyClass('Dog',[Animal],{
+    sound:pyValue("'woof'"),
+    name:pyProperty('name'),
+    speak:pyMethod('speak'),
+    __getattr__:pyMethod('__getattr__')
+  });
+  var rex={cls:Dog,dict:{name:"'Rex'",age:'3',sound:"'yip'"}};
+
+  var SPEC={
+    instance:{name:'rex',rows:[['name',"'Rex'"],['age','3'],['sound',"'yip'"]]},
+    classes:[
+      {name:'Dog',rows:[['sound',"'woof'"],['name','<property>'],['speak','<function>'],['__getattr__','<function>']]},
+      {name:'Animal',rows:[['kingdom',"'animalia'"],['speak','<function>']]},
+      {name:'object',rows:[['__repr__','<slot wrapper>']]}
+    ]
+  };
+
+  function run(name){
+    var r=lookup(rex,name);
+    var hi={key:name,cls:-1,inst:false};
+    r.steps.forEach(function(s){
+      if(s.kind==='hit'&&s.inst) hi.inst=true;
+      else if(s.kind==='hit'&&s.cls) hi.cls=s.mroIndex;
+    });
+    /* A data descriptor answers from the class even though the instance
+       also holds the name -- so the picture must not light the instance. */
+    if(r.via.indexOf('data descriptor')===0) hi.inst=false;
+    renderModel(svg,SPEC,hi);
+
+    traceEl.innerHTML=r.steps.map(function(s,i){
+      var cls=s.kind==='hit'?'hit':(s.kind==='decide'?'decide':(s.kind==='fail'?'fail':'miss'));
+      return '<li class="'+cls+'"><span class="n">'+(i+1)+'</span><span>'+esc(s.text)+'</span></li>';
+    }).join('');
+
+    ansEl.innerHTML='rex.'+esc(name)+' &rarr; <b>'+esc(r.found?r.value:'AttributeError')+'</b>'+
+      '<br><span style="color:var(--dim)">via '+esc(r.via)+' &middot; '+r.probes+' namespaces probed</span>';
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-lk]'),function(b){
+      b.setAttribute('aria-pressed',String(b.dataset.lk===name));
+    });
+    if(window.DSAChrome) DSAChrome.announce('rex.'+name+' resolved via '+r.via);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-lk]'),function(b){
+    b.addEventListener('click',function(){run(b.dataset.lk);});
+  });
+  run('name');
+})();
+</script>
+
+<script>
+"use strict";
+/* ==================================================================
+   slide 17 -- C3, one merge step at a time
+   ================================================================== */
+(function(){
+  var svg=document.getElementById('mroSvg'); if(!svg) return;
+  var pick=document.getElementById('mroPick'),listsEl=document.getElementById('mroLists'),
+      outEl=document.getElementById('mroOut'),sayEl=document.getElementById('mroSay');
+
+  /* Each hierarchy: the classes in definition order, and where to draw
+     them. The last one named is the one whose MRO is being computed. */
+  var HIER={
+    diamond:{
+      w:420,h:200,
+      defs:[['A',[]],['B',['A']],['C',['A']],['D',['B','C']]],
+      pos:{A:[173,6],B:[56,72],C:[290,72],D:[173,138]}
+    },
+    classic:{
+      w:430,h:220,
+      defs:[['X',[]],['Y',[]],['Z',[]],['K1',['X','Y']],['K2',['Y','Z']],['K3',['X','Z']],['M',['K1','K2','K3']]],
+      pos:{X:[16,6],Y:[173,6],Z:[330,6],K1:[16,80],K2:[173,80],K3:[330,80],M:[173,154]}
+    },
+    mixin:{
+      w:420,h:200,
+      defs:[['Base',[]],['Loud',['Base']],['Timed',['Base']],['Job',['Loud','Timed']]],
+      pos:{Base:[173,6],Loud:[56,72],Timed:[290,72],Job:[173,138]}
+    },
+    impossible:{
+      w:420,h:200,
+      defs:[['A',[]],['B',['A']],['C',['A','B']]],
+      pos:{A:[210,6],B:[210,72],C:[70,138]}
+    }
+  };
+
+  var state=null;
+
+  function build(key){
+    var h=HIER[key];
+    var objectC=new PyClass('object',[],{});
+    var made={object:objectC},nodes=[],edges=[],names=[];
+
+    h.defs.forEach(function(d){
+      names.push(d[0]);
+      nodes.push({name:d[0],x:h.pos[d[0]][0],y:h.pos[d[0]][1]});
+    });
+    h.defs.forEach(function(d,i){
+      d[1].forEach(function(b){ edges.push([i,names.indexOf(b)]); });
+    });
+
+    var target=h.defs[h.defs.length-1];
+    var error=null,steps=[],mro=null;
+    for(var i=0;i<h.defs.length;i++){
+      var d=h.defs[i];
+      var bases=d[1].length?d[1].map(function(b){return made[b];}):[objectC];
+      try{
+        made[d[0]]=new PyClass(d[0],bases,{});
+        if(d[0]===target[0]){
+          var r=c3(bases);
+          steps=r.steps; mro=[d[0]].concat(r.mro.map(function(c){return c.name;}));
+        }
+      }catch(e){
+        error=e; steps=e.steps||[]; break;
+      }
+    }
+
+    state={key:key,spec:{w:h.w,h:h.h,nodes:nodes,edges:edges},target:target[0],
+           bases:target[1],steps:steps,mro:mro,error:error,at:0};
+    draw();
+  }
+
+  function fmt(list){ return list.map(function(c){return c.name;}).join(', '); }
+
+  function draw(){
+    var s=state,taken=[],blocked=[];
+    for(var i=0;i<s.at;i++) taken.push(s.steps[i].take.name);
+
+    var cur=s.steps[s.at]||null;
+    var lists=cur?cur.lists:(s.at?[]:null);
+
+    if(cur) blocked=cur.blocked.map(function(c){return c.name;});
+    var atWall=!cur&&s.error;
+    if(atWall) blocked=s.error.blocked.map(function(c){return c.name;});
+
+    renderGraph(svg,s.spec,{order:taken,blocked:blocked});
+
+    var rows=(atWall?s.error.remaining:(lists||[]));
+    if(!rows.length&&!atWall){
+      listsEl.innerHTML='<div class="empty">'+(s.at?'nothing left to merge':'press step')+'</div>';
+    }else{
+      listsEl.innerHTML=rows.map(function(l){
+        var head=l[0]?l[0].name:'';
+        var isBlocked=blocked.indexOf(head)>=0;
+        return '<div class="row"><b style="color:'+(isBlocked?'var(--bad)':'var(--accent)')+'">'+
+          esc(head)+'</b><span>'+esc(l.slice(1).map(function(c){return c.name;}).join(', ')||'—')+'</span></div>';
+      }).join('');
+    }
+
+    var soFar=taken.length?s.target+', '+taken.join(', '):s.target;
+    if(atWall){
+      outEl.innerHTML='<b style="color:var(--bad)">TypeError</b><br>'+
+        '<span style="color:var(--dim)">'+esc(s.error.message)+'</span>';
+      sayEl.textContent='Every remaining head is in some other list’s tail, so no order exists. '+
+        'The class statement itself raises — nothing is created.';
+    }else if(!cur&&s.mro){
+      outEl.innerHTML='__mro__ = <b>'+esc(s.mro.join(', '))+'</b>';
+      sayEl.textContent='Done. '+s.target+'’s MRO is the class itself, then the merge above.';
+    }else{
+      outEl.innerHTML='so far: <b>'+esc(soFar)+'</b>';
+      if(cur){
+        sayEl.textContent=(blocked.length
+          ? 'Skipping '+blocked.join(', ')+' — in another list’s tail, so something must come first. '
+          : '')+'Next to take: '+cur.take.name+'.';
+      }else{
+        sayEl.textContent='Merging the MROs of '+s.bases.join(' and ')+', plus the list of bases itself.';
+      }
+    }
+  }
+
+  function step(){
+    if(state.at<state.steps.length){state.at++;draw();}
+    else {draw();}
+  }
+
+  document.getElementById('mroStep').addEventListener('click',step);
+  document.getElementById('mroAll').addEventListener('click',function(){
+    state.at=state.steps.length;draw();
+  });
+  document.getElementById('mroReset').addEventListener('click',function(){state.at=0;draw();});
+  pick.addEventListener('change',function(){build(pick.value);});
+  build('diamond');
+})();
+
+/* ==================================================================
+   slide 21 -- the dunder bench
+
+   Every result below is dispatched through the same table CPython
+   consults, and every failure is the message CPython prints -- both
+   checked against 3.14.6 rather than remembered.
+   ================================================================== */
+(function(){
+  var grid=document.getElementById('dunGrid'); if(!grid) return;
+  var exprEl=document.getElementById('dunExpr'),sayEl=document.getElementById('dunSay');
+
+  var NAMES=['__repr__','__str__','__eq__','__hash__','__lt__','__add__','__mul__',
+             '__neg__','__len__','__getitem__','__iter__','__call__','__ctx__','__bool__'];
+  var LABEL={'__ctx__':'__enter__ / __exit__'};
+  var ON={};
+
+  function has(k){return !!ON[k];}
+  function ok(e,r,note){return {e:e,r:r,note:note};}
+  function err(e,m){return {e:e,r:'TypeError: '+m,bad:true};}
+
+  function evaluate(){
+    var out=[];
+    out.push(has('__repr__')
+      ? ok('repr(v)','Vector(1, 2)')
+      : ok('repr(v)','<__main__.Vector object at 0x1091f9fd0>'));
+    out.push(has('__str__')
+      ? ok('str(v)','(1, 2)')
+      : ok('str(v)',has('__repr__')?'Vector(1, 2)':'<__main__.Vector object at 0x1091f9fd0>','falls back to __repr__'));
+    out.push(has('__add__') ? ok('v + w','Vector(4, 6)')
+      : err('v + w',"unsupported operand type(s) for +: 'Vector' and 'Vector'"));
+    out.push(has('__mul__') ? ok('v * 3','Vector(3, 6)')
+      : err('v * 3',"unsupported operand type(s) for *: 'Vector' and 'int'"));
+    out.push(has('__neg__') ? ok('-v','Vector(-1, -2)')
+      : err('-v',"bad operand type for unary -: 'Vector'"));
+    out.push(has('__len__') ? ok('len(v)','2')
+      : err('len(v)',"object of type 'Vector' has no len()"));
+    out.push(has('__getitem__') ? ok('v[0]','1')
+      : err('v[0]',"'Vector' object is not subscriptable"));
+    out.push(has('__iter__') ? ok('list(v)','[1, 2]')
+      : has('__getitem__') ? ok('list(v)','[1, 2]','the legacy protocol: __getitem__ from 0 until IndexError')
+      : err('list(v)',"'Vector' object is not iterable"));
+    out.push(has('__call__') ? ok('v()',"'called'")
+      : err('v()',"'Vector' object is not callable"));
+    out.push(has('__ctx__') ? ok('with v: ...','entered, then exited')
+      : err('with v: ...',"'Vector' object does not support the context manager protocol (missed __exit__ method)"));
+    out.push(has('__eq__') ? ok('v == Vector(1, 2)','True')
+      : ok('v == Vector(1, 2)','False','identity, not value'));
+    out.push(has('__eq__')&&!has('__hash__')
+      ? err('hash(v)',"unhashable type: 'Vector'")
+      : ok('hash(v)','8746501043321',has('__eq__')?'__hash__ defined explicitly':'the default: by identity'));
+    out.push(has('__lt__') ? ok('sorted([w, v])','[Vector(1, 2), Vector(3, 4)]')
+      : err('sorted([w, v])',"'<' not supported between instances of 'Vector' and 'Vector'"));
+    out.push(has('__bool__') ? ok('bool(v)','False','__bool__ wins')
+      : has('__len__') ? ok('bool(v)','True','no __bool__, so it asks __len__ != 0')
+      : ok('bool(v)','True','the default: everything is true'));
+    return out;
+  }
+
+  function draw(){
+    exprEl.innerHTML=evaluate().map(function(r){
+      return '<li><span class="e">'+esc(r.e)+'</span><span class="r'+(r.bad?' err':'')+'">'+
+        esc(r.r)+'</span>'+(r.note?'<span style="color:var(--faint);font-size:11px">'+esc(r.note)+'</span>':'')+'</li>';
+    }).join('');
+    var n=NAMES.filter(has).length;
+    var broken=evaluate().filter(function(r){return r.bad;}).length;
+    sayEl.innerHTML='<b>'+n+'</b> of '+NAMES.length+' defined &middot; <b>'+broken+
+      '</b> of the 14 expressions still raise';
+  }
+
+  grid.innerHTML=NAMES.map(function(n){
+    return '<button type="button" data-d="'+n+'" aria-pressed="false">'+esc(LABEL[n]||n)+'</button>';
+  }).join('');
+  Array.prototype.forEach.call(grid.querySelectorAll('button'),function(b){
+    b.addEventListener('click',function(){
+      var k=b.dataset.d;
+      ON[k]=!ON[k];
+      b.setAttribute('aria-pressed',String(!!ON[k]));
+      draw();
+    });
+  });
+  draw();
+})();
+
+/* ==================================================================
+   slide 30 -- what a class statement really does
+   ================================================================== */
+(function(){
+  var svg=document.getElementById('mcSvg'); if(!svg) return;
+  var traceEl=document.getElementById('mcTrace');
+
+  var STAGES=[
+    {label:'run the class body',note:'a fresh namespace',
+     text:'The body executes top to bottom, like any other block of code.'},
+    {label:'collect the namespace',note:"{'built_by': …}",
+     text:"What the body left behind is an ordinary dict: names, functions, descriptors."},
+    {label:'choose the metaclass',note:'most derived',
+     text:'From the metaclass= argument, or the most derived type() of the bases. Usually: type.'},
+    {label:'call Meta(name, bases, ns)',note:'__new__, then __init__',
+     text:'This is where a metaclass gets to rewrite the namespace, or refuse to build the class at all.'},
+    {label:'__set_name__ on each entry',note:'definition order',
+     text:'Every value in the namespace that defines __set_name__ is told its owner and its name.'},
+    {label:'__init_subclass__ on the base',note:'implicit classmethod',
+     text:'The nearest base is told that a subclass now exists — registries and contract checks run here.'},
+    {label:'bind the name',note:'Thing = <class Thing>',
+     text:'Only now does the name appear in the enclosing scope. Everything above happened first.'}
+  ];
+
+  var at=0;
+  function draw(){
+    renderStages(svg,STAGES,at);
+    traceEl.innerHTML=STAGES.slice(0,at+1).map(function(s,i){
+      return '<li class="'+(i===at?'decide':'miss')+'"><span class="n">'+(i+1)+'</span><span>'+
+        esc(s.text)+'</span></li>';
+    }).join('');
+  }
+  document.getElementById('mcStep').addEventListener('click',function(){
+    at=Math.min(STAGES.length-1,at+1);draw();
+  });
+  document.getElementById('mcAll').addEventListener('click',function(){at=STAGES.length-1;draw();});
+  document.getElementById('mcReset').addEventListener('click',function(){at=0;draw();});
+  draw();
+})();
+
+/* ==================================================================
+   slide 31 -- probes per lookup
+
+   A structural measurement, and one this page can honestly make: it is
+   running the same six steps CPython runs. What it cannot measure is
+   time in an interpreter that is not here, which is why the wall-clock
+   figures on that slide are printed output from CPython instead.
+   ================================================================== */
+(function(){
+  var svg=document.getElementById('msSvg'); if(!svg) return;
+  var sayEl=document.getElementById('msSay'),missEl=document.getElementById('msMiss');
+
+  /* Rooted at object, because the timeit block beside this one reports
+     "depth 0 (MRO len 2)" and a page that says 1 is arguing with it. */
+  function chain(depth){
+    var objectC=new PyClass('object',[],{});
+    var c=new PyClass('C0',[objectC],{attr:pyValue('0')});
+    for(var i=1;i<=depth;i++) c=new PyClass('C'+i,[c],{});
+    return c;
+  }
+
+  function run(){
+    var miss=missEl.checked;
+    var rows=[0,1,2,5,10,20].map(function(d){
+      var C=chain(d);
+      var obj={cls:C,dict:miss?{own:'1'}:{}};
+      var r=lookup(obj,miss?'own':'attr');
+      return {label:'depth '+d+' (MRO '+C.mro.length+')',value:r.probes,hot:miss&&d===20};
+    });
+    renderBars(svg,rows,'probes');
+    sayEl.innerHTML=miss
+      ? 'An attribute held by the <b>instance</b>: the whole MRO is walked and missed first, so the cost grows with depth.'
+      : 'An attribute found on the <b>first class</b>: one probe into the MRO, then one into the instance — flat, whatever the depth.';
+  }
+
+  document.getElementById('msRun').addEventListener('click',run);
+  missEl.addEventListener('change',run);
+  run();
+})();
+
+/* ---------- boot ---------- */
+(function(){var h=parseInt((location.hash||'').replace('#',''),10);show(isNaN(h)?0:h-1);})();
+
+/* ==================================================================
+   The theme lives in shared/chrome.js: one toggle, one T key and one
+   localStorage entry for the whole app. All this deck has to care about
+   is that its diagrams are SVG built from custom-property values, so
+   they are stale the moment the palette moves. Draw again.
+   ================================================================== */
+document.addEventListener('dsa:theme', repaintAll);
+
+/* The overview behind O, the #n in the address bar, and the bookmark the
+   hub reads for its Continue card. shared/chrome.js does all three from
+   this; the deck only has to describe itself. */
+var trackItems = null;
+window.DSA_TRACK = {
+  unit: 'slide',
+  title: 'Jump to a slide',
+  items: function(){
+    /* The slides never change, so build the list once. */
+    if (!trackItems) trackItems = slides.map(function(s){
+      var h = s.querySelector('h1, h2');
+      return {
+        group: s.dataset.chapter || '',
+        name: h ? h.textContent.replace(/\s+/g, ' ').trim() : ''
+      };
+    });
+    return trackItems;
+  },
+  current: function(){ return idx; },
+  go: function(i){ show(i); }
+};
+
+/* Listed in the ? overlay that shared/chrome.js builds. */
+window.DSA_KEYS = [
+  ['← →', 'Previous slide / next slide'],
+  ['PgUp PgDn', 'Previous slide / next slide'],
+  ['Home End', 'First slide / last slide']
+];
+</script>
+</body>
+</html>

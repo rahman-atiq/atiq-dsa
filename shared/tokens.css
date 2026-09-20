@@ -55,6 +55,14 @@
 [data-topic="graphs"]         { --topic-h:225; --topic-l:50%;   --topic-l-dark:72.8%; }
 [data-topic="memory"]         { --topic-h:280; --topic-l:48.1%; --topic-l-dark:73.1%; }
 
+/* The Python track. Both the hub page and the topic sit on Python's own
+   blue (#3776AB is hsl(207 51% 44%)) at the lightness the family uses for
+   that hue. The track card on the DSA hub does not read this -- it carries
+   the blue-and-gold gradient instead, so the two never sit side by side as
+   near-identical blues. */
+[data-topic="python"]         { --topic-h:207; --topic-l:37%;   --topic-l-dark:62.7%; }
+[data-topic="python-oop"]     { --topic-h:207; --topic-l:37%;   --topic-l-dark:62.7%; }
+
 /* ---------- typography and metrics (theme-independent) ---------- */
 :root{
   --serif:'Spectral',Georgia,'Times New Roman',serif;

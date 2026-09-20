@@ -1,12 +1,15 @@
 /* ============================================================
    scripts/check.mjs — the gate in front of a deploy.
 
-   Seventeen hand-written single-file pages and four lists that
-   describe them (the catalog, the precache set, the font files, the
-   chrome contract each page has to honour). Nothing here type-checks
-   anything; it only asks whether those lists still agree with the
-   file tree and with each other, because every defect this repo has
-   actually shipped was a copy of a list going quietly out of date.
+   Hand-written single-file pages and four lists that describe them
+   (the catalog, the precache set, the font files, the chrome contract
+   each page has to honour). Nothing here type-checks anything; it only
+   asks whether those lists still agree with the file tree and with each
+   other, because every defect this repo has actually shipped was a copy
+   of a list going quietly out of date.
+
+   Pages come in two shapes: a hub, which lists a track's topics, and a
+   module, which belongs to one. Both are checked from the same catalog.
 
    Node, no dependencies, no build step -- same rule as the app.
 
@@ -71,7 +74,33 @@ const pages = htmlFiles.map((file) => {
 check('catalog matches the file tree', () => {
   const listed = new Set();
 
+  /* A track's hub is a page like any other: it has to be on disk, it has
+     to be precached, and nothing else may claim the same file. */
+  const trackIds = new Set();
+  const hubs = new Map();
+  let roots = 0;
+
+  for (const tr of catalog.tracks) {
+    if (trackIds.has(tr.id)) fail('shared/catalog.js', `two tracks share the id "${tr.id}"`);
+    trackIds.add(tr.id);
+    if (tr.root) roots++;
+    if (!tr.hub) { fail('shared/catalog.js', `track "${tr.id}" names no hub page`); continue; }
+    if (hubs.has(tr.hub)) {
+      fail('shared/catalog.js', `"${tr.id}" and "${hubs.get(tr.hub)}" both claim ${tr.hub}`);
+    }
+    hubs.set(tr.hub, tr.id);
+    listed.add(tr.hub);
+    if (!has(tr.hub)) fail('shared/catalog.js', `track "${tr.id}" points at ${tr.hub}, which does not exist`);
+  }
+
+  /* Exactly one front door. Two means the H key and every home link are a
+     coin toss; none means they have nowhere to land. */
+  if (roots !== 1) fail('shared/catalog.js', `${roots} tracks are marked root; there must be exactly one`);
+
   for (const t of catalog.topics) {
+    if (t.track && !trackIds.has(t.track)) {
+      fail('shared/catalog.js', `"${t.id}" is in track "${t.track}", which is not a track`);
+    }
     if (!t.deck && !t.lab) fail('shared/catalog.js', `"${t.id}" has neither a deck nor a lab`);
     for (const f of [t.deck, t.lab].filter(Boolean)) {
       listed.add(f);
@@ -80,7 +109,6 @@ check('catalog matches the file tree', () => {
   }
 
   for (const f of htmlFiles) {
-    if (f === 'index.html') continue;
     if (!listed.has(f)) fail(f, 'exists but no catalog entry points at it');
   }
 
@@ -193,6 +221,11 @@ check('one theme key across the app', () => {
 const ids = new Set(catalog.topics.map((t) => t.id));
 const KINDS = new Set(['deck', 'lab', 'hub']);
 
+/* file -> the track whose hub it is. The front door predates tracks and
+   still says data-topic="hub"; a track hub added since names its track,
+   which is what gives it the accent hue and the bar's label. */
+const hubTrack = new Map(catalog.tracks.map((tr) => [tr.hub, tr]));
+
 function attr(text, name) {
   const m = new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`).exec(text);
   return m ? m[1] : null;
@@ -205,12 +238,25 @@ check('every page wears the shared chrome', () => {
     const topic = attr(tag, 'data-topic');
     const kind = attr(tag, 'data-kind');
 
+    const asHub = hubTrack.get(p.file);
+
     if (!topic) fail(p.file, '<html> has no data-topic');
-    else if (topic !== 'hub' && !ids.has(topic)) fail(p.file, `data-topic="${topic}" is not a catalog id`);
+    else if (asHub) {
+      /* 'hub' or its own track id, and nothing else: the hue and the bar's
+         breadcrumb are both keyed off this. */
+      if (topic !== 'hub' && topic !== asHub.id) {
+        fail(p.file, `is the ${asHub.id} hub, but says data-topic="${topic}"`);
+      }
+    } else if (!ids.has(topic)) {
+      fail(p.file, `data-topic="${topic}" is not a catalog id`);
+    }
+
     if (!kind || !KINDS.has(kind)) fail(p.file, `data-kind="${kind}" is not deck, lab or hub`);
+    if (asHub && kind !== 'hub') fail(p.file, `is the ${asHub.id} hub, but says data-kind="${kind}"`);
+    if (!asHub && kind === 'hub') fail(p.file, 'says data-kind="hub" but no track names it as one');
 
     /* The catalog and the page have to agree about which is which. */
-    if (topic && topic !== 'hub' && ids.has(topic) && (kind === 'deck' || kind === 'lab')) {
+    if (topic && !asHub && ids.has(topic) && (kind === 'deck' || kind === 'lab')) {
       const entry = catalog.byId(topic);
       if (entry[kind] !== p.file) {
         fail(p.file, `says it is the ${topic} ${kind}, but the catalog names ${entry[kind] || 'nothing'}`);
@@ -250,10 +296,18 @@ check('titles follow the pattern', () => {
     const title = m[1].trim();
     if (!title || /TITLE|SUBTITLE|Untitled/.test(title)) {
       fail(p.file, `title is still a placeholder: "${title}"`);
-    } else if (p.file !== 'index.html') {
+    } else {
       const kind = attr(/<html\b[^>]*>/i.exec(p.raw)[0], 'data-kind');
-      const want = `· ${kind === 'lab' ? 'Lab' : 'Deck'} · Atiq's DSA`;
-      if (!title.endsWith(want)) fail(p.file, `title should end "${want}", is "${title}"`);
+      /* A module's tab says Topic · Kind · Atiq's DSA, in that order. A hub
+         is not a module and the front door has read "Atiq's DSA · Decks and
+         labs" since before there was a second hub, so hubs are held to the
+         weaker rule that they say whose set this is at all. */
+      if (kind === 'hub') {
+        if (!title.includes("Atiq's DSA")) fail(p.file, `hub title does not name the set: "${title}"`);
+      } else {
+        const want = `· ${kind === 'lab' ? 'Lab' : 'Deck'} · Atiq's DSA`;
+        if (!title.endsWith(want)) fail(p.file, `title should end "${want}", is "${title}"`);
+      }
     }
   }
 

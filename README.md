@@ -1,8 +1,9 @@
 # Atiq's DSA
 
-Interactive teaching decks and hands-on labs for data structures and
-algorithms. Eight decks you read, eight labs you drive, one hub in front
-of them. It installs as a PWA and works with the network off.
+Interactive teaching decks and hands-on labs. Nine decks you read, eight
+labs you drive, and a hub in front of each track: data structures and
+algorithms at the front door, Python beside it. It installs as a PWA and
+works with the network off.
 
 Live at **https://rahman-atiq.github.io/atiq-dsa/** (GitHub Pages, from
 the repo root of `main`).
@@ -32,7 +33,8 @@ That is the same script CI runs, and it is the whole test suite. See
 ## How it is laid out
 
 ```
-index.html            the hub: every topic, rendered from the catalog
+index.html            the DSA hub, and the front door: cards from the catalog
+python.html           the Python hub, same shape, its own track
 <topic>.html          a deck — slides you read, argued from problem to solution
 <Topic>Lab.html       a lab — a thing you drive
 shared/               the only code more than one page shares
@@ -65,7 +67,9 @@ links them the same way:
 ```
 
 `data-topic` selects the topic's accent hue from `tokens.css` and its
-catalog entry; `data-kind` is `deck`, `lab` or `hub`. A page also carries
+catalog entry; `data-kind` is `deck`, `lab` or `hub`. On a hub page
+`data-topic` is the track's id instead (`python`), or `hub` on the front
+door, which predates tracks. A page also carries
 one inline snippet in its `<head>` that reads `dsa.theme` before first
 paint — `chrome.js` is deferred, so without it a dark-theme reload flashes
 white.
@@ -111,6 +115,41 @@ The full documentation is the comment block at the top of
 [`shared/chrome.js`](shared/chrome.js), which is kept honest by being the
 thing that actually runs.
 
+## Tracks
+
+A track is a subject area with its own hub. `dsa` is the original one and
+its hub is the front door; `python` sits beside it. A topic belongs to
+exactly one track and appears only on that track's hub, which is the whole
+reason the field exists — a single list of every page in the app stopped
+being a useful front door at about eleven entries.
+
+```js
+{ id: 'python', title: 'Python', hub: 'python.html', icon: 'i-python',
+  blurb: 'One line for the track card on the other hub.' }
+```
+
+Consequences worth knowing:
+
+- A topic with no `track` is a DSA topic. The eleven that predate tracks
+  say nothing, and adding the field to all of them would have been eleven
+  chances to typo the same string.
+- The chrome bar's home link and the `H` key go to the hub of the page's
+  **own** track, so a Python deck lands back on the Python hub and that
+  hub goes up to the front door. Off the front door, the link is labelled
+  with the track's name rather than "Hub", because it goes somewhere
+  different from page to page.
+- Each hub shows the other tracks as cards, and filters Continue to its
+  own — being offered slide 14 of a Python deck from the DSA front door is
+  a category error, not a convenience.
+- Exactly one track is `root: true`. The checker enforces it: two means
+  every home link is a coin toss, none means they have nowhere to land.
+
+Adding a track means a catalog entry, a hue in `tokens.css`, and a hub
+page. The hub is the one piece of deliberate duplication in the repo —
+`python.html` is `index.html`'s structure with its own palette and its own
+copy of the rendering script, because pages stay single-file and only the
+chrome and tokens are shared.
+
 ## Adding a topic
 
 Decks and labs are written with the `dsa-deck` skill, which produces the
@@ -126,6 +165,8 @@ single-file HTML. Once you have the file:
      desktop: true }
    ```
 
+   Add `track: 'python'` for a Python topic. Leaving it out means DSA.
+
    `desktop: true` marks a fixed-stage lab that does not reflow below
    ~760px; the hub badges it and the lab shows a "turn the phone sideways"
    panel instead of pretending.
@@ -134,8 +175,9 @@ single-file HTML. Once you have the file:
    `[data-topic="…"]` rules. One hue drives the page accent and the hub
    card both.
 
-3. **Add its icon** to the inline `<defs>` sprite in `index.html`, under
-   the id you put in `icon`.
+3. **Add its icon** to the inline `<defs>` sprite in the hub that will
+   show it — `index.html` or `python.html` — under the id you put in
+   `icon`. Each hub carries only the glyphs it draws.
 
 4. **Wire the page's head** as above, with a `<title>` of
    `Tries · Deck · Atiq's DSA`.
@@ -156,6 +198,9 @@ shipped was a copy of a list going quietly out of date:
 - every page carries the chrome contract, two `theme-color` metas and a
   pre-paint theme script
 - titles follow `Topic · Deck · Atiq's DSA`, with no placeholders left
+  (a hub only has to name the set)
+- every track has a hub that exists, no two tracks claim the same file,
+  exactly one is the front door, and every topic's `track` is a real one
 - `sw.js` still holds `__BUILD__` and still reads the catalog
 
 ## Deploying

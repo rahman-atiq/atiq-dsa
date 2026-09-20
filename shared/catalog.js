@@ -5,18 +5,35 @@
    plain classic script hanging things off `self` rather than a
    module:
      index.html    renders the cards and the header stats
+     python.html   the same, for its own track
      shared/chrome.js  breadcrumb, sibling link, desktop badge
      sw.js         precache list, via importScripts()
 
    Adding a module means adding one entry here. Nothing else in
    the app keeps a second copy of this list.
 
-   Fields
+   Tracks
+     A track is a subject area with its own hub page. `dsa` is the
+     original one and its hub is the front door; `python` sits
+     beside it. A topic belongs to exactly one track, and the hub
+     of a track shows only its own topics -- which is the whole
+     reason the field exists, since a list of every page in the app
+     stopped being a useful front door at about eleven entries.
+
+     id       matches a [data-topic] hue in shared/tokens.css, and
+              the data-topic attribute on that track's hub page
+     title    display name, used on the bar and on the track card
+     hub      the page that lists this track's topics
+     root     true for the one hub that is also the site front door
+     blurb    one line for the track card on another track's hub
+
+   Fields on a topic
      id       matches the [data-topic] hue in shared/tokens.css
               and the data-topic attribute on the pages below
+     track    which hub lists it; defaults to 'dsa' when absent
      title    display name, used in breadcrumbs and on cards
      blurb    one line for the hub card
-     icon     id of a <g> in the hub's inline <defs> sprite
+     icon     id of a <g> in that hub's inline <defs> sprite
      deck     file for the explainer, if the topic has one
      lab      file for the interactive lab, if the topic has one
      desktop  true for the fixed-stage labs, which do not reflow
@@ -24,6 +41,26 @@
    ============================================================ */
 (function (root) {
   'use strict';
+
+  var TRACKS = [
+    {
+      id: 'dsa',
+      title: 'Data Structures & Algorithms',
+      short: 'DSA',
+      hub: 'index.html',
+      root: true,
+      icon: 'i-dsa',
+      blurb: 'Trees, sorts, hashing and graphs, argued from the problem up.'
+    },
+    {
+      id: 'python',
+      title: 'Python',
+      short: 'Python',
+      hub: 'python.html',
+      icon: 'i-python',
+      blurb: 'The language up close: the object model, and the rules that explain its behaviour.'
+    }
+  ];
 
   var TOPICS = [
     {
@@ -111,6 +148,14 @@
       blurb: 'Cache lines, locality, and why the constant factor wins arguments.',
       icon: 'i-memory',
       lab: 'MemoryLab.html'
+    },
+    {
+      id: 'python-oop',
+      track: 'python',
+      title: 'Python OOP',
+      blurb: 'One lookup rule behind every class, property, mixin and metaclass.',
+      icon: 'i-class',
+      deck: 'python-oop.html'
     }
   ];
 
@@ -160,14 +205,48 @@
     'fonts/spectral-700-latin.woff2'
   ];
 
+  var DEFAULT_TRACK = 'dsa';
+
   function byId(id) {
     for (var i = 0; i < TOPICS.length; i++) if (TOPICS[i].id === id) return TOPICS[i];
     return null;
   }
 
-  /* Every local page this app owns, hub first. */
+  function trackById(id) {
+    for (var i = 0; i < TRACKS.length; i++) if (TRACKS[i].id === id) return TRACKS[i];
+    return null;
+  }
+
+  function rootTrack() {
+    for (var i = 0; i < TRACKS.length; i++) if (TRACKS[i].root) return TRACKS[i];
+    return TRACKS[0];
+  }
+
+  /* A topic without a `track` is a DSA topic: the eleven that predate
+     tracks say nothing, and adding the field to all of them would have
+     been eleven chances to typo the same string. */
+  function trackIdOf(topic) {
+    return (topic && topic.track) || DEFAULT_TRACK;
+  }
+
+  function trackOf(topic) {
+    return trackById(trackIdOf(topic)) || rootTrack();
+  }
+
+  function inTrack(trackId) {
+    return TOPICS.filter(function (t) { return trackIdOf(t) === trackId; });
+  }
+
+  /* Where the chrome bar's home link and the H key should land from a
+     given page. A topic page goes to its own track's hub; a track hub
+     goes up to the front door. */
+  function hubFor(topic) {
+    return trackOf(topic).hub;
+  }
+
+  /* Every local page this app owns: the hubs first, then the modules. */
   function pages() {
-    var out = ['index.html'];
+    var out = TRACKS.map(function (tr) { return tr.hub; });
     TOPICS.forEach(function (t) {
       if (t.deck) out.push(t.deck);
       if (t.lab) out.push(t.lab);
@@ -175,19 +254,28 @@
     return out;
   }
 
-  function count(kind) {
-    return TOPICS.filter(function (t) { return t[kind]; }).length;
+  function count(kind, trackId) {
+    return TOPICS.filter(function (t) {
+      return t[kind] && (!trackId || trackIdOf(t) === trackId);
+    }).length;
   }
 
   root.DSA_CATALOG = {
     topics: TOPICS,
+    tracks: TRACKS,
     byId: byId,
+    trackById: trackById,
+    trackIdOf: trackIdOf,
+    trackOf: trackOf,
+    rootTrack: rootTrack,
+    inTrack: inTrack,
+    hubFor: hubFor,
     pages: pages,
     shared: SHARED,
     icons: ICONS,
     fonts: FONTS,
-    decks: function () { return count('deck'); },
-    labs: function () { return count('lab'); },
-    modules: function () { return count('deck') + count('lab'); }
+    decks: function (trackId) { return count('deck', trackId); },
+    labs: function (trackId) { return count('lab', trackId); },
+    modules: function (trackId) { return count('deck', trackId) + count('lab', trackId); }
   };
 })(typeof self !== 'undefined' ? self : this);

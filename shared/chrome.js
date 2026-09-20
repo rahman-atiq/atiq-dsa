@@ -5,10 +5,16 @@
    Loaded deferred, after shared/catalog.js, on every page. It reads
    two attributes off <html>:
 
-     data-topic  an id from the catalog ('b-trees'), or 'hub'
+     data-topic  an id from the catalog ('b-trees'), a track id on
+                 that track's hub page ('python'), or 'hub' on the
+                 front door
      data-kind   'deck' | 'lab' | 'hub'
 
-   and builds the bar from the catalog entry. It also owns the theme
+   and builds the bar from the catalog entry. A topic belongs to a
+   track, and a track owns a hub: the home link and the H key land on
+   the hub of the page's own track rather than on the front door, so
+   a Python deck goes back to the Python hub and that hub goes up to
+   the front door. It also owns the theme
    outright: no page keeps its own toggle, key binding or storage
    call any more. Pages that need to know when the palette moved --
    the decks redraw SVG built from custom-property values -- listen
@@ -52,6 +58,36 @@
   var catalog = window.DSA_CATALOG || null;
   var topic = (catalog && catalog.byId(topicId)) || null;
   var track = window.DSA_TRACK || null;
+
+  /* The subject area the page belongs to -- the thing that owns a hub.
+     The catalog calls it a track; here `track` is already taken by the
+     page's own slide sequence, and two different tracks in one file is
+     one more than anybody can hold.
+
+     A topic page finds it through its entry; a hub page carries its own
+     track id in data-topic, except the front door, which predates tracks
+     and says 'hub'. Anything unrecognised falls back to the front door:
+     a bar with a dead home link is worse than one with a wrong label. */
+  var subject = null;
+  if (catalog) {
+    subject = kind === 'hub'
+      ? (catalog.trackById(topicId) || catalog.rootTrack())
+      : (topic ? catalog.trackOf(topic) : catalog.rootTrack());
+  }
+  var rootHub = (catalog && catalog.rootTrack().hub) || 'index.html';
+  var awayTrack = !!(subject && !subject.root);
+
+  /* Where the home link and the H key go from here. A track hub goes up
+     to the front door; the front door itself has nowhere to go. */
+  function hubHref() {
+    if (kind !== 'hub') return (subject && subject.hub) || rootHub;
+    return awayTrack ? rootHub : null;
+  }
+
+  function hubWords() {
+    if (kind === 'hub') return 'the front door';
+    return awayTrack ? 'the ' + subject.title + ' hub' : 'the hub';
+  }
 
   /* ---------------- theme ----------------
      One key for the whole app. The pre-paint snippet in each page's
@@ -269,7 +305,10 @@
     var bar = el('header', 'dsa-bar');
     bar.setAttribute('role', 'banner');
 
-    if (kind === 'hub') {
+    var href = hubHref();
+    if (!href) {
+      /* The front door: the glyph is a label there, not a link back to
+         the page the reader is already standing on. */
       var brand = span('dsa-home');
       brand.appendChild(span('dsa-glyph', '⌂'));
       brand.appendChild(span('dsa-label', 'Hub'));
@@ -277,11 +316,24 @@
     } else {
       var home = document.createElement('a');
       home.className = 'dsa-home';
-      home.href = 'index.html';
-      home.setAttribute('aria-label', 'Back to the hub');
+      home.href = href;
+      home.setAttribute('aria-label', 'Back to ' + hubWords());
       home.appendChild(span('dsa-glyph', '⌂'));
-      home.appendChild(span('dsa-label', 'Hub'));
+      /* Named rather than just '⌂ Hub': off the front door, the home link
+         goes somewhere different from page to page, and a reader who
+         cannot tell which hub is about to swallow their place in a deck
+         will not press it. */
+      home.appendChild(span('dsa-label', awayTrack && kind !== 'hub' ? subject.title : 'Hub'));
       bar.appendChild(home);
+    }
+
+    /* A track hub names itself where a topic page names its topic. */
+    if (kind === 'hub' && awayTrack) {
+      var hubCrumb = el('nav', 'dsa-crumb');
+      hubCrumb.setAttribute('aria-label', 'Breadcrumb');
+      hubCrumb.appendChild(span('dsa-sep', '/'));
+      hubCrumb.appendChild(span('dsa-topic', subject.title));
+      bar.appendChild(hubCrumb);
     }
 
     if (topic) {
@@ -396,7 +448,7 @@
         : 'Overview — jump to any slide');
     }
     keyRow(dl, 'T', 'Cycle the colour theme: auto, light, dark');
-    keyRow(dl, 'H', 'Back to the hub');
+    if (hubHref()) keyRow(dl, 'H', 'Back to ' + hubWords());
     keyRow(dl, '?', 'Open and close this list');
     keyRow(dl, 'Esc', 'Close whatever is open');
     sheet.appendChild(dl);
@@ -681,9 +733,11 @@
       e.preventDefault(); e.stopPropagation(); showPanel('overview');
     }
     else if (e.key === 't' || e.key === 'T') { e.preventDefault(); cycleTheme(); }
-    else if ((e.key === 'h' || e.key === 'H') && kind !== 'hub') {
+    else if (e.key === 'h' || e.key === 'H') {
+      var to = hubHref();
+      if (!to) return;
       e.preventDefault();
-      location.href = 'index.html';
+      location.href = to;
     }
   }, true);
 

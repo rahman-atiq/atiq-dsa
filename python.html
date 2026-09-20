@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-topic="hub" data-kind="hub">
+<html lang="en" data-topic="python" data-kind="hub">
 <head>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <meta name="googlebot" content="noindex, nofollow">
@@ -18,7 +18,7 @@
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atiq's DSA · Decks and labs</title>
+<title>Python · Hub · Atiq's DSA</title>
 <link rel="stylesheet" href="shared/tokens.css">
 <link rel="stylesheet" href="shared/chrome.css">
 <script src="shared/catalog.js" defer></script>
@@ -32,20 +32,25 @@ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)
 </script>
 <style>
 /* ============================================================
-   The hub keeps its own deep-space surface rather than the reading
-   greys the decks use -- it is the front door, not a page you read
-   for an hour. Everything else (type, accents, the chrome bar) comes
-   from shared/tokens.css, and the per-topic hue on each card is the
-   same [data-topic] hue the topic's own pages use.
-   ============================================================ */
-/* Every selector here carries [data-topic="hub"] for a reason: the dark
-   block in shared/tokens.css is :root:not([data-theme="light"]), which
-   outranks a bare :root no matter how late it is loaded. Matching its
-   specificity is what lets the hub keep its own ground.
+   The Python hub. Same deep-space ground as the front door --
+   two hubs that look like two different apps would be worse
+   than one long list -- with the accent moved onto the
+   language's own blue and gold.
 
-   Dark is the base here, not light -- deep space is the hub's resting
-   state, and daylight is the variant. */
-:root[data-topic="hub"]{
+   A hub is still a page, so this file owns its own markup and
+   styles the way every other page does. The duplication with
+   index.html is the price of that rule and is deliberate:
+   these are readable-on-their-own artefacts, and only the
+   chrome and the tokens are shared.
+   ============================================================ */
+/* Every selector carries [data-topic="python"] for the same reason the
+   front door carries [data-topic="hub"]: the dark block in
+   shared/tokens.css is :root:not([data-theme="light"]), which outranks a
+   bare :root however late it loads. Matching its specificity is what lets
+   a hub keep its own ground.
+
+   Dark is the base here, not light. */
+:root[data-topic="python"]{
   color-scheme:dark;
   --bg:#04060f;
   --bg-deep:#010206;
@@ -59,13 +64,13 @@ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)
 
   --glass:rgba(255,255,255,.032);
   --glass-hover:rgba(255,255,255,.062);
-  --sky-1:rgba(90,80,220,.30);
-  --sky-2:rgba(70,232,210,.13);
-  --sky-3:rgba(255,95,168,.11);
+  --sky-1:rgba(55,118,171,.34);
+  --sky-2:rgba(255,212,59,.10);
+  --sky-3:rgba(75,139,190,.14);
   --grid-ink:rgba(140,170,255,.075);
-  --orb-1:rgba(139,108,255,.85);
-  --orb-2:rgba(70,232,210,.60);
-  --orb-3:rgba(255,95,168,.45);
+  --orb-1:rgba(75,139,190,.85);
+  --orb-2:rgba(255,212,59,.42);
+  --orb-3:rgba(110,160,255,.50);
   --orb-opacity:.5;
 
   /* card colour: bright and saturated against a near-black ground */
@@ -75,7 +80,7 @@ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)
 
 /* Daylight. Same layout, same hues, inverted ground: the orbs become a
    pale wash instead of glowing, because a glow on white is just a smudge. */
-@media (prefers-color-scheme:light){:root[data-topic="hub"]:not([data-theme="dark"]){
+@media (prefers-color-scheme:light){:root[data-topic="python"]:not([data-theme="dark"]){
   color-scheme:light;
   --bg:#F1F4FC;
   --bg-deep:#E4EAF8;
@@ -89,19 +94,19 @@ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)
 
   --glass:rgba(255,255,255,.62);
   --glass-hover:rgba(255,255,255,.88);
-  --sky-1:rgba(120,110,235,.16);
-  --sky-2:rgba(40,190,170,.12);
-  --sky-3:rgba(255,95,168,.09);
+  --sky-1:rgba(55,118,171,.16);
+  --sky-2:rgba(255,196,40,.13);
+  --sky-3:rgba(75,139,190,.12);
   --grid-ink:rgba(60,80,160,.07);
-  --orb-1:rgba(139,108,255,.30);
-  --orb-2:rgba(40,200,180,.26);
-  --orb-3:rgba(255,95,168,.20);
+  --orb-1:rgba(55,118,171,.30);
+  --orb-2:rgba(240,190,40,.26);
+  --orb-3:rgba(110,160,255,.22);
   --orb-opacity:.42;
 
   --card-l:38%;
   --card-s:62%;
 }}
-:root[data-topic="hub"][data-theme="light"]{
+:root[data-topic="python"][data-theme="light"]{
   color-scheme:light;
   --bg:#F1F4FC;
   --bg-deep:#E4EAF8;
@@ -115,13 +120,13 @@ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)
 
   --glass:rgba(255,255,255,.62);
   --glass-hover:rgba(255,255,255,.88);
-  --sky-1:rgba(120,110,235,.16);
-  --sky-2:rgba(40,190,170,.12);
-  --sky-3:rgba(255,95,168,.09);
+  --sky-1:rgba(55,118,171,.16);
+  --sky-2:rgba(255,196,40,.13);
+  --sky-3:rgba(75,139,190,.12);
   --grid-ink:rgba(60,80,160,.07);
-  --orb-1:rgba(139,108,255,.30);
-  --orb-2:rgba(40,200,180,.26);
-  --orb-3:rgba(255,95,168,.20);
+  --orb-1:rgba(55,118,171,.30);
+  --orb-2:rgba(240,190,40,.26);
+  --orb-3:rgba(110,160,255,.22);
   --orb-opacity:.42;
 
   --card-l:38%;
@@ -185,29 +190,30 @@ header{margin-bottom:clamp(2.5rem,5vw,3.75rem)}
 }
 .chip .dot{
   width:7px; height:7px; border-radius:50%;
-  background:hsl(168 var(--card-s) var(--card-l));
-  box-shadow:0 0 10px 2px hsl(168 var(--card-s) var(--card-l) / .7);
+  background:hsl(207 var(--card-s) var(--card-l));
+  box-shadow:0 0 10px 2px hsl(207 var(--card-s) var(--card-l) / .7);
   animation:pulse 2.4s ease-in-out infinite;
 }
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
 
+/* Blue to gold, flat at both ends so the two colours are unmistakably the
+   language's rather than a wash that happens to pass through them. */
 h1{
   font-family:var(--serif); font-weight:700;
   font-size:clamp(2.4rem,7vw,4.2rem); line-height:1.04;
   letter-spacing:-.025em; margin:0 0 1rem;
   background:linear-gradient(100deg,
-    hsl(205 var(--card-s) var(--card-l)) 0%,
-    hsl(168 var(--card-s) var(--card-l)) 26%,
-    hsl(265 var(--card-s) var(--card-l)) 55%,
-    hsl(345 var(--card-s) var(--card-l)) 80%,
-    hsl(28  var(--card-s) var(--card-l)) 100%);
+    hsl(207 var(--card-s) var(--card-l)) 0%,
+    hsl(207 var(--card-s) var(--card-l)) 20%,
+    hsl(48  var(--card-s) var(--card-l)) 88%,
+    hsl(48  var(--card-s) var(--card-l)) 100%);
   background-size:250% 100%;
   -webkit-background-clip:text; background-clip:text; color:transparent;
   animation:sheen 12s linear infinite;
 }
 @keyframes sheen{to{background-position:250% 0}}
 
-p.sub{color:var(--fg-dim); font-size:clamp(1rem,2vw,1.1rem); max-width:54ch; margin:0 0 1.9rem}
+p.sub{color:var(--fg-dim); font-size:clamp(1rem,2vw,1.1rem); max-width:58ch; margin:0 0 1.9rem}
 
 .stats{display:flex; flex-wrap:wrap; gap:.6rem}
 .stat{
@@ -229,10 +235,7 @@ h2{
 h2::after{content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--line-strong),transparent)}
 h2 .count{font-size:.7rem; color:var(--fg-faint); letter-spacing:.1em}
 
-/* ---------- topic rows ----------
-   One row per topic, with whichever of deck and lab exist as actions.
-   The old page had two grids, which meant the AVL deck and the AVL lab
-   were eight cards apart and nothing said they were the same subject. */
+/* ---------- topic rows ---------- */
 .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(430px,1fr)); gap:.9rem}
 
 .topic{
@@ -302,19 +305,10 @@ h2 .count{font-size:.7rem; color:var(--fg-faint); letter-spacing:.1em}
   font-size:.58rem; letter-spacing:.12em; padding:.15rem .4rem;
   border:1px solid currentColor; border-radius:999px; opacity:.72;
 }
-.act.soon{opacity:.45; pointer-events:none}
 
-
-/* ---------- continue where you left off ----------
-   Written by shared/chrome.js on every page as you move through it, read
-   back here. It is the one thing a front door owes you that a grid of
-   links does not: the way back in. */
+/* ---------- continue where you left off ---------- */
 .resume{
   position:relative; display:grid;
-  /* Placed explicitly rather than left to auto-flow: the Resume button is
-     last in the source so it falls to the bottom when the card collapses
-     to two columns, and is pinned to the right-hand column when it does
-     not. Auto-flow put it above the line of text it acts on. */
   grid-template-columns:auto minmax(0,1fr) auto;
   grid-template-rows:auto auto auto; align-items:center; gap:.5rem 1.15rem;
   padding:1.15rem 1.35rem; border-radius:16px; margin-bottom:1rem;
@@ -357,7 +351,6 @@ h2 .count{font-size:.7rem; color:var(--fg-faint); letter-spacing:.1em}
 .resume-go:hover i{ transform:translateX(4px); }
 .resume-go:focus-visible{ outline:2px solid hsl(var(--topic-h) var(--card-s) var(--card-l)); outline-offset:2px; }
 
-/* the bar under the line of text, only for things measured in slides */
 .resume-bar{
   grid-column:2; grid-row:3; height:3px; border-radius:999px; margin-top:.15rem;
   background:var(--line-strong); overflow:hidden;
@@ -375,14 +368,10 @@ h2 .count{font-size:.7rem; color:var(--fg-faint); letter-spacing:.1em}
   .resume-go{ grid-column:1 / -1; grid-row:4; justify-self:stretch; justify-content:center; margin-top:.65rem; }
 }
 
-/* ---------- per-action progress ----------
-   A ring rather than a number alone: at a glance you want "barely
-   started" vs "nearly done", and only then the exact slide. */
+/* ---------- per-action progress ---------- */
 .act .pr{
   display:inline-flex; align-items:center; gap:.35rem;
   font-size:.62rem; letter-spacing:.06em; color:var(--fg-faint);
-  /* "Circ-Doubly" and "Expression tree" are real section names. Cap them
-     rather than letting one card grow a row taller than its neighbours. */
   max-width:11ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .act:hover .pr{ color:inherit; }
@@ -392,22 +381,14 @@ h2 .count{font-size:.7rem; color:var(--fg-faint); letter-spacing:.1em}
   -webkit-mask:radial-gradient(closest-side, transparent 56%, #000 58%);
   mask:radial-gradient(closest-side, transparent 56%, #000 58%);
 }
-/* No mask support: a filled pie still reads as a progress dot. */
 @supports not ((mask:radial-gradient(closest-side, transparent 56%, #000 58%)) or (-webkit-mask:radial-gradient(closest-side, transparent 56%, #000 58%))){
   .act .ring{ width:9px; height:9px; }
 }
 
 /* ---------- tracks ----------
-   The other hubs. One row, directly under the stats, because a front door
-   can only advertise a second subject in the place a reader already looks
-   -- below eleven topic cards is a place nobody scrolls to on purpose.
-
-   The card carries its own pair of hues rather than a --topic-h. Python's
-   blue sits two degrees from the Binary Trees card's, and side by side on
-   one page the pair read as a printing error rather than as two subjects;
-   a gradient between the language's own blue and gold cannot be mistaken
-   for anything else. Both ends are hsl() against --card-s and --card-l, so
-   they follow the theme like every other colour here. */
+   The other hubs. Same card as the front door's, and the same reason for
+   the gradient: a track is a subject, not a topic, and it does not borrow
+   a topic hue. */
 .track{
   position:relative; display:grid;
   grid-template-columns:auto minmax(0,1fr) auto;
@@ -484,7 +465,7 @@ footer{
   display:flex; justify-content:space-between; flex-wrap:wrap; gap:.6rem;
 }
 footer .mark{
-  background:linear-gradient(90deg,hsl(168 var(--card-s) var(--card-l)),hsl(265 var(--card-s) var(--card-l)));
+  background:linear-gradient(90deg,hsl(207 var(--card-s) var(--card-l)),hsl(48 var(--card-s) var(--card-l)));
   -webkit-background-clip:text; background-clip:text; color:transparent;
 }
 
@@ -506,17 +487,12 @@ footer .mark{
 }
 
 /* ---------- print ----------
-   Deep space is a screen idea. On paper the backgrounds are not printed
-   at all, so a dark hub comes out as a blank sheet with invisible white
-   text on it. Print gets daylight, no orbs and no glass -- a plain index
-   of what is in here, which is all a printed hub could ever be.
-
-   This is the one page that inverts the app's default, so it is the one
-   page that needs its own print palette; everywhere else shared/tokens.css
-   already gates its dark blocks to `screen`. */
+   Deep space is a screen idea; on paper the backgrounds are not printed at
+   all, so a dark hub comes out as a blank sheet. Print gets daylight and a
+   plain index, which is all a printed hub could ever be. */
 @media print{
   @page{margin:14mm}
-  :root[data-topic="hub"]{
+  :root[data-topic="python"]{
     color-scheme:light;
     --bg:#FFFFFF; --bg-deep:#FFFFFF; --surface:#FFFFFF; --surface-2:#FFFFFF;
     --fg:#161A2C; --fg-dim:#4B5473; --fg-faint:#7B85A5;
@@ -528,9 +504,6 @@ footer .mark{
   }
   .sky,.orb{display:none!important}
   .grid{grid-template-columns:1fr!important}
-  /* The cards enter at opacity 0 and are raised by an observer as you
-     scroll. Print never scrolls, so without this the sheet comes out
-     holding nothing but the header. */
   .reveal{opacity:1!important;transform:none!important;animation:none!important}
   .topic,.resume,.track{break-inside:avoid;page-break-inside:avoid}
 }
@@ -545,75 +518,32 @@ footer .mark{
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
-      <g id="i-recursion" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 7h9a4 4 0 0 1 0 8H8"/><path d="M10.5 12.5 7.5 15l3 2.5"/><path d="M4 7v10"/>
+      <!-- A class, drawn the way a class diagram draws one: a name band,
+           then the members, then the arrow that says something inherits
+           from it. -->
+      <g id="i-class" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="3" width="16" height="7" rx="1.4"/>
+        <path d="M4 7.2h16"/>
+        <path d="M12 10v4.2"/>
+        <path d="m9.6 12.6 2.4-2.6 2.4 2.6"/>
+        <rect x="4" y="14.4" width="16" height="6.6" rx="1.4"/>
+        <path d="M7 17.6h5"/>
       </g>
-      <g id="i-binary" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+      <!-- The DSA track: a tree, because that is what eight of its eleven
+           topics are underneath. -->
+      <g id="i-dsa" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
         <circle cx="12" cy="4.5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="12" r="2"/>
         <circle cx="3.5" cy="19.5" r="1.7"/><circle cx="9" cy="19.5" r="1.7"/>
         <path d="M10.7 6.1 7.3 10.4M13.3 6.1l3.4 4.3M5.2 13.7l-.9 4.2M6.9 13.7l1.6 4.2"/>
-      </g>
-      <g id="i-avl" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-        <circle cx="12" cy="5" r="2"/><circle cx="5.5" cy="13" r="2"/><circle cx="18.5" cy="13" r="2"/>
-        <path d="M10.6 6.6 6.9 11.4M13.4 6.6l3.7 4.8"/>
-        <path d="M3 19.5h6M15 19.5h6"/>
-      </g>
-      <g id="i-rb" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-        <circle cx="12" cy="5" r="2"/><circle cx="6" cy="13" r="2" fill="currentColor"/><circle cx="18" cy="13" r="2"/>
-        <path d="M10.7 6.6 7.3 11.4M13.3 6.6l3.4 4.8"/>
-        <circle cx="18" cy="20" r="1.7" fill="currentColor"/><path d="M18 15v3.3"/>
-      </g>
-      <g id="i-btree" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="7" y="3.5" width="10" height="4.5" rx="1.4"/><path d="M11.3 3.5v4.5M14 3.5v4.5"/>
-        <rect x="2" y="15.5" width="7" height="4.5" rx="1.4"/>
-        <rect x="15" y="15.5" width="7" height="4.5" rx="1.4"/>
-        <path d="M9.5 8.3 6.3 15.2M14.5 8.3l3.2 6.9"/>
-      </g>
-      <g id="i-heap" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-        <path d="M10.6 6.6 7.4 10.4M13.4 6.6l3.2 3.8M5.4 14.1 4.1 17.2M8.1 14.1l1.3 3.1M14.6 14.1l1.3 3.1M17.3 14.1l1.3 3.1"/>
-        <circle cx="12" cy="4.6" r="2" fill="currentColor"/>
-        <circle cx="6.2" cy="12" r="1.9"/><circle cx="17.8" cy="12" r="1.9"/>
-        <circle cx="3.2" cy="19.2" r="1.5"/><circle cx="9.2" cy="19.2" r="1.5"/>
-        <circle cx="14.8" cy="19.2" r="1.5"/><circle cx="20.8" cy="19.2" r="1.5"/>
-      </g>
-      <g id="i-hash" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-        <path d="M9 3 7 21M17 3l-2 18M3.5 8.5h18M2.5 15.5h18"/>
-      </g>
-      <g id="i-graph" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-        <circle cx="5" cy="6" r="2"/><circle cx="19" cy="7.5" r="2"/><circle cx="12" cy="13" r="2"/>
-        <circle cx="6" cy="19" r="2"/><circle cx="18" cy="18.5" r="2"/>
-        <path d="M6.7 7.4 10.4 11.7M17.3 8.8 13.6 11.7M11.2 14.8 7.4 17.6M13.4 14.2l3.2 3"/>
-      </g>
-      <g id="i-list" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2" y="9" width="6" height="6" rx="1.4"/><rect x="16" y="9" width="6" height="6" rx="1.4"/>
-        <path d="M8.5 12h7"/><path d="m13 9.8 2.6 2.2L13 14.2"/>
-      </g>
-      <g id="i-sort" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-        <path d="M4 19V9.5M9.3 19V4.5M14.7 19v-7M20 19v-4"/>
-      </g>
-      <g id="i-memory" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="5" y="5" width="14" height="14" rx="2"/>
-        <path d="M9.5 5v14M14.5 5v14M5 9.5h14M5 14.5h14"/>
-        <path d="M9.5 2.5v2.5M14.5 2.5v2.5M9.5 19v2.5M14.5 19v2.5"/>
-      </g>
-      <!-- The two interlocking halves, drawn as outlines like every other
-           glyph here rather than as the two-colour logo: this sprite is
-           stroked with currentColor and a brand mark would be the one
-           thing on the page that ignores the theme. -->
-      <g id="i-python" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2.8c-3 0-4.2 1-4.2 2.6v2.2h4.4v.8H5.9C4.2 8.4 3 9.6 3 12.4s1.1 3.9 2.7 3.9h1.5v-2.5c0-1.8 1.4-3.2 3.3-3.2h3.9c1.5 0 2.7-1.2 2.7-2.7V5.4c0-1.4-1.3-2.6-4.1-2.6z"/>
-        <path d="M12 21.2c3 0 4.2-1 4.2-2.6v-2.2h-4.4v-.8h6.3c1.7 0 2.9-1.2 2.9-4s-1.1-3.9-2.7-3.9h-1.5v2.5c0 1.8-1.4 3.2-3.3 3.2h-3.9c-1.5 0-2.7 1.2-2.7 2.7v3.5c0 1.4 1.3 2.6 4.1 2.6z"/>
-        <circle cx="9.6" cy="5.9" r=".85" fill="currentColor" stroke="none"/>
-        <circle cx="14.4" cy="18.1" r=".85" fill="currentColor" stroke="none"/>
       </g>
     </defs>
   </svg>
 
   <div class="wrap">
     <header>
-      <div class="chip reveal"><span class="dot"></span>Data Structures &amp; Algorithms</div>
-      <h1 class="reveal">Atiq's DSA Deck</h1>
-      <p class="sub reveal">Interactive teaching decks and hands-on labs. Every structure explained from the problem up, with live implementations you can run, break, and measure.</p>
+      <div class="chip reveal"><span class="dot"></span>The object model, up close</div>
+      <h1 class="reveal">Python</h1>
+      <p class="sub reveal">The language explained by the rules underneath it, not by its syntax. Every claim is something you can run, break, and measure in the page.</p>
       <div class="stats reveal" id="stats"></div>
     </header>
 
@@ -633,17 +563,16 @@ footer .mark{
     </section>
 
     <footer>
-      <span class="mark">Atiq's DSA Deck</span>
+      <span class="mark">Atiq's Python</span>
       <span>Built to be read, run, and argued with</span>
     </footer>
   </div>
 
 <script>
 /* Everything on this page is drawn from shared/catalog.js, so adding a
-   module means adding one entry there and nothing here. The counts used
-   to be three hand-typed numbers that were wrong the moment anything
-   moved. */
-/* On DOMContentLoaded, not immediately: shared/catalog.js is deferred, so
+   Python module means adding one entry there and nothing here.
+
+   On DOMContentLoaded, not immediately: shared/catalog.js is deferred, so
    it has not run yet while this inline script is being parsed. Deferred
    scripts all finish before DOMContentLoaded fires, which makes this the
    earliest point where DSA_CATALOG is guaranteed to exist. */
@@ -651,11 +580,11 @@ document.addEventListener('DOMContentLoaded', function(){
   var cat = window.DSA_CATALOG;
   if (!cat) return;
 
-  /* This page is one track's hub, not a list of everything in the app.
-     Which track it is comes from the catalog rather than from a string
-     typed here, so the day a second front door makes more sense than
-     this one, nothing on this page has an opinion about it. */
-  var TRACK = cat.rootTrack();
+  /* Which track this hub is comes from the attribute the chrome bar and
+     the accent hue already read, rather than from a second copy of the
+     string 'python' living down here. */
+  var TRACK = cat.trackById(document.documentElement.getAttribute('data-topic'));
+  if (!TRACK) return;
   var topics = cat.inTrack(TRACK.id);
 
   var esc = function(s){
@@ -664,13 +593,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
   /* ---------- where you got to ----------
      shared/chrome.js writes one `dsa.progress.<topic>.<deck|lab>` record
-     per page as you move through it. Keyed by page and not by topic on
-     purpose: the B-Trees deck and the B-Trees lab are the same subject
-     but not the same place, and a bookmark in one is no use in the other.
-
-     Anything unparseable is dropped without comment. A hub that throws
-     because of a stale localStorage entry is worse than one with no
-     Continue card. */
+     per page as you move through it. Anything unparseable is dropped
+     without comment: a hub that throws because of a stale localStorage
+     entry is worse than one with no Continue card. */
   var PREFIX = 'dsa.progress.';
 
   function readProgress(){
@@ -686,10 +611,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if (kind !== 'deck' && kind !== 'lab') continue;
         var t0 = cat.byId(id);
         if (!t0) continue;                           /* topic since removed */
-        /* Somebody else's track keeps its own bookmark on its own hub.
-           Being offered slide 14 of the Python deck from the DSA front
-           door is a category error, not a convenience. */
-        if (cat.trackIdOf(t0) !== TRACK.id) continue;
+        if (cat.trackIdOf(t0) !== TRACK.id) continue; /* another hub's business */
         try { rec = JSON.parse(localStorage.getItem(key)); } catch (e) { continue; }
         if (!rec || typeof rec.at !== 'number' || typeof rec.total !== 'number') continue;
         if (rec.total < 1 || rec.at < 1 || rec.at > rec.total) continue;
@@ -745,8 +667,6 @@ document.addEventListener('DOMContentLoaded', function(){
       : '<div class="resume-bar"><i style="width:' + pct(best) + '%"></i></div>';
 
     var kindWord = best.pageKind === 'lab' ? 'Lab' : 'Deck';
-    /* Source order matches reading order -- the card is placed by explicit
-       grid areas, so the link can come last here and still sit on the right. */
     document.getElementById('resume').innerHTML =
       '<article class="resume" data-topic="' + best.topicId + '">' +
         '<span class="glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#' + t.icon + '"/></svg></span>' +
@@ -763,9 +683,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('resumeWrap').hidden = false;
   }
 
-  /* ---------- the other hubs ----------
-     Every track but this one, so adding a third is an entry in the
-     catalog and nothing here. */
+  /* ---------- the other hubs ---------- */
   function renderTracks(){
     var others = cat.tracks.filter(function(tr){ return tr.id !== TRACK.id; });
     if (!others.length) return;
@@ -785,11 +703,17 @@ document.addEventListener('DOMContentLoaded', function(){
 
   renderTracks();
 
-  document.getElementById('stats').innerHTML =
-    '<div class="stat"><b>' + cat.modules(TRACK.id) + '</b><span>Modules</span></div>' +
-    '<div class="stat"><b>' + cat.decks(TRACK.id) + '</b><span>Decks</span></div>' +
-    '<div class="stat"><b>' + cat.labs(TRACK.id) + '</b><span>Labs</span></div>' +
-    '<div class="stat"><b>C</b><span>Reference impls</span></div>';
+  /* A count of zero is not a fact worth a tile: a track with no labs yet
+     should say nothing about labs rather than lead with the nought. */
+  var tiles = [[cat.modules(TRACK.id), 'Modules'],
+               [cat.decks(TRACK.id), 'Decks'],
+               [cat.labs(TRACK.id), 'Labs']]
+    .filter(function(t){ return t[0] > 0; })
+    .concat([['3.12+', 'Targets']]);
+
+  document.getElementById('stats').innerHTML = tiles.map(function(t){
+    return '<div class="stat"><b>' + t[0] + '</b><span>' + t[1] + '</span></div>';
+  }).join('');
 
   document.getElementById('topicCount').textContent =
     String(topics.length).padStart(2, '0');
